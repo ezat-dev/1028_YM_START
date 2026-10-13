@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { IconLock, IconUser, IconHexagon, IconShieldCheck } from '@tabler/icons-react';
+import { IconLock, IconUser, IconHexagon, IconShieldCheck, IconEye, IconEyeOff, IconAlertTriangle } from '@tabler/icons-react';
 import { useAuth } from '../context/AuthContext';
 import { login as loginApi } from '../api/authClient';
 import LoginNetworkDiagram from '../components/LoginNetworkDiagram';
@@ -12,6 +12,11 @@ export default function LoginPage() {
   const [remember, setRemember] = useState(true);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [capsLockOn, setCapsLockOn] = useState(false);
+
+  // Caps Lock 상태는 키 이벤트에서만 읽을 수 있어서, 비밀번호 칸에서 키를 누르거나 뗄 때마다 갱신한다.
+  const updateCapsLock = (e) => setCapsLockOn(e.getModifierState?.('CapsLock') ?? false);
 
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -90,16 +95,35 @@ export default function LoginPage() {
               </div>
               <div className="login-field">
                 <label className="login-field-label">비밀번호</label>
-                <div className="login-field-control">
+                <div className="login-field-control has-toggle">
                   <IconLock size={16} />
                   <input
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     placeholder="비밀번호를 입력하세요"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    onKeyDown={updateCapsLock}
+                    onKeyUp={updateCapsLock}
+                    onBlur={() => setCapsLockOn(false)}
                     autoComplete="current-password"
                   />
+                  <button
+                    type="button"
+                    className="login-password-toggle"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 보기'}
+                    aria-pressed={showPassword}
+                    title={showPassword ? '비밀번호 숨기기' : '비밀번호 보기'}
+                  >
+                    {showPassword ? <IconEyeOff size={17} /> : <IconEye size={17} />}
+                  </button>
                 </div>
+                {capsLockOn && (
+                  <div className="login-capslock" role="status">
+                    <IconAlertTriangle size={14} />
+                    Caps Lock이 켜져 있습니다.
+                  </div>
+                )}
               </div>
 
               <label className="login-remember">

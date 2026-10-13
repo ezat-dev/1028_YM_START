@@ -248,13 +248,13 @@ export default function OilAnalysisPage() {
 
   const columns = useMemo(() => [
     { key: 'no', title: 'No', width: 50, align: 'center', render: (r, idx) => idx + 1 },
-    { key: 'crDate', title: '채취일', width: 110, sortValue: (r) => r.crDate, render: (r) => <MetaText value={r.crDate} /> },
+    { key: 'crDate', title: '채취일', width: 110, align: 'center', sortValue: (r) => r.crDate, render: (r) => <MetaText value={r.crDate} /> },
     { key: 'mchName', title: '설비명', width: 170, sortValue: (r) => r.mchName, render: (r) => <span className="oil-mch-name" title={r.mchName}>{r.mchName}</span> },
     { key: 'box1FileName', title: '①분석', width: 250, render: (r) => <SlotText fileName={r.box1FileName} origFileName={r.box1OrigFileName} />, onCellClick: (r) => openPreviewFromRow(r, 1) },
     { key: 'box2FileName', title: '②냉각', width: 250, render: (r) => <SlotText fileName={r.box2FileName} origFileName={r.box2OrigFileName} />, onCellClick: (r) => openPreviewFromRow(r, 2) },
     { key: 'box3FileName', title: '③기타1', width: 250, render: (r) => <SlotText fileName={r.box3FileName} origFileName={r.box3OrigFileName} />, onCellClick: (r) => openPreviewFromRow(r, 3) },
     { key: 'box4FileName', title: '④기타2', width: 250, render: (r) => <SlotText fileName={r.box4FileName} origFileName={r.box4OrigFileName} />, onCellClick: (r) => openPreviewFromRow(r, 4) },
-    { key: 'regDt', title: '등록일', width: 130, sortValue: (r) => r.regDt, render: (r) => <MetaText value={(r.regDt || '').slice(0, 10)} /> },
+    { key: 'regDt', title: '등록일', width: 130, align: 'center', sortValue: (r) => r.regDt, render: (r) => <MetaText value={(r.regDt || '').slice(0, 10)} /> },
     { key: 'memo', title: '비고', width: 200, render: (r) => <MetaText value={r.memo} /> },
   ], [openPreviewFromRow]);
 

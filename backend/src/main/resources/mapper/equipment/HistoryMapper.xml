@@ -4,26 +4,92 @@
 
     <!-- 설비관리 > 설비이력관리 (equipment_history) -->
 
+    <sql id="cols">
+        h.*, e.equip_code, e.equip_name, r.repair_no,
+        (SELECT COUNT(*) FROM equipment_attach a
+          WHERE (a.ref_type = 'HISTORY' AND a.ref_id = h.hist_id)
+             OR (h.repair_id IS NOT NULL AND a.ref_type = 'REPAIR' AND a.ref_id = h.repair_id)) AS attach_count
+    </sql>
+
     <select id="selectList" parameterType="map" resultType="com.mes.domain.equipment.History">
-        SELECT id, use_yn, reg_dt, upd_dt
-        FROM equipment_history
+        SELECT <include refid="cols"/>
+        FROM equipment_history h
+        JOIN base_equipment e ON e.equip_id = h.equip_id
+        LEFT JOIN equipment_repair_hist r ON r.repair_id = h.repair_id
         <where>
+            <if test="from != null">AND h.work_dt &gt;= #{from}</if>
+            <if test="to != null">AND h.work_dt &lt; #{to}</if>
+            <if test="equipId != null">AND h.equip_id = #{equipId}</if>
+            <if test="histType != null and histType != ''">AND h.hist_type = #{histType}</if>
             <if test="keyword != null and keyword != ''">
-                AND id LIKE CONCAT('%', #{keyword}, '%')
+                AND (h.hist_no LIKE CONCAT('%', #{keyword}, '%')
+                     OR h.title LIKE CONCAT('%', #{keyword}, '%')
+                     OR h.content LIKE CONCAT('%', #{keyword}, '%')
+                     OR h.worker_name LIKE CONCAT('%', #{keyword}, '%')
+                     OR h.reg_user_name LIKE CONCAT('%', #{keyword}, '%')
+                     OR h.reg_user_id LIKE CONCAT('%', #{keyword}, '%'))
             </if>
         </where>
-        ORDER BY id DESC
-        LIMIT #{size} OFFSET #{offset}
+        ORDER BY h.work_dt DESC, h.hist_id DESC
     </select>
 
-    <select id="selectCount" parameterType="map" resultType="long">
-        SELECT COUNT(*)
-        FROM equipment_history
-        <where>
-            <if test="keyword != null and keyword != ''">
-                AND id LIKE CONCAT('%', #{keyword}, '%')
-            </if>
-        </where>
+    <select id="selectById" parameterType="long" resultType="com.mes.domain.equipment.History">
+        SELECT <include refid="cols"/>
+        FROM equipment_history h
+        JOIN base_equipment e ON e.equip_id = h.equip_id
+        LEFT JOIN equipment_repair_hist r ON r.repair_id = h.repair_id
+        WHERE h.hist_id = #{histId}
     </select>
+
+    <select id="selectByRepairId" parameterType="long" resultType="com.mes.domain.equipment.History">
+        SELECT * FROM equipment_history WHERE repair_id = #{repairId}
+    </select>
+
+    <!-- 이번 달 마지막 번호 (prefix 예: EQH-202610-) -->
+    <select id="selectMaxNo" parameterType="string" resultType="int">
+        SELECT IFNULL(MAX(CAST(SUBSTRING(hist_no, LENGTH(#{prefix}) + 1) AS UNSIGNED)), 0)
+        FROM equipment_history WHERE hist_no LIKE CONCAT(#{prefix}, '%')
+    </select>
+
+    <insert id="insert" parameterType="com.mes.domain.equipment.History" useGeneratedKeys="true" keyProperty="histId">
+        INSERT INTO equipment_history (hist_no, equip_id, hist_type, title, content, work_dt, worker_name, repair_id, reg_user_id, reg_user_name)
+        VALUES (#{histNo}, #{equipId}, #{histType}, #{title}, #{content}, #{workDt}, #{workerName}, #{repairId}, #{regUserId}, #{regUserName})
+    </insert>
+
+    <update id="update" parameterType="com.mes.domain.equipment.History">
+        UPDATE equipment_history SET
+            equip_id = #{equipId},
+            hist_type = #{histType},
+            title = #{title},
+            content = #{content},
+            work_dt = #{workDt},
+            worker_name = #{workerName},
+            upd_user_id = #{updUserId},
+            upd_user_name = #{updUserName}
+        WHERE hist_id = #{histId}
+    </update>
+
+    <delete id="delete" parameterType="long">
+        DELETE FROM equipment_history WHERE hist_id = #{histId}
+    </delete>
+
+    <!-- ===== 첨부파일 (equipment_attach) ===== -->
+
+    <select id="selectAttachList" parameterType="map" resultType="com.mes.domain.equipment.EquipAttach">
+        SELECT * FROM equipment_attach WHERE ref_type = #{refType} AND ref_id = #{refId} ORDER BY attach_id
+    </select>
+
+    <select id="selectAttachById" parameterType="long" resultType="com.mes.domain.equipment.EquipAttach">
+        SELECT * FROM equipment_attach WHERE attach_id = #{attachId}
+    </select>
+
+    <insert id="insertAttach" parameterType="com.mes.domain.equipment.EquipAttach" useGeneratedKeys="true" keyProperty="attachId">
+        INSERT INTO equipment_attach (ref_type, ref_id, orig_name, stored_path, file_size, content_type, reg_user_id, reg_user_name)
+        VALUES (#{refType}, #{refId}, #{origName}, #{storedPath}, #{fileSize}, #{contentType}, #{regUserId}, #{regUserName})
+    </insert>
+
+    <delete id="deleteAttach" parameterType="long">
+        DELETE FROM equipment_attach WHERE attach_id = #{attachId}
+    </delete>
 
 </mapper>

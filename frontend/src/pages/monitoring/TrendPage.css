@@ -54,7 +54,7 @@
 
 .trend-title {
   font-size: 15px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--mes-text);
   margin: 0;
   letter-spacing: -0.2px;
@@ -137,7 +137,6 @@
 .trend-seg-btn.active {
   background: var(--mes-accent-grad);
   color: #fff;
-  box-shadow: 0 3px 10px -2px rgba(61, 90, 153, 0.5);
 }
 
 .trend-range-group {
@@ -231,8 +230,6 @@
   font-size: 11px;
   font-weight: 700;
   color: var(--mes-text-faint);
-  text-transform: uppercase;
-  letter-spacing: .4px;
   flex-shrink: 0;
 }
 
@@ -261,7 +258,7 @@
 
 .trend-tab.active {
   background: var(--mes-accent-soft);
-  border-color: rgba(91, 127, 199, .35);
+  border-color: var(--mes-accent-border);
   color: var(--mes-accent-dark);
 }
 
@@ -280,8 +277,6 @@
   font-size: 11px;
   font-weight: 700;
   color: var(--mes-text-faint);
-  text-transform: uppercase;
-  letter-spacing: .4px;
   margin-bottom: 10px;
 }
 
@@ -312,7 +307,7 @@
 
 .trend-kpi-last {
   font-size: 17px;
-  font-weight: 800;
+  font-weight: 700;
   font-family: Consolas, monospace;
   line-height: 1.2;
 }

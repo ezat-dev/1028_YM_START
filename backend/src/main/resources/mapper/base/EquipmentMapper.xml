@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="EquipmentMapper">
+
+    <!-- 기준정보 > 설비관리 (base_equipment) — 설비는 수십 대 이하라 페이징 없이 한 번에 -->
+    <select id="selectList" parameterType="map" resultType="com.mes.domain.base.Equipment">
+        SELECT *
+        FROM base_equipment
+        <where>
+            <if test="equipStatus != null and equipStatus != ''">
+                AND equip_status = #{equipStatus}
+            </if>
+            <if test="useYn != null and useYn != ''">
+                AND use_yn = #{useYn}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND (equip_code LIKE CONCAT('%', #{keyword}, '%')
+                     OR equip_name LIKE CONCAT('%', #{keyword}, '%')
+                     OR model_name LIKE CONCAT('%', #{keyword}, '%')
+                     OR plc_ip LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+        ORDER BY equip_code ASC
+    </select>
+
+    <select id="selectById" parameterType="long" resultType="com.mes.domain.base.Equipment">
+        SELECT * FROM base_equipment WHERE equip_id = #{equipId}
+    </select>
+
+    <select id="selectByCode" parameterType="string" resultType="com.mes.domain.base.Equipment">
+        SELECT * FROM base_equipment WHERE equip_code = #{equipCode}
+    </select>
+
+    <insert id="insert" parameterType="com.mes.domain.base.Equipment" useGeneratedKeys="true" keyProperty="equipId">
+        INSERT INTO base_equipment (
+            equip_code, equip_name, equip_type, maker, model_name, manager_name,
+            install_date, start_date, equip_status, plc_model, plc_ip, plc_protocol,
+            remark, use_yn, reg_user_name
+        ) VALUES (
+            #{equipCode}, #{equipName}, #{equipType}, #{maker}, #{modelName}, #{managerName},
+            #{installDate}, #{startDate}, #{equipStatus}, #{plcModel}, #{plcIp}, #{plcProtocol},
+            #{remark}, #{useYn}, #{regUserName}
+        )
+    </insert>
+
+    <!-- 설비코드와 등록자는 등록 후 바꾸지 않는다 -->
+    <update id="update" parameterType="com.mes.domain.base.Equipment">
+        UPDATE base_equipment SET
+            equip_name = #{equipName},
+            equip_type = #{equipType},
+            maker = #{maker},
+            model_name = #{modelName},
+            manager_name = #{managerName},
+            install_date = #{installDate},
+            start_date = #{startDate},
+            equip_status = #{equipStatus},
+            plc_model = #{plcModel},
+            plc_ip = #{plcIp},
+            plc_protocol = #{plcProtocol},
+            remark = #{remark},
+            use_yn = #{useYn}
+        WHERE equip_id = #{equipId}
+    </update>
+
+    <delete id="delete" parameterType="long">
+        DELETE FROM base_equipment WHERE equip_id = #{equipId}
+    </delete>
+
+</mapper>

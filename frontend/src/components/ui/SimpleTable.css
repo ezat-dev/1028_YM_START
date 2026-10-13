@@ -1,5 +1,5 @@
-/* Tabulator를 쓰지 않는 순수 CSS Grid 표. 마지막 컬럼만 minmax(width,1fr)이라 남는
-   공간을 실제 그리드 트랙이 흡수한다 — 배경만 이어붙이는 게 아니라 표 자체가 끝까지 채워진다. */
+/* Tabulator를 쓰지 않는 순수 CSS Grid 표. 컬럼 폭 계산은 SimpleTable.jsx 주석 참고.
+   모양은 global.css의 Tabulator 테마와 같은 규칙(헤더 36px, 행 40px, 가로줄만)을 따른다. */
 
 .stbl-wrap {
   height: 100%;
@@ -26,12 +26,11 @@
 .stbl-row {
   display: grid;
   align-items: stretch;
-  min-width: 100%;
-  width: max-content;
+  width: 100%;          /* min-width(px)는 JSX에서 컬럼 최소폭 합으로 넣는다 */
 }
 
 .stbl-header-row {
-  background: #fafbfc;
+  background: var(--mes-surface-sub);
   border-bottom: 1px solid var(--mes-border);
   position: sticky;
   top: 0;
@@ -43,10 +42,6 @@
   background: var(--mes-surface);
   border-bottom: 1px solid var(--mes-line);
   transition: background-color .1s ease;
-}
-
-.stbl-row.odd {
-  background: #fbfbfc;
 }
 
 .stbl-row::before {
@@ -61,12 +56,9 @@
   transition: transform .12s ease;
 }
 
+/* 왼쪽 파란 막대는 '선택된 행'에만 — hover에까지 주면 마우스만 지나가도 선택된 것처럼 보인다 */
 .stbl-row:hover {
-  background: var(--mes-accent-soft) !important;
-}
-
-.stbl-row:hover::before {
-  transform: scaleY(1);
+  background: #f1f5fc !important;
 }
 
 .stbl-row.selected {
@@ -81,15 +73,15 @@
   display: flex;
   align-items: center;
   min-width: 0;
-  padding: 10px 14px;
+  min-height: 40px;
+  padding: 6px 12px;
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
-  border-right: 1px solid var(--mes-line);
 }
 
-.stbl-cell:last-child {
-  border-right: none;
+.stbl-null {
+  color: var(--mes-text-faint);
 }
 
 .stbl-cell.clickable {
@@ -98,7 +90,7 @@
 
 .stbl-check-cell {
   justify-content: center;
-  padding: 10px 8px;
+  padding: 6px 8px;
 }
 
 .stbl-check-cell input {
@@ -109,18 +101,12 @@
 }
 
 .stbl-head-cell {
-  gap: 5px;
-  font-weight: 700;
-  font-size: 11.5px;
+  gap: 4px;
+  min-height: 36px;
+  font-weight: 600;
+  font-size: 12px;
   color: var(--mes-text-sub);
-  text-transform: uppercase;
-  letter-spacing: .4px;
   user-select: none;
-  border-right: 1px solid var(--mes-border);
-}
-
-.stbl-head-cell:last-child {
-  border-right: none;
 }
 
 .stbl-head-cell.sortable {
@@ -128,21 +114,19 @@
 }
 
 .stbl-head-cell.sortable:hover {
-  background: #f1f2f5;
+  background: #eff1f4;
+  color: var(--mes-text);
 }
 
+/* 정렬 화살표는 정렬 중인 열에만. 나머지는 마우스를 올렸을 때만 흐리게 */
 .stbl-sort-arrow {
   font-size: 8px;
   color: var(--mes-text-faint);
   opacity: 0;
 }
 
-.stbl-head-cell.sortable .stbl-sort-arrow {
-  opacity: .35;
-}
-
 .stbl-head-cell.sortable:hover .stbl-sort-arrow {
-  opacity: .7;
+  opacity: .6;
 }
 
 .stbl-sort-arrow.active {
@@ -151,7 +135,8 @@
 }
 
 .stbl-empty {
-  min-height: 260px;
+  min-height: 240px;
+  font-size: 13px;
   display: flex;
   align-items: center;
   justify-content: center;

@@ -1,0 +1,185 @@
+/* 모니터링 > 통합모니터링 — 레이아웃 초안. 설비 2대씩(1~2 / 3~4 / 5~6호기 전환) × [설비 그림 / 온도] 영역만 연한 바탕으로 잡아 둔다 */
+
+.itg2-page {
+  gap: 12px;
+}
+
+.itg2-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.itg2-header .mes-page-title {
+  margin: 0;
+  font-size: 18px;
+}
+
+.itg2-badge {
+  padding: 0 7px;
+  border: 1px dashed var(--mes-border-strong);
+  border-radius: var(--mes-radius-sm);
+  font-size: 11px;
+  line-height: 18px;
+  font-weight: 600;
+  color: var(--mes-text-faint);
+}
+
+/* 1~2 / 3~4 / 5~6호기 전환 — 헤더 우측 끝 */
+.itg2-switch {
+  display: inline-flex;
+  margin-left: auto;
+  padding: 2px;
+  border: 1px solid var(--mes-border);
+  border-radius: var(--mes-radius);
+  background: var(--mes-surface-sub);
+}
+
+.itg2-switch-btn {
+  min-width: 76px;
+  height: 30px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--mes-radius-sm);
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mes-text-sub);
+  cursor: pointer;
+}
+
+.itg2-switch-btn:hover {
+  color: var(--mes-text);
+}
+
+.itg2-switch-btn.is-active {
+  background: var(--mes-surface);
+  color: var(--mes-accent);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .08);
+}
+
+.itg2-switch-btn:focus-visible {
+  outline: 2px solid var(--mes-accent);
+  outline-offset: 1px;
+}
+
+/* 설비 2대를 가로로 긴 줄 2개로 — 남는 높이를 똑같이 나눠 갖는다 */
+.itg2-rows {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: repeat(2, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+/* 한 줄 = [설비 그림 영역] 위(전체 너비), [설비 이름 | 온도 영역] 아래 */
+.itg2-row {
+  display: grid;
+  grid-template-columns: 140px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 3fr) minmax(0, 1fr);
+  gap: 6px;
+  min-height: 0;
+  padding: 8px;
+  background: var(--mes-surface);
+  border: 1px solid var(--mes-border);
+  border-radius: var(--mes-radius-lg);
+}
+
+.itg2-row-label {
+  grid-row: 2;
+  grid-column: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding: 0 12px;
+  border-radius: var(--mes-radius);
+  background: var(--mes-surface-sub);
+}
+
+.itg2-row-label strong {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--mes-text);
+}
+
+.itg2-row-label span {
+  font-size: 12px;
+  color: var(--mes-text-faint);
+}
+
+.itg2-row .itg2-drawing {
+  grid-row: 1;
+  grid-column: 1 / -1;
+}
+
+.itg2-row .itg2-temp {
+  grid-row: 2;
+  grid-column: 2;
+}
+
+/* 비어 있는 영역 — 연한 바탕 + 점선 테두리 + 가운데 이름표 */
+.itg2-area {
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  border: 1px dashed var(--mes-border-strong);
+  border-radius: var(--mes-radius);
+}
+
+.itg2-area span {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mes-text-faint);
+}
+
+.itg2-drawing {
+  background: #eef3fb;
+  border-color: #c7d5ee;
+}
+
+.itg2-drawing span {
+  color: #6c84b3;
+}
+
+.itg2-temp {
+  background: #fdf3ea;
+  border-color: #f0d3b8;
+}
+
+.itg2-temp span {
+  color: #b3784a;
+}
+
+/* 휴대폰 — 이름을 위로 올리고 세 영역을 아래로 쌓는다 */
+@media (max-width: 768px) {
+  .itg2-header {
+    flex-wrap: wrap;
+  }
+
+  .itg2-rows {
+    grid-template-rows: none;
+    grid-auto-rows: 280px;
+  }
+
+  .itg2-row {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 3fr) minmax(0, 1fr);
+  }
+
+  .itg2-row-label,
+  .itg2-row .itg2-drawing,
+  .itg2-row .itg2-temp {
+    grid-row: auto;
+    grid-column: auto;
+  }
+
+  .itg2-row-label {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 8px;
+    padding: 6px 10px;
+  }
+}

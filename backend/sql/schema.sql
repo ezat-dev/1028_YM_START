@@ -286,3 +286,286 @@ CREATE TABLE IF NOT EXISTS equipment_spare_part_history (
     CONSTRAINT fk_equipment_spare_part_history_part FOREIGN KEY (spare_part_id)
         REFERENCES equipment_spare_part(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 기준정보 > 거래처관리.
+-- 목록에는 코드/거래처명/구분/대표자/사업자번호/대표전화/담당자/사용여부/등록일만 보이고,
+-- 업태·종목·주소·담당자 이메일·팩스·비고는 등록/수정 화면에서만 다룬다.
+-- 거래가 끊긴 업체는 지우지 말고 use_yn='N'(미사용)으로 돌린다.
+CREATE TABLE IF NOT EXISTS base_vendor (
+    vendor_id       BIGINT AUTO_INCREMENT PRIMARY KEY,
+    vendor_code     VARCHAR(20)  NOT NULL,                -- 거래처코드. 비워서 등록하면 서버가 V0001 형식으로 채번
+    vendor_name     VARCHAR(100) NOT NULL,                -- 거래처명
+    vendor_type     VARCHAR(10)  NOT NULL DEFAULT '매출처', -- 구분: 매출처 | 매입처 | 외주처 | 겸용
+    ceo_name        VARCHAR(50)  NOT NULL DEFAULT '',     -- 대표자
+    biz_no          VARCHAR(12)  NOT NULL DEFAULT '',     -- 사업자번호 000-00-00000
+    biz_type        VARCHAR(50)  NOT NULL DEFAULT '',     -- 업태
+    biz_item        VARCHAR(100) NOT NULL DEFAULT '',     -- 종목
+    tel             VARCHAR(20)  NOT NULL DEFAULT '',     -- 대표전화
+    fax             VARCHAR(20)  NOT NULL DEFAULT '',     -- 팩스
+    zip_code        VARCHAR(10)  NOT NULL DEFAULT '',     -- 우편번호
+    address         VARCHAR(200) NOT NULL DEFAULT '',     -- 기본주소
+    address_detail  VARCHAR(200) NOT NULL DEFAULT '',     -- 상세주소
+    manager_name    VARCHAR(50)  NOT NULL DEFAULT '',     -- 담당자
+    manager_phone   VARCHAR(20)  NOT NULL DEFAULT '',     -- 담당자 연락처
+    manager_email   VARCHAR(100) NOT NULL DEFAULT '',     -- 담당자 이메일
+    remark          VARCHAR(300) NOT NULL DEFAULT '',
+    use_yn          CHAR(1) NOT NULL DEFAULT 'Y',
+    reg_user_name   VARCHAR(50)  NOT NULL DEFAULT '',
+    reg_dt          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    upd_dt          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_base_vendor_code (vendor_code),
+    INDEX idx_base_vendor_name (vendor_name),
+    INDEX idx_base_vendor_biz_no (biz_no)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 기준정보 > 제품관리. 거래처는 base_vendor를 참조(이름을 복사해 두지 않는다 — 거래처명이 바뀌면 같이 바뀌어야 함).
+-- 같은 거래처 안에서 품번은 하나뿐, 거래처가 다르면 품번이 같아도 된다.
+-- 경도는 단위(HRC/HV/HB/HRB)를 같이 저장해야 "58"이 무슨 값인지 알 수 있다.
+CREATE TABLE IF NOT EXISTS base_product (
+    product_id         BIGINT AUTO_INCREMENT PRIMARY KEY,
+    product_code       VARCHAR(20)  NOT NULL,                 -- 제품코드. 비워서 등록하면 서버가 P0001 형식으로 채번
+    vendor_id          BIGINT       NOT NULL,                 -- 거래처 (base_vendor)
+    part_no            VARCHAR(50)  NOT NULL,                 -- 품번
+    product_name       VARCHAR(100) NOT NULL,                 -- 품명
+    material           VARCHAR(50)  NOT NULL DEFAULT '',      -- 재질 (SCM415, S45C ...)
+    spec               VARCHAR(100) NOT NULL DEFAULT '',      -- 규격
+    charge_weight_kg   DECIMAL(10,2) NULL,                    -- 1회(1차지) 장입량 kg
+    unit_weight_g      DECIMAL(10,2) NULL,                    -- 개당 중량 g
+    unit_price         DECIMAL(12,2) NULL,                    -- 단가 (원)
+    price_unit         VARCHAR(2)   NOT NULL DEFAULT 'KG',    -- 단가 기준: KG(kg당) | EA(개당)
+    surface_hard_min   DECIMAL(6,1) NULL,                     -- 표면경도(퀜칭) 하한
+    surface_hard_max   DECIMAL(6,1) NULL,                     -- 표면경도(퀜칭) 상한
+    surface_hard_unit  VARCHAR(5)   NOT NULL DEFAULT 'HRC',
+    core_hard_min      DECIMAL(6,1) NULL,                     -- 심부경도 하한
+    core_hard_max      DECIMAL(6,1) NULL,                     -- 심부경도 상한
+    core_hard_unit     VARCHAR(5)   NOT NULL DEFAULT 'HRC',
+    remark             VARCHAR(300) NOT NULL DEFAULT '',
+    use_yn             CHAR(1) NOT NULL DEFAULT 'Y',
+    reg_user_name      VARCHAR(50)  NOT NULL DEFAULT '',
+    reg_dt             DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    upd_dt             DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_base_product_code (product_code),
+    UNIQUE KEY uq_base_product_vendor_part (vendor_id, part_no),
+    INDEX idx_base_product_name (product_name),
+    CONSTRAINT fk_base_product_vendor FOREIGN KEY (vendor_id) REFERENCES base_vendor(vendor_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 제품 이미지(최대 5장). slot 1이 대표 이미지. 파일은 app.product-image-dir(기본 D:/ym_img)/product/{product_id}/ 에 저장.
+-- 썸네일은 브라우저에서 만들어 같이 올린다 — 휴대폰 사진의 EXIF 회전을 브라우저는 반영하지만 Java ImageIO는 무시해서
+-- 서버에서 만들면 목록 썸네일만 옆으로 누워 보이는 문제가 생기기 때문.
+CREATE TABLE IF NOT EXISTS base_product_image (
+    image_id          BIGINT AUTO_INCREMENT PRIMARY KEY,
+    product_id        BIGINT       NOT NULL,
+    slot              TINYINT      NOT NULL,                  -- 1~5
+    orig_file_name    VARCHAR(255) NOT NULL DEFAULT '',
+    file_name         VARCHAR(100) NOT NULL,                  -- 저장된 원본 파일명
+    thumb_file_name   VARCHAR(100) NOT NULL DEFAULT '',       -- 저장된 썸네일 파일명(없으면 원본으로 대신)
+    file_size         BIGINT       NOT NULL DEFAULT 0,
+    reg_dt            DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_base_product_image_slot (product_id, slot),
+    CONSTRAINT fk_base_product_image_product FOREIGN KEY (product_id)
+        REFERENCES base_product(product_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 기준정보 > 패턴관리 (열처리 조건). 한 제품에 패턴이 여러 개일 수 있다(라인·조건별) — pattern_name으로 구분.
+-- 거래처·품번·품명·규격·재질·경도는 base_product에서 끌어다 보여주고 여기 복사하지 않는다.
+-- 장입량은 제품에도 있지만 패턴마다 다를 수 있어 패턴에도 둔다(등록 시 제품 값을 기본으로 채움).
+CREATE TABLE IF NOT EXISTS base_pattern (
+    pattern_id        BIGINT AUTO_INCREMENT PRIMARY KEY,
+    pattern_code      VARCHAR(20)  NOT NULL,                -- 패턴코드. 비워서 등록하면 서버가 PT0001 형식으로 채번
+    pattern_name      VARCHAR(100) NOT NULL DEFAULT '',     -- 패턴명 (같은 제품의 패턴끼리 구분: "1라인 기본" 등)
+    product_id        BIGINT       NOT NULL,                -- 제품 (base_product)
+    charge_weight_kg  DECIMAL(10,2) NULL,                   -- 장입량 kg
+    q1_zone           DECIMAL(6,1) NULL,                    -- 퀜칭로 1~5존 온도 ℃
+    q2_zone           DECIMAL(6,1) NULL,
+    q3_zone           DECIMAL(6,1) NULL,
+    q4_zone           DECIMAL(6,1) NULL,
+    q5_zone           DECIMAL(6,1) NULL,
+    quench_speed      DECIMAL(8,2) NULL,                    -- 퀜칭로 속도 (speed_unit)
+    cp                DECIMAL(4,2) NULL,                    -- 카본포텐셜 %
+    t1_zone           DECIMAL(6,1) NULL,                    -- 템퍼링로 1~5존 온도 ℃
+    t2_zone           DECIMAL(6,1) NULL,
+    t3_zone           DECIMAL(6,1) NULL,
+    t4_zone           DECIMAL(6,1) NULL,
+    t5_zone           DECIMAL(6,1) NULL,
+    temper_speed      DECIMAL(8,2) NULL,                    -- 템퍼링로 속도 (speed_unit)
+    speed_unit        VARCHAR(10)  NOT NULL DEFAULT 'Hz',   -- 속도 단위: Hz | mm/min | m/h
+    remark            VARCHAR(300) NOT NULL DEFAULT '',
+    use_yn            CHAR(1) NOT NULL DEFAULT 'Y',
+    reg_user_name     VARCHAR(50)  NOT NULL DEFAULT '',
+    upd_user_name     VARCHAR(50)  NOT NULL DEFAULT '',
+    reg_dt            DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    upd_dt            DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_base_pattern_code (pattern_code),
+    INDEX idx_base_pattern_product (product_id),
+    CONSTRAINT fk_base_pattern_product FOREIGN KEY (product_id) REFERENCES base_product(product_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 패턴 변경 이력 — 누가 언제 어느 값을 무엇에서 무엇으로 바꿨는지(품질 감사 대응).
+-- 패턴을 지워도 이력은 남아야 해서 FK를 걸지 않고 pattern_code를 같이 적어 둔다.
+-- 등록/삭제는 한 줄(field_label 빈 값), 수정은 바뀐 칸마다 한 줄.
+CREATE TABLE IF NOT EXISTS base_pattern_hist (
+    hist_id        BIGINT AUTO_INCREMENT PRIMARY KEY,
+    pattern_id     BIGINT       NOT NULL,
+    pattern_code   VARCHAR(20)  NOT NULL DEFAULT '',
+    action         VARCHAR(10)  NOT NULL,                  -- 등록 | 수정 | 삭제
+    field_label    VARCHAR(50)  NOT NULL DEFAULT '',       -- 바뀐 항목 (예: 퀜칭로 3존)
+    before_value   VARCHAR(200) NOT NULL DEFAULT '',
+    after_value    VARCHAR(200) NOT NULL DEFAULT '',
+    user_name      VARCHAR(50)  NOT NULL DEFAULT '',
+    reg_dt         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_base_pattern_hist_pattern (pattern_id, reg_dt)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 기준정보 > 설비관리. 설비 마스터(연속열처리로 1~6호기 등).
+-- 비가동 내역(base_downtime)이 이 표를 참조하므로, 쓰지 않는 설비는 지우지 말고 use_yn='N'으로 돌린다.
+-- 설비 상태: 가동 | 정지 | 고장 | 점검 | 유지보수 (현재 상태를 사람이 관리. PLC 신호 연동 후에는 자동 갱신 예정)
+CREATE TABLE IF NOT EXISTS base_equipment (
+    equip_id        BIGINT AUTO_INCREMENT PRIMARY KEY,
+    equip_code      VARCHAR(20)  NOT NULL,                -- 설비코드 (예: BCF1)
+    equip_name      VARCHAR(100) NOT NULL,                -- 설비명
+    equip_type      VARCHAR(50)  NOT NULL DEFAULT '',     -- 설비 유형 (예: 연속열처리로)
+    maker           VARCHAR(100) NOT NULL DEFAULT '',     -- 제조사
+    model_name      VARCHAR(100) NOT NULL DEFAULT '',     -- 모델명
+    manager_name    VARCHAR(50)  NOT NULL DEFAULT '',     -- 관리 담당자
+    install_date    DATE NULL,                            -- 설치일
+    start_date      DATE NULL,                            -- 가동 개시일
+    equip_status    VARCHAR(10)  NOT NULL DEFAULT '가동', -- 가동 | 정지 | 고장 | 점검 | 유지보수
+    plc_model       VARCHAR(100) NOT NULL DEFAULT '',     -- PLC 모델
+    plc_ip          VARCHAR(45)  NOT NULL DEFAULT '',     -- PLC IP
+    plc_protocol    VARCHAR(50)  NOT NULL DEFAULT '',     -- 통신방식 (예: MC Protocol (TCP))
+    remark          VARCHAR(300) NOT NULL DEFAULT '',
+    use_yn          CHAR(1) NOT NULL DEFAULT 'Y',
+    reg_user_name   VARCHAR(50)  NOT NULL DEFAULT '',
+    reg_dt          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    upd_dt          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_base_equipment_code (equip_code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 기준정보 > 비가동관리 — 비가동 사유 기준정보(수동 등록 때 고르는 목록).
+-- 구분: 계획정지 | 고장정지 | 대기 | 기타. 쓰인 사유는 지우지 말고 use_yn='N'.
+CREATE TABLE IF NOT EXISTS base_downtime_reason (
+    reason_id       BIGINT AUTO_INCREMENT PRIMARY KEY,
+    reason_code     VARCHAR(20)  NOT NULL,                -- 사유코드. 비워서 등록하면 DR001 형식으로 채번
+    reason_name     VARCHAR(100) NOT NULL,                -- 사유명
+    reason_type     VARCHAR(10)  NOT NULL DEFAULT '계획정지', -- 계획정지 | 고장정지 | 대기 | 기타
+    sort_order      INT NOT NULL DEFAULT 0,               -- 선택 목록 순서
+    remark          VARCHAR(300) NOT NULL DEFAULT '',
+    use_yn          CHAR(1) NOT NULL DEFAULT 'Y',
+    reg_user_id     VARCHAR(50)  NOT NULL DEFAULT '',     -- 등록자 로그인 ID
+    reg_user_name   VARCHAR(50)  NOT NULL DEFAULT '',
+    upd_user_id     VARCHAR(50)  NOT NULL DEFAULT '',     -- 마지막 수정자 로그인 ID
+    upd_user_name   VARCHAR(50)  NOT NULL DEFAULT '',
+    reg_dt          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    upd_dt          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_base_downtime_reason_code (reason_code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 기준정보 > 비가동관리 — 비가동 내역. 설비 1대당 1건.
+-- 화면에서 설비를 여러 대 골라 한 번에 등록하면 설비마다 1건씩 같은 내용으로 들어간다.
+-- end_dt가 NULL이면 아직 진행 중. source: MANUAL(사용자 수동 등록) | PLC(신호 연동 — 추후)
+CREATE TABLE IF NOT EXISTS base_downtime (
+    downtime_id     BIGINT AUTO_INCREMENT PRIMARY KEY,
+    equip_id        BIGINT NOT NULL,
+    reason_id       BIGINT NOT NULL,
+    start_dt        DATETIME NOT NULL,
+    end_dt          DATETIME NULL,
+    source          VARCHAR(10)  NOT NULL DEFAULT 'MANUAL',
+    memo            VARCHAR(300) NOT NULL DEFAULT '',
+    reg_user_id     VARCHAR(50)  NOT NULL DEFAULT '',     -- 등록자 로그인 ID
+    reg_user_name   VARCHAR(50)  NOT NULL DEFAULT '',
+    upd_user_id     VARCHAR(50)  NOT NULL DEFAULT '',     -- 마지막 수정자 로그인 ID
+    upd_user_name   VARCHAR(50)  NOT NULL DEFAULT '',
+    reg_dt          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    upd_dt          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_base_downtime_equip_start (equip_id, start_dt),
+    INDEX idx_base_downtime_start (start_dt),
+    CONSTRAINT fk_base_downtime_equip FOREIGN KEY (equip_id) REFERENCES base_equipment(equip_id),
+    CONSTRAINT fk_base_downtime_reason FOREIGN KEY (reason_id) REFERENCES base_downtime_reason(reason_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 설비관리 > 설비이력관리 — 설비 생애주기 기록(점검·교체·변경·설치·개조·수리 등).
+-- 수리이력이 '완료'되면 repair_id를 단 '수리' 이력이 자동으로 생기고, 그 행은 수리이력에서만 고친다.
+CREATE TABLE IF NOT EXISTS equipment_history (
+    hist_id         BIGINT AUTO_INCREMENT PRIMARY KEY,
+    hist_no         VARCHAR(20)  NOT NULL,                -- 이력번호 EQH-YYYYMM-NNN (자동 채번)
+    equip_id        BIGINT NOT NULL,                      -- 설비 (base_equipment)
+    hist_type       VARCHAR(20)  NOT NULL DEFAULT '점검', -- 점검 | 교체 | 변경 | 설치 | 개조 | 수리 | 기타
+    title           VARCHAR(200) NOT NULL,                -- 이력 제목
+    content         TEXT NULL,                            -- 작업 내용
+    work_dt         DATETIME NOT NULL,                    -- 발생(작업)일시
+    worker_name     VARCHAR(50)  NOT NULL DEFAULT '',     -- 실제 작업자
+    repair_id       BIGINT NULL,                          -- 수리이력에서 자동 생성된 행이면 그 수리
+    reg_user_id     VARCHAR(50)  NOT NULL DEFAULT '',
+    reg_user_name   VARCHAR(50)  NOT NULL DEFAULT '',
+    upd_user_id     VARCHAR(50)  NOT NULL DEFAULT '',
+    upd_user_name   VARCHAR(50)  NOT NULL DEFAULT '',
+    reg_dt          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    upd_dt          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_equipment_history_no (hist_no),
+    UNIQUE KEY uq_equipment_history_repair (repair_id),
+    INDEX idx_equipment_history_equip_dt (equip_id, work_dt),
+    INDEX idx_equipment_history_dt (work_dt),
+    CONSTRAINT fk_equipment_history_equip FOREIGN KEY (equip_id) REFERENCES base_equipment(equip_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 설비관리 > 수리이력관리 — 고장 발생부터 복구까지.
+-- 상태: 접수 | 진행 | 완료 | 보류 | 재수리필요. 총 수리비 = 부품비 + 외주비(조회 때 계산).
+CREATE TABLE IF NOT EXISTS equipment_repair_hist (
+    repair_id       BIGINT AUTO_INCREMENT PRIMARY KEY,
+    repair_no       VARCHAR(20)  NOT NULL,                -- 수리번호 REP-YYYYMM-NNN (자동 채번)
+    equip_id        BIGINT NOT NULL,
+    fail_dt         DATETIME NOT NULL,                    -- 고장 발생일시
+    fail_type       VARCHAR(50)  NOT NULL DEFAULT '',     -- 고장 유형 (히터 단선, 열전대 이상, ...)
+    alarm_code      VARCHAR(50)  NOT NULL DEFAULT '',     -- 알람 코드
+    symptom         VARCHAR(500) NOT NULL DEFAULT '',     -- 고장 증상
+    cause           TEXT NULL,                            -- 원인 분석
+    action          TEXT NULL,                            -- 조치 내용
+    repairer_name   VARCHAR(50)  NOT NULL DEFAULT '',     -- 수리 담당자
+    repair_kind     VARCHAR(10)  NOT NULL DEFAULT '자체', -- 자체 | 외주
+    vendor_name     VARCHAR(100) NOT NULL DEFAULT '',     -- 외주 업체
+    start_dt        DATETIME NULL,                        -- 수리 시작
+    end_dt          DATETIME NULL,                        -- 수리 완료
+    recover_dt      DATETIME NULL,                        -- 정상 가동 복구
+    test_result     VARCHAR(10)  NOT NULL DEFAULT '',     -- 시운전 결과: 정상 | 이상 | ''(미실시)
+    status          VARCHAR(10)  NOT NULL DEFAULT '접수',
+    part_cost       BIGINT NOT NULL DEFAULT 0,            -- 부품비(원)
+    outsource_cost  BIGINT NOT NULL DEFAULT 0,            -- 외주비(원)
+    reg_user_id     VARCHAR(50)  NOT NULL DEFAULT '',
+    reg_user_name   VARCHAR(50)  NOT NULL DEFAULT '',
+    upd_user_id     VARCHAR(50)  NOT NULL DEFAULT '',
+    upd_user_name   VARCHAR(50)  NOT NULL DEFAULT '',
+    reg_dt          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    upd_dt          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_equipment_repair_no (repair_no),
+    INDEX idx_equipment_repair_equip_dt (equip_id, fail_dt),
+    INDEX idx_equipment_repair_dt (fail_dt),
+    CONSTRAINT fk_equipment_repair_equip FOREIGN KEY (equip_id) REFERENCES base_equipment(equip_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 수리 때 교체한 부품(여러 개)
+CREATE TABLE IF NOT EXISTS equipment_repair_part (
+    part_id         BIGINT AUTO_INCREMENT PRIMARY KEY,
+    repair_id       BIGINT NOT NULL,
+    part_name       VARCHAR(100) NOT NULL,
+    part_no         VARCHAR(100) NOT NULL DEFAULT '',
+    qty             DECIMAL(10,2) NOT NULL DEFAULT 1,
+    sort_order      INT NOT NULL DEFAULT 0,
+    INDEX idx_equipment_repair_part_repair (repair_id),
+    CONSTRAINT fk_equipment_repair_part_repair FOREIGN KEY (repair_id) REFERENCES equipment_repair_hist(repair_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 설비이력·수리이력 첨부파일(여러 개). ref_type: HISTORY | REPAIR, 실제 파일은 {app.equipment-file-dir}/stored_path
+CREATE TABLE IF NOT EXISTS equipment_attach (
+    attach_id       BIGINT AUTO_INCREMENT PRIMARY KEY,
+    ref_type        VARCHAR(10)  NOT NULL,
+    ref_id          BIGINT NOT NULL,
+    orig_name       VARCHAR(255) NOT NULL,
+    stored_path     VARCHAR(300) NOT NULL,
+    file_size       BIGINT NOT NULL DEFAULT 0,
+    content_type    VARCHAR(100) NOT NULL DEFAULT '',
+    reg_user_id     VARCHAR(50)  NOT NULL DEFAULT '',
+    reg_user_name   VARCHAR(50)  NOT NULL DEFAULT '',
+    reg_dt          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_equipment_attach_ref (ref_type, ref_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

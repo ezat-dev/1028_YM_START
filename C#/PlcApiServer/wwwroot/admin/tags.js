@@ -460,17 +460,11 @@ function openTagUsageModal(t) {
   const origin = location.origin;
   const deviceMatch = String(t.address || '').match(/^[A-Za-z]+/);
   const device = deviceMatch ? deviceMatch[0].toUpperCase() : '';
-  const numPart = String(t.address || '').replace(/^[A-Za-z]+/, '');
   // 실제 폴링/쓰기는 folders_tags.type 컬럼을 보지 않고 주소 앞글자만으로 WORD/BIT를 가른다
   // (PlcService.ReadWordsBatchAsync·Program.cs write 핸들러와 동일한 규칙) — 여기서도 그대로 재현한다.
   const isBit = /^[MLXYBS]/.test(device);
   const realType = isBit ? 'BIT' : 'WORD';
   const typeMismatch = t.type && realType !== String(t.type).toUpperCase();
-
-  // /api/plc/read/{id}는 주소를 그대로 10진수 int로 받는다 — X/Y는 폴링 쪽(ParseAddressFull)이
-  // 8진수/16진수 여부를 판단해 변환한 값을 쓰므로, 그 변환을 여기서 재현하지 않고 X/Y는
-  // 실시간 읽기 예시 자체를 생략한다(잘못된 번지로 안내하는 것을 방지).
-  const canLiveRead = device !== 'X' && device !== 'Y' && /^\d+$/.test(numPart);
 
   const memTag = '<span class="table-tag">메모리</span>';
   const liveTag = '<span class="table-tag is-live">실시간</span>';
@@ -490,10 +484,8 @@ function openTagUsageModal(t) {
     ${codeBlockRow(`${origin}/api/foldertag/value/by-address?plcId=${encodeURIComponent(t.plcId)}&address=${encodeURIComponent(t.address)}`)}
 
     <p><strong>④ 지금 이 순간 PLC에서 즉시 읽기</strong> ${liveTag}</p>
-    ${canLiveRead
-      ? codeBlockRow(`${origin}/api/plc/read/${encodeURIComponent(t.plcId)}?start=${numPart}&count=1&device=${device}`)
-      : `<p class="docs-note">이 주소(${escapeHtml(t.address)})는 X/Y 접점이라 8진수/16진수 변환이 필요해 이 화면에서는 실시간 단건 읽기 예시를 생략합니다 — 위 ①~③ 메모리 조회를 이용하세요(내부적으로 변환이 이미 처리되어 값은 정확합니다).</p>`}
-    ${canLiveRead ? '<p class="field-hint">캐시(①~③)보다 최신이지만 PLC와 새로 통신합니다 — 화면에서 몇 초마다 반복 호출하는 용도로는 쓰지 마세요.</p>' : ''}
+    ${codeBlockRow(`${origin}/api/foldertag/read/by-address?plcId=${encodeURIComponent(t.plcId)}&address=${encodeURIComponent(t.address)}`)}
+    <p class="field-hint">캐시(①~③)보다 최신이지만 PLC와 새로 통신합니다 — 화면에서 몇 초마다 반복 호출하는 용도로는 쓰지 마세요. X/Y 같은 접점 주소의 8진수/16진수 변환도 자동으로 처리됩니다.</p>
 
     <p><strong>⑤ 값 쓰기</strong> ${writeTag} — ⚠️ 실제 설비 PLC에 값을 내보내는 되돌릴 수 없는 동작입니다.</p>
     ${codeBlockRow(`${origin}/api/foldertag/write/by-name?name=${encodeURIComponent(t.name)}&value=${isBit ? 1 : 0}`)}

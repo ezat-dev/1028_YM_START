@@ -3,11 +3,16 @@ import './SimpleTable.css';
 
 /**
  * Tabulator를 쓰지 않는 순수 CSS Grid 기반 표.
- * 대부분 컬럼은 고정폭(px)이고, 마지막 컬럼만 minmax(width, 1fr)로 남는 공간을 실제로
- * 흡수한다 — 배경색만 이어붙이는 게 아니라 그리드 트랙 자체가 끝까지 채워지므로 화면 폭이
- * 얼마든 정확히 예측 가능하다(브라우저 Grid 엔진이 계산 — 서드파티 라이브러리 추정 불필요).
  *
- * columns: [{ key, title, width, align?, sortValue?(row), render?(row, index), onCellClick?(row) }]
+ * 컬럼 폭: width는 "기준 폭"이다. 화면이 넓으면 모든 컬럼이 width 비율대로 같이 늘어나고
+ * (예전처럼 마지막 컬럼 혼자 남는 폭을 다 먹어서 '비고'만 휑하게 넓어지지 않는다),
+ * 좁으면 width의 85%까지 줄어든 뒤 그 아래로는 가로 스크롤이 생긴다.
+ * No·체크박스처럼 폭이 60px 이하이거나 fixed: true인 컬럼은 늘어나지 않는다.
+ *
+ * 헤더 행과 모든 바디 행은 같은 폭(100%, 최소 minWidth)을 가지므로 트랙 계산 결과가
+ * 항상 같아 컬럼이 어긋나지 않는다.
+ *
+ * columns: [{ key, title, width, align?, fixed?, sortValue?(row), render?(row, index), onCellClick?(row) }]
  */
 export default function SimpleTable({
   columns,
@@ -39,14 +44,23 @@ export default function SimpleTable({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, sort]);
 
-  const gridTemplate = useMemo(() => {
+  const { gridTemplate, minWidth } = useMemo(() => {
     const parts = selectable ? ['40px'] : [];
-    columns.forEach((c, i) => {
-      const isLast = i === columns.length - 1;
-      parts.push(isLast ? `minmax(${c.width}px, 1fr)` : `${c.width}px`);
+    let min = selectable ? 40 : 0;
+    columns.forEach((c) => {
+      if (c.fixed || c.width <= 60) {
+        parts.push(`${c.width}px`);
+        min += c.width;
+      } else {
+        const shrink = Math.round(c.width * 0.85);
+        parts.push(`minmax(${shrink}px, ${c.width}fr)`);
+        min += shrink;
+      }
     });
-    return parts.join(' ');
+    return { gridTemplate: parts.join(' '), minWidth: min };
   }, [columns, selectable]);
+
+  const rowStyle = { gridTemplateColumns: gridTemplate, minWidth };
 
   const allSelected = selectable && data.length > 0 && data.every((r) => selectedKeys?.has(rowKey(r)));
 
@@ -74,7 +88,7 @@ export default function SimpleTable({
   return (
     <div className="stbl-wrap">
       <div className="stbl-scroll-x">
-      <div className="stbl-header-row" style={{ gridTemplateColumns: gridTemplate }}>
+      <div className="stbl-header-row" style={rowStyle}>
         {selectable && (
           <div className="stbl-cell stbl-check-cell">
             <input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="전체 선택" />
@@ -109,8 +123,8 @@ export default function SimpleTable({
             return (
               <div
                 key={key}
-                className={`stbl-row${idx % 2 === 1 ? ' odd' : ''}${selected ? ' selected' : ''}`}
-                style={{ gridTemplateColumns: gridTemplate }}
+                className={`stbl-row${selected ? ' selected' : ''}`}
+                style={rowStyle}
                 onDoubleClick={() => onRowDoubleClick?.(row)}
               >
                 {selectable && (
@@ -125,7 +139,7 @@ export default function SimpleTable({
                     style={{ justifyContent: alignToJustify(col.align) }}
                     onClick={col.onCellClick ? (e) => { e.stopPropagation(); col.onCellClick(row); } : undefined}
                   >
-                    {col.render ? col.render(row, idx) : row[col.key]}
+                    {col.render ? col.render(row, idx) : displayValue(row[col.key])}
                   </div>
                 ))}
               </div>
@@ -136,6 +150,12 @@ export default function SimpleTable({
       </div>
     </div>
   );
+}
+
+// 값이 비어 있으면 빈 칸 대신 흐린 '-' — 빈 칸은 '로딩 중인가?' 하고 헷갈린다
+function displayValue(v) {
+  if (v === null || v === undefined || v === '') return <span className="stbl-null">-</span>;
+  return v;
 }
 
 function alignToJustify(align) {

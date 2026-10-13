@@ -1,0 +1,188 @@
+/* 기준정보 > 거래처관리 — 레이아웃은 SPARE 부품관리(헤더 카드 + 표 카드)와 같은 구성 */
+
+.vnd-page .mes-field textarea {
+  padding: 8px 10px;
+  border: 1px solid var(--mes-border-strong);
+  border-radius: var(--mes-radius);
+  outline: none;
+  background: var(--mes-surface);
+  resize: vertical;
+  font-family: inherit;
+  font-size: inherit;
+  transition: border-color .15s, box-shadow .15s;
+}
+
+.vnd-page .mes-field textarea:focus {
+  border-color: var(--mes-accent);
+  box-shadow: 0 0 0 3px var(--mes-accent-soft);
+}
+
+/* ── 상단 헤더 카드 ── */
+
+.vnd-header-card {
+  background: var(--mes-surface);
+  border: 1px solid var(--mes-border);
+  border-radius: var(--mes-radius-lg);
+  padding: 18px 20px;
+  margin-bottom: 16px;
+}
+
+.vnd-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.vnd-header-sep {
+  height: 1px;
+  background: var(--mes-line);
+  margin: 16px 0 14px;
+}
+
+.vnd-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.vnd-keyword {
+  width: 220px;
+}
+
+.vnd-header-spacer {
+  flex: 1;
+}
+
+.vnd-count {
+  margin-left: 4px;
+  font-size: 13px;
+  color: var(--mes-text-sub);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 표 영역: 헤더 카드 아래 남는 높이를 채우고 안에서 스크롤 ── */
+
+.vnd-table-card {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+
+.vnd-table-wrap {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── 셀 ── */
+
+.vnd-empty {
+  color: var(--mes-text-faint);
+}
+
+.vnd-code {
+  font-variant-numeric: tabular-nums;
+  color: var(--mes-text-sub);
+}
+
+.vnd-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  color: var(--mes-text);
+}
+
+.vnd-num {
+  font-variant-numeric: tabular-nums;
+  color: var(--mes-text-sub);
+}
+
+.vnd-meta-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--mes-text-sub);
+}
+
+.vnd-type-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--mes-text-sub);
+}
+
+.vnd-type-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.vnd-type-dot.sales { background: var(--mes-accent); }
+.vnd-type-dot.purchase { background: var(--mes-success); }
+.vnd-type-dot.outsource { background: var(--mes-warning); }
+.vnd-type-dot.both { background: var(--mes-text-faint); }
+
+/* 담당자 이름 아래에 연락처를 작게 */
+.vnd-manager {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.vnd-manager-name {
+  color: var(--mes-text);
+}
+
+.vnd-manager-phone {
+  font-size: 12px;
+  color: var(--mes-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.vnd-badge-off {
+  background: #eff1f4;
+  color: var(--mes-text-sub);
+}
+
+/* ── 등록/수정 모달 ── */
+
+.vnd-form-section {
+  margin: 4px 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mes-text);
+}
+
+.vnd-form-section ~ .vnd-form-section {
+  margin-top: 6px;
+  padding-top: 14px;
+  border-top: 1px solid var(--mes-line);
+}
+
+.vnd-grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.vnd-zip {
+  max-width: 120px;
+}
+
+@media (max-width: 520px) {
+  .vnd-grid-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .vnd-keyword {
+    width: 100%;
+  }
+}

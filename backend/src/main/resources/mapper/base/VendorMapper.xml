@@ -4,26 +4,87 @@
 
     <!-- 기준정보 > 거래처관리 (base_vendor) -->
 
+    <!-- 거래처는 많아야 수백 건이라 페이징 없이 한 번에 내려주고 화면에서 정렬/선택한다 -->
     <select id="selectList" parameterType="map" resultType="com.mes.domain.base.Vendor">
-        SELECT id, use_yn, reg_dt, upd_dt
+        SELECT *
         FROM base_vendor
         <where>
+            <if test="vendorType != null and vendorType != ''">
+                AND vendor_type = #{vendorType}
+            </if>
+            <if test="useYn != null and useYn != ''">
+                AND use_yn = #{useYn}
+            </if>
             <if test="keyword != null and keyword != ''">
-                AND id LIKE CONCAT('%', #{keyword}, '%')
+                AND (vendor_name LIKE CONCAT('%', #{keyword}, '%')
+                     OR vendor_code LIKE CONCAT('%', #{keyword}, '%')
+                     OR REPLACE(biz_no, '-', '') LIKE CONCAT('%', REPLACE(#{keyword}, '-', ''), '%'))
             </if>
         </where>
-        ORDER BY id DESC
-        LIMIT #{size} OFFSET #{offset}
+        ORDER BY vendor_code ASC
     </select>
 
-    <select id="selectCount" parameterType="map" resultType="long">
-        SELECT COUNT(*)
-        FROM base_vendor
-        <where>
-            <if test="keyword != null and keyword != ''">
-                AND id LIKE CONCAT('%', #{keyword}, '%')
-            </if>
-        </where>
+    <select id="selectById" parameterType="long" resultType="com.mes.domain.base.Vendor">
+        SELECT * FROM base_vendor WHERE vendor_id = #{vendorId}
     </select>
+
+    <select id="selectByCode" parameterType="string" resultType="com.mes.domain.base.Vendor">
+        SELECT * FROM base_vendor WHERE vendor_code = #{vendorCode}
+    </select>
+
+    <!-- 같은 사업자번호가 이미 있는지 (수정 시에는 자기 자신 제외) -->
+    <select id="selectByBizNo" parameterType="map" resultType="com.mes.domain.base.Vendor">
+        SELECT * FROM base_vendor
+        WHERE biz_no = #{bizNo}
+        <if test="excludeId != null">
+            AND vendor_id != #{excludeId}
+        </if>
+        LIMIT 1
+    </select>
+
+    <!-- 자동 채번용: V0001 형식 코드 중 가장 큰 번호 -->
+    <select id="selectMaxAutoCodeNo" resultType="int">
+        SELECT IFNULL(MAX(CAST(SUBSTRING(vendor_code, 2) AS UNSIGNED)), 0)
+        FROM base_vendor
+        WHERE vendor_code REGEXP '^V[0-9]+$'
+    </select>
+
+    <insert id="insert" parameterType="com.mes.domain.base.Vendor" useGeneratedKeys="true" keyProperty="vendorId">
+        INSERT INTO base_vendor (
+            vendor_code, vendor_name, vendor_type, ceo_name, biz_no, biz_type, biz_item,
+            tel, fax, zip_code, address, address_detail,
+            manager_name, manager_phone, manager_email, remark, use_yn, reg_user_name
+        ) VALUES (
+            #{vendorCode}, #{vendorName}, #{vendorType}, #{ceoName}, #{bizNo}, #{bizType}, #{bizItem},
+            #{tel}, #{fax}, #{zipCode}, #{address}, #{addressDetail},
+            #{managerName}, #{managerPhone}, #{managerEmail}, #{remark}, #{useYn}, #{regUserName}
+        )
+    </insert>
+
+    <!-- 거래처코드와 등록자는 등록 후 바꾸지 않는다 -->
+    <update id="update" parameterType="com.mes.domain.base.Vendor">
+        UPDATE base_vendor SET
+            vendor_name = #{vendorName},
+            vendor_type = #{vendorType},
+            ceo_name = #{ceoName},
+            biz_no = #{bizNo},
+            biz_type = #{bizType},
+            biz_item = #{bizItem},
+            tel = #{tel},
+            fax = #{fax},
+            zip_code = #{zipCode},
+            address = #{address},
+            address_detail = #{addressDetail},
+            manager_name = #{managerName},
+            manager_phone = #{managerPhone},
+            manager_email = #{managerEmail},
+            remark = #{remark},
+            use_yn = #{useYn}
+        WHERE vendor_id = #{vendorId}
+    </update>
+
+    <delete id="delete" parameterType="long">
+        DELETE FROM base_vendor WHERE vendor_id = #{vendorId}
+    </delete>
 
 </mapper>

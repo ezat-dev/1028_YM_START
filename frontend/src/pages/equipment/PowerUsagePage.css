@@ -1,0 +1,709 @@
+/* 설비관리 > 전력량 — KDX300 유효/무효전력량 */
+
+.pw-page {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.pw-loading {
+  padding: 48px;
+  text-align: center;
+  color: var(--mes-text-faint);
+}
+
+/* ── 상단: 제목 | 기간 | 갱신 ── */
+
+.pw-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 20px;
+  padding: 12px 16px;
+  background: var(--mes-surface);
+  border: 1px solid var(--mes-border);
+  border-radius: var(--mes-radius-lg);
+}
+
+.pw-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-right: auto;
+}
+
+.pw-title .mes-page-icon {
+  width: 32px;
+  height: 32px;
+}
+
+.pw-title .mes-page-title {
+  margin: 0;
+  font-size: 17px;
+}
+
+.pw-sub {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 1px;
+  font-size: 12px;
+  color: var(--mes-text-faint);
+}
+
+.pw-mock {
+  padding: 0 6px;
+  border: 1px dashed var(--mes-border-strong);
+  border-radius: var(--mes-radius-sm);
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 17px;
+}
+
+.pw-seg {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--mes-border);
+  border-radius: var(--mes-radius);
+  background: var(--mes-surface-sub);
+}
+
+.pw-seg button {
+  height: 30px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--mes-radius-sm);
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mes-text-sub);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pw-seg button:hover { color: var(--mes-text); }
+
+.pw-seg button.is-on {
+  background: var(--mes-surface);
+  color: var(--mes-accent);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .08);
+}
+
+.pw-seg button:focus-visible {
+  outline: 2px solid var(--mes-accent);
+  outline-offset: 1px;
+}
+
+.pw-seg.is-sm button {
+  height: 26px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.pw-head-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pw-updated {
+  font-size: 12px;
+  color: var(--mes-text-faint);
+  white-space: nowrap;
+}
+
+.pw-updated b {
+  margin-left: 2px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mes-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.pw-updated.is-error,
+.pw-updated.is-error b { color: var(--mes-danger); }
+
+.pw-icon-btn {
+  width: 34px;
+  padding: 0;
+}
+
+.pw-icon-btn.is-spinning svg {
+  animation: pw-spin .8s linear infinite;
+}
+
+@keyframes pw-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── 증감·역률 배지 ── */
+
+.pw-delta {
+  font-weight: 700;
+  color: var(--mes-text-sub);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.pw-pf {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.pw-pf.is-good { background: var(--mes-success-soft); color: var(--mes-success); }
+.pw-pf.is-warn { background: var(--mes-warning-soft); color: var(--mes-warning); }
+.pw-pf.is-bad { background: var(--mes-danger-soft); color: var(--mes-danger); }
+.pw-pf.is-none { color: var(--mes-text-faint); }
+
+/* ── 카드 공통 ── */
+
+.pw-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 14px 16px;
+}
+
+.pw-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.pw-card-head h3 {
+  margin: 0;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--mes-text);
+}
+
+.pw-card-head p {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--mes-text-faint);
+}
+
+.pw-chart {
+  height: 300px;
+  min-width: 0;
+}
+
+.pw-chart.is-sm {
+  height: 220px;
+}
+
+/* recharts 포커스 테두리 제거(키보드 포커스는 범례 칩·버튼으로) */
+.pw-page .recharts-wrapper:focus,
+.pw-page .recharts-surface:focus {
+  outline: none;
+}
+
+/* 툴팁 */
+.pw-tip {
+  min-width: 150px;
+  padding: 9px 11px;
+  background: var(--mes-surface);
+  border: 1px solid var(--mes-border);
+  border-radius: var(--mes-radius);
+  box-shadow: var(--mes-shadow);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.pw-tip-title {
+  margin-bottom: 5px;
+  font-weight: 700;
+  color: var(--mes-text);
+}
+
+.pw-tip-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 19px;
+  color: var(--mes-text-sub);
+}
+
+.pw-tip-row i {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.pw-tip-row b {
+  margin-left: auto;
+  padding-left: 14px;
+  font-weight: 600;
+  color: var(--mes-text);
+}
+
+.pw-tip-total {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 5px;
+  padding-top: 5px;
+  border-top: 1px solid var(--mes-line);
+  color: var(--mes-text-sub);
+}
+
+.pw-tip-total b {
+  color: var(--mes-text);
+}
+
+.pw-tip-pf {
+  margin-top: 2px;
+  color: var(--mes-text-faint);
+  text-align: right;
+}
+
+/* ── 메인 차트 + 비중 ── */
+
+.pw-row-main {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
+  gap: 12px;
+}
+
+/* 범례 겸 필터 칩 */
+.pw-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 8px;
+}
+
+.pw-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 9px;
+  border: 1px solid var(--mes-border);
+  border-radius: 999px;
+  background: var(--mes-surface);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mes-text);
+  cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s;
+}
+
+.pw-chip i {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+}
+
+.pw-chip-val {
+  padding-left: 5px;
+  border-left: 1px solid var(--mes-line);
+  font-weight: 500;
+  color: var(--mes-text-sub);
+  font-variant-numeric: tabular-nums;
+}
+
+.pw-chip.is-off .pw-chip-val {
+  color: var(--mes-text-faint);
+}
+
+/* 메인 차트 제목 아래 합계 줄 */
+.pw-main-sum {
+  font-variant-numeric: tabular-nums;
+}
+
+.pw-main-sum b {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--mes-text);
+}
+
+.pw-main-sum span {
+  margin: 0 6px;
+  color: var(--mes-border-strong);
+}
+
+.pw-main-sum em {
+  font-style: normal;
+  color: var(--mes-text-faint);
+}
+
+.pw-main .pw-chart {
+  height: 320px;
+}
+
+.pw-chip:hover {
+  border-color: var(--mes-border-strong);
+}
+
+.pw-chip.is-off {
+  background: var(--mes-surface-sub);
+  color: var(--mes-text-faint);
+  text-decoration: line-through;
+}
+
+.pw-chip.is-off i {
+  background: transparent !important;
+  box-shadow: inset 0 0 0 1.5px var(--mes-border-strong);
+}
+
+.pw-chip:focus-visible {
+  outline: 2px solid var(--mes-accent);
+  outline-offset: 1px;
+}
+
+/* 설비별 비중 — 가로 막대 */
+.pw-share-total {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.pw-share-total span {
+  font-size: 11.5px;
+  color: var(--mes-text-faint);
+}
+
+.pw-share-total b {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--mes-text);
+}
+
+.pw-share-total small {
+  font-size: 11px;
+  color: var(--mes-text-faint);
+}
+
+.pw-share-chart {
+  flex: 1;
+  min-height: 240px;
+}
+
+/* ── 설비 카드 6장 ── */
+
+.pw-equips {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.pw-equip {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 12px 14px 10px;
+  overflow: hidden;
+  transition: opacity .2s;
+}
+
+/* 위쪽 설비 색 띠 */
+.pw-equip::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 3px;
+  background: var(--c);
+}
+
+.pw-equip.is-dim {
+  opacity: .55;
+}
+
+.pw-equip header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.pw-equip-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+  background: var(--c);
+}
+
+.pw-equip header strong {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--mes-text);
+}
+
+.pw-equip-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--mes-success-soft);
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 18px;
+  color: var(--mes-success);
+  white-space: nowrap;
+}
+
+.pw-equip-status.is-alarm { background: var(--mes-danger-soft); color: var(--mes-danger); }
+.pw-equip-status.is-idle { background: #eceef1; color: var(--mes-text-sub); }
+
+.pw-equip-toggle {
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 11px;
+  color: var(--mes-text-faint);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pw-equip-toggle:hover { color: var(--mes-accent); }
+
+.pw-equip-toggle:focus-visible {
+  outline: 2px solid var(--mes-accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.pw-equip-main {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.pw-equip-label {
+  display: block;
+  font-size: 11px;
+  color: var(--mes-text-faint);
+}
+
+.pw-equip-value {
+  font-size: 21px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--mes-text);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.pw-equip-value small,
+.pw-equip-pf-v small {
+  margin-left: 2px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--mes-text-faint);
+}
+
+.pw-equip-pf {
+  text-align: right;
+}
+
+.pw-equip-pf-v {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+}
+
+.pw-equip-pf-v.is-good { color: var(--mes-success); }
+.pw-equip-pf-v.is-warn { color: var(--mes-warning); }
+.pw-equip-pf-v.is-bad { color: var(--mes-danger); }
+
+.pw-equip-spark {
+  height: 46px;
+  margin: 6px -14px 0;
+}
+
+.pw-equip-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 6px 0 0;
+  padding-top: 8px;
+  border-top: 1px solid var(--mes-line);
+}
+
+.pw-equip-stats > div {
+  min-width: 0;
+  padding: 0 6px;
+  border-left: 1px solid var(--mes-line);
+}
+
+.pw-equip-stats > div:first-child {
+  padding-left: 0;
+  border-left: none;
+}
+
+.pw-equip-stats dt {
+  font-size: 10.5px;
+  color: var(--mes-text-faint);
+  white-space: nowrap;
+}
+
+.pw-equip-stats dd {
+  margin: 1px 0 0;
+  overflow: hidden;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--mes-text);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+
+.pw-equip-stats dd small {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--mes-text-faint);
+}
+
+.pw-equip-foot {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px 4px;
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--mes-text-faint);
+}
+
+/* ── 역률 + 계량기 ── */
+
+.pw-row-bottom {
+  display: grid;
+  /* 위 줄(시간대별 유효전력량 | 설비별 사용 비중)과 같은 칸 — 역률 추이가 사용 비중과 같은 폭 */
+  grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
+  gap: 12px;
+}
+
+.pw-table-wrap {
+  overflow-x: auto;
+}
+
+.pw-table {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.pw-table th {
+  height: 34px;
+  padding: 0 10px;
+  border-bottom: 1px solid var(--mes-border);
+  background: var(--mes-surface-sub);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mes-text-sub);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.pw-table th small {
+  margin-left: 3px;
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--mes-text-faint);
+}
+
+.pw-table td {
+  height: 38px;
+  padding: 0 10px;
+  border-bottom: 1px solid var(--mes-line);
+  color: var(--mes-text);
+  white-space: nowrap;
+}
+
+.pw-table tr:last-child td {
+  border-bottom: none;
+}
+
+.pw-table .is-num {
+  text-align: right;
+}
+
+.pw-t-code {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+}
+
+.pw-t-code i {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+}
+
+.pw-t-meter {
+  color: var(--mes-text-sub);
+}
+
+.pw-t-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--mes-success);
+}
+
+.pw-t-status i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.pw-t-status.is-stale {
+  color: var(--mes-danger);
+}
+
+/* ── 화면 크기 ── */
+
+@media (max-width: 1700px) {
+  .pw-equips { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* 위·아래 줄 모두 2칸 유지 — 오른쪽 칸(사용 비중·역률)만 조금 좁힌다 */
+@media (max-width: 1100px) {
+  .pw-row-main,
+  .pw-row-bottom { grid-template-columns: minmax(0, 1.6fr) minmax(240px, 1fr); }
+  .pw-equips { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 768px) {
+  .pw-equips { grid-template-columns: minmax(0, 1fr); }
+  .pw-chart { height: 240px; }
+  .pw-title { margin-right: 0; }
+  .pw-header { justify-content: space-between; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pw-icon-btn.is-spinning svg { animation: none; }
+}
+
+@media (max-width: 600px) {
+  .pw-row-main,
+  .pw-row-bottom { grid-template-columns: minmax(0, 1fr); }
+}

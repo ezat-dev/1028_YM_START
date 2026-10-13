@@ -329,8 +329,8 @@ export default function ControllerPage() {
       render: (r) => <FileCountText count={r.h2FileCount} />,
       onCellClick: (r) => openFileList(r, 'H2'),
     },
-    { key: 'regDt', title: '등록일', width: 100, sortValue: (r) => r.regDt, render: (r) => <MetaText value={(r.regDt || '').slice(0, 10)} /> },
-    { key: 'regUserName', title: '등록자', width: 110, render: (r) => <MetaText value={r.regUserName} /> },
+    { key: 'regDt', title: '등록일', width: 100, align: 'center', sortValue: (r) => r.regDt, render: (r) => <MetaText value={(r.regDt || '').slice(0, 10)} /> },
+    { key: 'regUserName', title: '등록자', width: 110, align: 'center', render: (r) => <MetaText value={r.regUserName} /> },
   ], [openFileList]);
 
   return (

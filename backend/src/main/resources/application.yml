@@ -17,7 +17,7 @@ spring:
   servlet:
     multipart:
       max-file-size: 20MB
-      max-request-size: 20MB
+      max-request-size: 100MB
 
 # sample_pro가 쓰는 기존 ez_scada(모니터링/알람/온도/PLC 실데이터). 새 스키마 아님 — 기존 DB에 직접 연결.
 # 실행 전: EZSCADA_DB_USERNAME, EZSCADA_DB_PASSWORD 필수(sample_pro의 root-context.xml과 같은 값).
@@ -39,6 +39,10 @@ app:
   oilAnalysis-upload-dir: ${OIL_ANALYSIS_UPLOAD_DIR:./uploads/oilAnalysis}
   # 품질관리 > 온도균일성보고서 첨부파일(성적서 PDF) 저장 경로.
   tempUniform-upload-dir: ${TEMP_UNIFORM_UPLOAD_DIR:./uploads/tempUniform}
+  # 기준정보 > 제품관리 이미지 저장 경로. 실제 파일은 {이 경로}/product/{제품ID}/ 아래에 쌓인다.
+  product-image-dir: ${PRODUCT_IMAGE_DIR:D:/ym_img}
+  # 설비관리 > 설비이력관리·수리이력관리 첨부파일(여러 개). 실제 파일은 {이 경로}/history|repair/{ID}/ 아래.
+  equipment-file-dir: ${EQUIPMENT_FILE_DIR:./uploads/equipment}
 
 # PLC 하드웨어와 통신하는 C# API 서버 — sample_pro와 별도 머신에서 돌기 때문에 localhost가 아니라
 # 실제 네트워크 주소를 써야 한다.

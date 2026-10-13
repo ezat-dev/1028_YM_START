@@ -2,28 +2,102 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="RepairHistMapper">
 
-    <!-- 설비관리 > 수리이력관리 (equipment_repair_hist) -->
+    <!-- 설비관리 > 수리이력관리 (equipment_repair_hist / equipment_repair_part) -->
+
+    <sql id="cols">
+        r.*, e.equip_code, e.equip_name,
+        r.part_cost + r.outsource_cost AS total_cost,
+        CASE WHEN r.recover_dt IS NULL THEN NULL ELSE TIMESTAMPDIFF(MINUTE, r.fail_dt, r.recover_dt) END AS down_min,
+        CASE WHEN r.start_dt IS NULL OR r.end_dt IS NULL THEN NULL ELSE TIMESTAMPDIFF(MINUTE, r.start_dt, r.end_dt) END AS work_min,
+        (SELECT COUNT(*) FROM equipment_attach a WHERE a.ref_type = 'REPAIR' AND a.ref_id = r.repair_id) AS attach_count,
+        (SELECT COUNT(*) FROM equipment_repair_part p WHERE p.repair_id = r.repair_id) AS part_count
+    </sql>
 
     <select id="selectList" parameterType="map" resultType="com.mes.domain.equipment.RepairHist">
-        SELECT id, use_yn, reg_dt, upd_dt
-        FROM equipment_repair_hist
+        SELECT <include refid="cols"/>
+        FROM equipment_repair_hist r
+        JOIN base_equipment e ON e.equip_id = r.equip_id
         <where>
+            <if test="from != null">AND r.fail_dt &gt;= #{from}</if>
+            <if test="to != null">AND r.fail_dt &lt; #{to}</if>
+            <if test="equipId != null">AND r.equip_id = #{equipId}</if>
+            <if test="status != null and status != ''">AND r.status = #{status}</if>
+            <if test="repairKind != null and repairKind != ''">AND r.repair_kind = #{repairKind}</if>
             <if test="keyword != null and keyword != ''">
-                AND id LIKE CONCAT('%', #{keyword}, '%')
+                AND (r.repair_no LIKE CONCAT('%', #{keyword}, '%')
+                     OR r.fail_type LIKE CONCAT('%', #{keyword}, '%')
+                     OR r.symptom LIKE CONCAT('%', #{keyword}, '%')
+                     OR r.alarm_code LIKE CONCAT('%', #{keyword}, '%')
+                     OR r.repairer_name LIKE CONCAT('%', #{keyword}, '%')
+                     OR r.vendor_name LIKE CONCAT('%', #{keyword}, '%'))
             </if>
         </where>
-        ORDER BY id DESC
-        LIMIT #{size} OFFSET #{offset}
+        ORDER BY r.fail_dt DESC, r.repair_id DESC
     </select>
 
-    <select id="selectCount" parameterType="map" resultType="long">
-        SELECT COUNT(*)
-        FROM equipment_repair_hist
-        <where>
-            <if test="keyword != null and keyword != ''">
-                AND id LIKE CONCAT('%', #{keyword}, '%')
-            </if>
-        </where>
+    <select id="selectById" parameterType="long" resultType="com.mes.domain.equipment.RepairHist">
+        SELECT <include refid="cols"/>
+        FROM equipment_repair_hist r
+        JOIN base_equipment e ON e.equip_id = r.equip_id
+        WHERE r.repair_id = #{repairId}
     </select>
+
+    <select id="selectMaxNo" parameterType="string" resultType="int">
+        SELECT IFNULL(MAX(CAST(SUBSTRING(repair_no, LENGTH(#{prefix}) + 1) AS UNSIGNED)), 0)
+        FROM equipment_repair_hist WHERE repair_no LIKE CONCAT(#{prefix}, '%')
+    </select>
+
+    <insert id="insert" parameterType="com.mes.domain.equipment.RepairHist" useGeneratedKeys="true" keyProperty="repairId">
+        INSERT INTO equipment_repair_hist (
+            repair_no, equip_id, fail_dt, fail_type, alarm_code, symptom, cause, action,
+            repairer_name, repair_kind, vendor_name, start_dt, end_dt, recover_dt, test_result, status,
+            part_cost, outsource_cost, reg_user_id, reg_user_name
+        ) VALUES (
+            #{repairNo}, #{equipId}, #{failDt}, #{failType}, #{alarmCode}, #{symptom}, #{cause}, #{action},
+            #{repairerName}, #{repairKind}, #{vendorName}, #{startDt}, #{endDt}, #{recoverDt}, #{testResult}, #{status},
+            #{partCost}, #{outsourceCost}, #{regUserId}, #{regUserName}
+        )
+    </insert>
+
+    <update id="update" parameterType="com.mes.domain.equipment.RepairHist">
+        UPDATE equipment_repair_hist SET
+            equip_id = #{equipId},
+            fail_dt = #{failDt},
+            fail_type = #{failType},
+            alarm_code = #{alarmCode},
+            symptom = #{symptom},
+            cause = #{cause},
+            action = #{action},
+            repairer_name = #{repairerName},
+            repair_kind = #{repairKind},
+            vendor_name = #{vendorName},
+            start_dt = #{startDt},
+            end_dt = #{endDt},
+            recover_dt = #{recoverDt},
+            test_result = #{testResult},
+            status = #{status},
+            part_cost = #{partCost},
+            outsource_cost = #{outsourceCost},
+            upd_user_id = #{updUserId},
+            upd_user_name = #{updUserName}
+        WHERE repair_id = #{repairId}
+    </update>
+
+    <delete id="delete" parameterType="long">
+        DELETE FROM equipment_repair_hist WHERE repair_id = #{repairId}
+    </delete>
+
+    <select id="selectParts" parameterType="long" resultType="com.mes.domain.equipment.RepairPart">
+        SELECT * FROM equipment_repair_part WHERE repair_id = #{repairId} ORDER BY sort_order, part_id
+    </select>
+
+    <insert id="insertPart" parameterType="com.mes.domain.equipment.RepairPart">
+        INSERT INTO equipment_repair_part (repair_id, part_name, part_no, qty, sort_order)
+        VALUES (#{repairId}, #{partName}, #{partNo}, #{qty}, #{sortOrder})
+    </insert>
+
+    <delete id="deleteParts" parameterType="long">
+        DELETE FROM equipment_repair_part WHERE repair_id = #{repairId}
+    </delete>
 
 </mapper>

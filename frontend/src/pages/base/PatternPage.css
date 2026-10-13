@@ -1,0 +1,578 @@
+/* 기준정보 > 패턴관리 — 레이아웃은 제품관리와 같고, 표만 Tabulator(그룹 헤더 + 왼쪽 고정 칸) */
+
+.pat-page .mes-field textarea {
+  padding: 8px 10px;
+  border: 1px solid var(--mes-border-strong);
+  border-radius: var(--mes-radius);
+  outline: none;
+  background: var(--mes-surface);
+  resize: vertical;
+  font-family: inherit;
+  font-size: inherit;
+  transition: border-color .15s, box-shadow .15s;
+}
+
+.pat-page .mes-field textarea:focus {
+  border-color: var(--mes-accent);
+  box-shadow: 0 0 0 3px var(--mes-accent-soft);
+}
+
+/* 퀜칭로는 차가운 파랑, 템퍼링로는 따뜻한 주황 — 표와 입력 화면에 같은 색을 써서 어느 로인지 바로 읽히게 */
+.pat-page,
+.pat-modal {
+  --pat-q-bg: rgba(47, 91, 181, 0.045);
+  --pat-q-head: #eef2fa;
+  --pat-q-ink: #2f4f8f;
+  --pat-t-bg: rgba(191, 120, 20, 0.055);
+  --pat-t-head: #faf3e8;
+  --pat-t-ink: #8a5a14;
+}
+
+/* ── 상단 헤더 카드 ── */
+
+.pat-header-card {
+  background: var(--mes-surface);
+  border: 1px solid var(--mes-border);
+  border-radius: var(--mes-radius-lg);
+  padding: 18px 20px;
+  margin-bottom: 16px;
+}
+
+.pat-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.pat-header-sep {
+  height: 1px;
+  background: var(--mes-line);
+  margin: 16px 0 14px;
+}
+
+.pat-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.pat-vendor-filter {
+  max-width: 200px;
+}
+
+.pat-keyword {
+  width: 220px;
+}
+
+.pat-header-spacer {
+  flex: 1;
+}
+
+.pat-count {
+  margin-left: 4px;
+  font-size: 13px;
+  color: var(--mes-text-sub);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── 표: 카드 남는 높이를 채우고 안에서 스크롤 ── */
+
+.pat-table-card {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+
+.pat-table-wrap {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.pat-table-wrap .mes-table-wrap {
+  flex: 1;
+  min-height: 0;
+}
+
+.pat-table-wrap .mes-table-wrap > div {
+  height: 100%;
+}
+
+/* 그룹 헤더(퀜칭로/템퍼링로) 때문에 헤더가 두 줄 높이가 되는데, 그룹이 아닌 칸의 제목은
+   위에 붙지 않고 두 줄 높이의 가운데에 오게 */
+.pat-table-wrap .tabulator .tabulator-header .tabulator-col:not(.tabulator-col-group) {
+  justify-content: center;
+}
+
+/* 체크박스 칸: 기본 좌우 여백(12px)이면 40px 칸을 넘쳐 말줄임(…)이 붙는다 */
+.pat-table-wrap .tabulator-row .tabulator-cell.pat-check,
+.pat-table-wrap .tabulator .tabulator-header .tabulator-col.pat-check .tabulator-col-content {
+  padding-left: 0;
+  padding-right: 0;
+  text-overflow: clip;
+}
+
+/* 존 온도 칸: 숫자 3자리만 들어가면 돼서 좌우 여백을 줄인다 */
+.pat-table-wrap .tabulator-row .tabulator-cell.pat-z {
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+.pat-table-wrap .tabulator .tabulator-header .tabulator-col.pat-z .tabulator-col-content {
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+/* 로별 옅은 배경 — 칸이 30개 가까이 늘어서도 어디가 퀜칭로이고 어디가 템퍼링로인지 보이게 */
+.pat-table-wrap .tabulator-row .tabulator-cell.pat-q { background-color: var(--pat-q-bg); }
+.pat-table-wrap .tabulator-row .tabulator-cell.pat-t { background-color: var(--pat-t-bg); }
+
+.pat-table-wrap .tabulator .tabulator-header .tabulator-col.pat-q,
+.pat-table-wrap .tabulator .tabulator-header .tabulator-col.pat-grp-q {
+  background: var(--pat-q-head);
+}
+
+.pat-table-wrap .tabulator .tabulator-header .tabulator-col.pat-t,
+.pat-table-wrap .tabulator .tabulator-header .tabulator-col.pat-grp-t {
+  background: var(--pat-t-head);
+}
+
+.pat-table-wrap .tabulator .tabulator-header .tabulator-col.pat-grp-q > .tabulator-col-content .tabulator-col-title {
+  color: var(--pat-q-ink);
+}
+
+.pat-table-wrap .tabulator .tabulator-header .tabulator-col.pat-grp-t > .tabulator-col-content .tabulator-col-title {
+  color: var(--pat-t-ink);
+}
+
+/* 그룹 제목 아래 가는 선 */
+.pat-table-wrap .tabulator .tabulator-header .tabulator-col.pat-grp > .tabulator-col-content {
+  border-bottom: 1px solid var(--mes-border);
+}
+
+/* 세로선은 그룹 경계에만 */
+.pat-table-wrap .tabulator-row .tabulator-cell.pat-sep,
+.pat-table-wrap .tabulator .tabulator-header .tabulator-col.pat-sep,
+.pat-table-wrap .tabulator .tabulator-header .tabulator-col.pat-grp {
+  border-left: 1px solid var(--mes-border);
+}
+
+/* 왼쪽 고정 칸: 스크롤되는 칸 위로 겹칠 때 비치지 않게 흰 바탕 + 오른쪽 경계선 */
+.pat-table-wrap .tabulator-row .tabulator-cell.tabulator-frozen {
+  background-color: inherit;
+}
+
+.pat-table-wrap .tabulator-row .tabulator-cell.tabulator-frozen.tabulator-frozen-left,
+.pat-table-wrap .tabulator .tabulator-header .tabulator-col.tabulator-frozen.tabulator-frozen-left {
+  border-right: 1px solid var(--mes-border);
+}
+
+.pat-table-wrap .tabulator .tabulator-header .tabulator-col.tabulator-frozen {
+  background: var(--mes-surface-sub);
+}
+
+.pat-table-wrap .tabulator-row.tabulator-selected {
+  background-color: var(--mes-accent-soft) !important;
+}
+
+.pat-table-wrap .tabulator-row .tabulator-cell input[type="checkbox"],
+.pat-table-wrap .tabulator-header input[type="checkbox"] {
+  accent-color: var(--mes-accent);
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+  vertical-align: middle;
+}
+
+.pat-null {
+  color: #c3c8cf;
+}
+
+.pat-unit {
+  margin-left: 2px;
+  font-size: 11px;
+  color: var(--mes-text-faint);
+}
+
+.pat-code {
+  display: block;
+  font-variant-numeric: tabular-nums;
+  color: var(--mes-text);
+}
+
+.pat-sub {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: var(--mes-text-faint);
+}
+
+.pat-text {
+  color: var(--mes-text-sub);
+}
+
+.pat-name {
+  font-weight: 600;
+  color: var(--mes-text);
+}
+
+.pat-num {
+  font-variant-numeric: tabular-nums;
+  color: var(--mes-text-sub);
+}
+
+.pat-badge-off {
+  background: #eff1f4;
+  color: var(--mes-text-sub);
+}
+
+/* ── 등록/수정 모달 ── */
+
+.pat-modal {
+  max-width: 860px;
+}
+
+.pat-tabs {
+  display: flex;
+  gap: 18px;
+  margin: -6px 0 16px;
+  border-bottom: 1px solid var(--mes-line);
+}
+
+.pat-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 2px 9px;
+  margin-bottom: -1px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--mes-text-faint);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pat-tabs button:hover {
+  color: var(--mes-text-sub);
+}
+
+.pat-tabs button.is-on {
+  color: var(--mes-accent-dark);
+  border-bottom-color: var(--mes-accent);
+}
+
+.pat-tabs button:focus-visible {
+  outline: 2px solid var(--mes-accent);
+  outline-offset: 2px;
+}
+
+.pat-form-section {
+  margin: 4px 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mes-text);
+}
+
+.pat-form-section ~ .pat-form-section {
+  margin-top: 6px;
+  padding-top: 14px;
+  border-top: 1px solid var(--mes-line);
+}
+
+.pat-grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.pat-span-2 {
+  grid-column: span 2;
+}
+
+/* 고른 제품 정보 — 고칠 수 없는 값이라 입력칸이 아닌 정의 목록으로 */
+.pat-product-info {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 1px;
+  margin: -4px 0 14px;
+  border: 1px solid var(--mes-line);
+  border-radius: var(--mes-radius);
+  background: var(--mes-line);
+  overflow: hidden;
+}
+
+.pat-product-info div {
+  min-width: 0;
+  padding: 7px 10px;
+  background: var(--mes-surface-sub);
+}
+
+.pat-product-info dt {
+  font-size: 11px;
+  color: var(--mes-text-faint);
+}
+
+.pat-product-info dd {
+  margin: 1px 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  color: var(--mes-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.pat-unit-input {
+  position: relative;
+  display: flex;
+  min-width: 0;
+}
+
+.pat-unit-input input {
+  width: 100%;
+  padding-right: 40px !important;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.pat-unit-input span {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  color: var(--mes-text-faint);
+  pointer-events: none;
+}
+
+/* 로 조건 입력: 실제 로의 존 순서대로 한 줄 */
+.pat-furnace {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.pat-furnace-head,
+.pat-furnace-row {
+  display: grid;
+  grid-template-columns: 84px repeat(5, minmax(0, 1fr)) minmax(0, 1.35fr) minmax(0, 1.2fr);
+  gap: 6px;
+  align-items: center;
+}
+
+.pat-furnace-head span {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--mes-text-faint);
+  text-align: center;
+}
+
+.pat-furnace-row {
+  padding: 6px;
+  border-radius: var(--mes-radius);
+}
+
+.pat-furnace-row.is-q { background: var(--pat-q-bg); }
+.pat-furnace-row.is-t { background: var(--pat-t-bg); }
+
+.pat-furnace-label {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  padding-left: 4px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.pat-furnace-row.is-q .pat-furnace-label { color: var(--pat-q-ink); }
+.pat-furnace-row.is-t .pat-furnace-label { color: var(--pat-t-ink); }
+
+.pat-furnace-label small {
+  font-size: 11px;
+  font-weight: 400;
+  opacity: .75;
+}
+
+.pat-furnace-row input {
+  width: 100%;
+  height: 36px;
+  padding: 0 8px;
+  border: 1px solid var(--mes-border-strong);
+  border-radius: var(--mes-radius);
+  background: var(--mes-surface);
+  outline: none;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  transition: border-color .15s, box-shadow .15s;
+}
+
+.pat-furnace-row .pat-unit-input input {
+  text-align: right;
+}
+
+.pat-furnace-row input:focus {
+  border-color: var(--mes-accent);
+  box-shadow: 0 0 0 3px var(--mes-accent-soft);
+}
+
+/* 숫자 칸 오른쪽 위아래 화살표는 좁은 칸에서 숫자를 가려서 숨긴다 */
+.pat-furnace-row input::-webkit-outer-spin-button,
+.pat-furnace-row input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.pat-furnace-row input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.pat-hist-note {
+  margin: 0 0 4px;
+  font-size: 12px;
+  color: var(--mes-text-faint);
+}
+
+/* ── 변경 이력 ── */
+
+.pat-history {
+  display: flex;
+  flex-direction: column;
+}
+
+.pat-history-empty {
+  padding: 40px 0;
+  text-align: center;
+  color: var(--mes-text-faint);
+  font-size: 13px;
+}
+
+.pat-history-item {
+  position: relative;
+  padding: 0 0 14px 18px;
+  border-left: 1px solid var(--mes-line);
+  margin-left: 5px;
+}
+
+.pat-history-item:last-of-type {
+  border-left-color: transparent;
+}
+
+.pat-history-item::before {
+  content: '';
+  position: absolute;
+  left: -5px;
+  top: 5px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 2px solid var(--mes-surface);
+  background: var(--mes-border-strong);
+}
+
+.pat-history-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.pat-history-action {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 7px;
+  border-radius: var(--mes-radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pat-history-action.is-create { background: var(--mes-success-soft); color: var(--mes-success); }
+.pat-history-action.is-update { background: var(--mes-accent-soft); color: var(--mes-accent-dark); }
+.pat-history-action.is-delete { background: var(--mes-danger-soft); color: var(--mes-danger); }
+
+.pat-history-when {
+  font-variant-numeric: tabular-nums;
+  color: var(--mes-text-sub);
+}
+
+.pat-history-who {
+  color: var(--mes-text-faint);
+}
+
+.pat-history-changes {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pat-history-changes li {
+  display: grid;
+  grid-template-columns: 120px auto 16px auto;
+  justify-content: start;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.pat-history-field {
+  color: var(--mes-text-sub);
+}
+
+.pat-history-before {
+  color: var(--mes-text-faint);
+  text-decoration: line-through;
+  text-decoration-color: rgba(0, 0, 0, 0.25);
+}
+
+.pat-history-arrow {
+  color: var(--mes-text-faint);
+  text-align: center;
+}
+
+.pat-history-after {
+  font-weight: 600;
+  color: var(--mes-text);
+}
+
+@media (max-width: 760px) {
+  .pat-grid-3 {
+    grid-template-columns: 1fr;
+  }
+
+  .pat-span-2 {
+    grid-column: auto;
+  }
+
+  .pat-product-info {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pat-furnace-head {
+    display: none;
+  }
+
+  .pat-furnace-row {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .pat-furnace-label {
+    grid-column: 1 / -1;
+  }
+
+  .pat-keyword {
+    width: 100%;
+  }
+}

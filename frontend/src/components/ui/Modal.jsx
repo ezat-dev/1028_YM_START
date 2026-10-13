@@ -1,12 +1,9 @@
 export default function Modal({ title, onClose, children, footer, large, xl, className }) {
   const sizeClass = xl ? 'mes-modal-xl' : large ? 'mes-modal-lg' : '';
   return (
-    <div
-      className="mes-modal-overlay"
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
+    // 바깥(어두운 영역)을 눌러도 닫히지 않는다 — 입력하다 실수로 바깥을 눌러 내용이 날아가는 일을 막기 위해.
+    // 닫기는 ✕ 버튼이나 각 화면의 취소/닫기 버튼으로만.
+    <div className="mes-modal-overlay">
       <div className={`mes-modal ${sizeClass} ${className || ''}`.trim().replace(/\s+/g, ' ')}>
         <div className="mes-modal-header">
           <h3>{title}</h3>

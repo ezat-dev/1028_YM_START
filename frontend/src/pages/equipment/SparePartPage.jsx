@@ -281,16 +281,16 @@ export default function SparePartPage() {
     { key: 'standard', title: '규격', width: 120, render: (r) => <MetaText value={r.standard} /> },
     { key: 'currentStock', title: '현재고', width: 90, align: 'right', render: (r) => <StockValue value={r.currentStock} unit={r.unit} status={r.stockStatus} /> },
     { key: 'safeStock', title: '안전재고', width: 90, align: 'right', render: (r) => <span className="spr-num">{r.safeStock}{r.unit}</span> },
-    { key: 'stockStatus', title: '재고상태', width: 100, render: (r) => <StatusTag value={r.stockStatus} /> },
+    { key: 'stockStatus', title: '재고상태', width: 100, align: 'center', render: (r) => <StatusTag value={r.stockStatus} /> },
     { key: 'storageLocation', title: '보관위치', width: 110, render: (r) => <MetaText value={r.storageLocation} /> },
-    { key: 'regUserName', title: '등록자', width: 90, render: (r) => <MetaText value={r.regUserName} /> },
+    { key: 'regUserName', title: '등록자', width: 90, align: 'center', render: (r) => <MetaText value={r.regUserName} /> },
     { key: 'remark', title: '비고', width: 200, render: (r) => <MetaText value={r.remark} /> },
   ], []);
 
   const historyColumns = useMemo(() => [
     { key: 'no', title: 'No', width: 46, align: 'center', render: (r, idx) => idx + 1 },
-    { key: 'regDt', title: '일시', width: 150, sortValue: (r) => r.regDt, render: (r) => <MetaText value={formatDateTime(r.regDt)} /> },
-    { key: 'type', title: '구분', width: 90, render: (r) => <TypeTag value={r.type} /> },
+    { key: 'regDt', title: '일시', width: 150, align: 'center', sortValue: (r) => r.regDt, render: (r) => <MetaText value={formatDateTime(r.regDt)} /> },
+    { key: 'type', title: '구분', width: 90, align: 'center', render: (r) => <TypeTag value={r.type} /> },
     { key: 'partName', title: '품명', width: 150, render: (r) => <span className="spr-part-name">{r.partName}</span> },
     { key: 'qty', title: '수량', width: 90, align: 'right', render: (r) => <span className="spr-num">{r.type === 'OUT' ? '-' : '+'}{r.qty}</span> },
     { key: 'workDesc', title: '작업내용', width: 220, render: (r) => <MetaText value={r.workDesc} /> },

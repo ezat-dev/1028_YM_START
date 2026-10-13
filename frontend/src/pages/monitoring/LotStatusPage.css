@@ -1,0 +1,1057 @@
+/* 모니터링 > LOT 현황 — 현재 현황(설비 6대 카드) / 과거 이력(표) */
+
+.lst-page {
+  gap: 12px;
+  /* 구간 색 — LOT 트래킹과 같은 계열 */
+  --mark-load: #b9c0c8;
+  --mark-q: #ec9466;
+  --mark-oil: #8ea2b9;
+  --mark-wash: #86bddb;
+  --mark-t: #e3b553;
+}
+
+.lst-loading {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  color: var(--mes-text-faint);
+}
+
+/* ── 상단 한 줄: 제목 | 요약 | 갱신·전환 ── */
+
+.lst-header {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  padding: 12px 16px;
+  background: var(--mes-surface);
+  border: 1px solid var(--mes-border);
+  border-radius: var(--mes-radius-lg);
+}
+
+.lst-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lst-title .mes-page-icon {
+  width: 32px;
+  height: 32px;
+}
+
+.lst-title .mes-page-title {
+  margin: 0;
+  font-size: 17px;
+  white-space: nowrap;
+}
+
+.lst-mock-badge {
+  display: inline-block;
+  margin-top: 2px;
+  padding: 0 6px;
+  border: 1px dashed var(--mes-border-strong);
+  border-radius: var(--mes-radius-sm);
+  font-size: 11px;
+  line-height: 17px;
+  font-weight: 600;
+  color: var(--mes-text-faint);
+  white-space: nowrap;
+}
+
+.lst-kpis {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+}
+
+.lst-kpi {
+  padding: 0 18px;
+  border-left: 1px solid var(--mes-line);
+  white-space: nowrap;
+}
+
+.lst-kpi:first-child {
+  padding-left: 4px;
+  border-left: none;
+}
+
+.lst-kpi dt {
+  font-size: 11.5px;
+  color: var(--mes-text-faint);
+}
+
+.lst-kpi dd {
+  margin: 1px 0 0;
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--mes-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.lst-kpi small {
+  margin-left: 2px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--mes-text-faint);
+}
+
+.lst-kpi.is-check dd {
+  color: var(--mes-danger);
+}
+
+.lst-head-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lst-updated {
+  font-size: 12px;
+  color: var(--mes-text-faint);
+  white-space: nowrap;
+}
+
+.lst-updated b {
+  margin-left: 2px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mes-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.lst-updated.is-error,
+.lst-updated.is-error b {
+  color: var(--mes-danger);
+}
+
+.lst-icon-btn {
+  width: 34px;
+  padding: 0;
+}
+
+.lst-icon-btn.is-spinning svg {
+  animation: lst-spin .8s linear infinite;
+}
+
+@keyframes lst-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 현재 현황 / 과거 이력 전환 */
+.lst-switch {
+  display: inline-flex;
+  margin-left: 6px;
+  padding: 2px;
+  border: 1px solid var(--mes-border);
+  border-radius: var(--mes-radius);
+  background: var(--mes-surface-sub);
+}
+
+.lst-switch button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--mes-radius-sm);
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mes-text-sub);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.lst-switch button:hover {
+  color: var(--mes-text);
+}
+
+.lst-switch button.is-on {
+  background: var(--mes-surface);
+  color: var(--mes-accent);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .08);
+}
+
+.lst-switch button:focus-visible {
+  outline: 2px solid var(--mes-accent);
+  outline-offset: 1px;
+}
+
+/* ── 현재 현황: 카드 6장 ── */
+
+.lst-grid-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  container-type: inline-size;
+}
+
+.lst-grid {
+  height: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(300px, 1fr));
+  gap: 12px;
+}
+
+@container (max-width: 900px) {
+  .lst-grid {
+    height: auto;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: none;
+    grid-auto-rows: minmax(320px, auto);
+  }
+}
+
+@container (max-width: 640px) {
+  .lst-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.lst-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--mes-surface);
+  border: 1px solid var(--mes-border);
+  border-radius: var(--mes-radius-lg);
+  container-type: size;
+}
+
+.lst-card.is-alarm {
+  border-color: rgba(207, 59, 50, .35);
+  box-shadow: inset 3px 0 0 var(--mes-danger);
+}
+
+.lst-card.is-idle {
+  background: #f7f8fa;
+}
+
+.lst-card-head {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--mes-line);
+}
+
+.lst-card-head > strong {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--mes-text);
+}
+
+.lst-card-name {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12.5px;
+  color: var(--mes-text-faint);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.lst-card-today {
+  flex-shrink: 0;
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--mes-text-faint);
+  white-space: nowrap;
+}
+
+.lst-card-today b {
+  margin-left: 2px;
+  font-weight: 700;
+  color: var(--mes-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.lst-status {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: var(--mes-success-soft);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 19px;
+  color: var(--mes-success);
+  white-space: nowrap;
+}
+
+.lst-status.is-alarm {
+  background: var(--mes-danger-soft);
+  color: var(--mes-danger);
+}
+
+.lst-status.is-idle {
+  background: #eceef1;
+  color: var(--mes-text-sub);
+}
+
+.lst-sec-label {
+  margin-bottom: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .02em;
+  color: var(--mes-text-faint);
+}
+
+/* 진행 중 LOT — 카드의 주인공 */
+/* 진행 중 LOT는 줄어들지 않는다(항상 전부 보이게). 남는 높이는 여기로 */
+.lst-current {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+  padding: 10px 14px 8px;
+}
+
+.lst-lot {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lst-run-top {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lst-occ {
+  flex: 1;
+  min-width: 0;
+}
+
+.lst-run-head {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 두 LOT 이상이 로 안에 함께 있을 때 */
+.lst-run-multi {
+  padding: 0 8px;
+  border: 1px solid var(--mes-accent-border);
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 19px;
+  color: var(--mes-accent-dark);
+  white-space: nowrap;
+}
+
+.lst-lotno {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -.01em;
+  color: var(--mes-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.lst-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+.lst-badge.is-ok {
+  background: var(--mes-success-soft);
+  color: var(--mes-success);
+}
+
+.lst-badge.is-check {
+  background: var(--mes-danger-soft);
+  color: var(--mes-danger);
+}
+
+.lst-badge.is-run {
+  background: var(--mes-accent-soft);
+  color: var(--mes-accent-dark);
+}
+
+/* 진행 중 점 — 천천히 숨쉬기 */
+.lst-badge.is-run i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--mes-accent);
+  animation: lst-breathe 2.4s ease-in-out infinite;
+}
+
+@keyframes lst-breathe {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(47, 91, 181, .35); }
+  50% { opacity: .55; box-shadow: 0 0 0 4px rgba(47, 91, 181, 0); }
+}
+
+/* ── 로 전체 막대: 칸마다 존 번호, LOT가 있는 칸은 그 LOT 색으로 ── */
+.lst-route,
+.lst-route-labels {
+  display: grid;
+  grid-template-columns: repeat(14, minmax(0, 1fr));
+  column-gap: 2px;
+}
+
+.lst-route i {
+  display: grid;
+  place-items: center;
+  height: 20px;
+  background: var(--band);
+  font-size: 10.5px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: 1;
+  color: rgba(27, 31, 36, .32);
+  font-variant-numeric: tabular-nums;
+}
+
+.lst-route i:first-child { border-radius: 6px 0 0 6px; }
+.lst-route i:last-child { border-radius: 0 6px 6px 0; }
+
+/* 빈 칸 — 구간 바탕색(LOT 트래킹 레인과 같은 계열) */
+.lst-route i.is-load,
+.lst-route i.is-out { --band: #eceef1; }
+.lst-route i.is-q { --band: #fbe2d4; }
+.lst-route i.is-oil { --band: #dde5ee; }
+.lst-route i.is-wash { --band: #e4eff7; }
+.lst-route i.is-t { --band: #fbf0d8; }
+
+/* LOT가 있는 칸 */
+.lst-route i.is-lot {
+  background: var(--lot);
+  color: #fff;
+}
+
+/* 알람 존 — 붉은 테두리 */
+.lst-route i.is-alarm {
+  box-shadow: inset 0 0 0 2px var(--mes-danger);
+}
+
+.lst-route-labels {
+  margin-top: 5px;
+}
+
+.lst-route-labels span {
+  overflow: hidden;
+  font-size: 11.5px;
+  color: var(--mes-text-faint);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.lst-route-labels .is-q { color: #b4542a; font-weight: 600; }
+.lst-route-labels .is-t { color: #8a6210; font-weight: 600; }
+
+/* ── 진행 중 LOT 목록 ── */
+.lst-run-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lst-run-row {
+  display: grid;
+  grid-template-columns: 10px auto auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "dot lot note prod pct"
+    ".   info info info info"
+    ".   meta meta meta meta";
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 2px;
+  padding: 5px 0;
+}
+
+.lst-run-row + .lst-run-row {
+  border-top: 1px dashed var(--mes-line);
+}
+
+.lst-run-dot {
+  grid-area: dot;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  background: var(--lot);
+}
+
+.lst-run-row .lst-lotno { grid-area: lot; }
+.lst-run-row .lst-note-badge { grid-area: note; justify-self: start; }
+
+/* 설비 알람 — 진행 중 LOT 머리줄에 한 번 */
+.lst-alarm-badge {
+  margin-left: auto;
+}
+
+/* 품명 · 품번 — 품번·회사·패턴이 먼저 줄어들고, 그다음 품명이 줄어든다 */
+.lst-run-prod {
+  grid-area: prod;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.lst-lot-prod {
+  flex: 0 1 auto;
+  min-width: 3em;
+  overflow: hidden;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--mes-text);
+  text-overflow: ellipsis;
+}
+
+.lst-lot-sub {
+  flex: 0 1000 auto;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--mes-text-sub);
+  text-overflow: ellipsis;
+}
+
+.lst-run-pct {
+  grid-area: pct;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--mes-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.lst-run-pct small {
+  margin-left: 1px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--mes-text-faint);
+}
+
+/* 구간 · 장입 · 남은 시간 — 구분점 대신 간격으로 나눈다 */
+.lst-run-info {
+  grid-area: info;
+  display: flex;
+  align-items: baseline;
+  gap: 4px 14px;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--mes-text-sub);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.lst-run-zone {
+  min-width: 9.5em;
+  font-weight: 700;
+  color: var(--lot);
+}
+
+/* 장입 시각 — 라벨 + 굵은 시각을 한 덩어리로 */
+.lst-run-in {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 5.6em;
+}
+
+.lst-run-in em {
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--mes-text-faint);
+}
+
+.lst-run-in b {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--mes-text);
+}
+
+.lst-run-remain {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.lst-run-remain b {
+  font-weight: 700;
+  color: var(--mes-text);
+}
+
+.lst-run-eta {
+  font-style: normal;
+  color: var(--mes-text-faint);
+}
+
+.lst-run-meta span {
+  margin: 0 5px;
+  color: var(--mes-border-strong);
+}
+
+/* 3줄 — 수량·설정값(높은 카드에서만) */
+.lst-run-meta {
+  grid-area: meta;
+  display: none;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--mes-text-faint);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+
+.lst-run-meta b {
+  font-weight: 600;
+  color: var(--mes-text-sub);
+}
+
+.lst-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1px dashed var(--mes-border-strong);
+  border-radius: var(--mes-radius);
+  background: repeating-linear-gradient(135deg, rgba(125, 133, 143, .06) 0 8px, transparent 8px 16px);
+  color: var(--mes-text-faint);
+  text-align: center;
+}
+
+.lst-empty strong {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--mes-text-sub);
+}
+
+.lst-empty span {
+  font-size: 12px;
+}
+
+/* 직전 LOT — 한 단계 낮은 무게로 */
+/* 직전 LOT — 자리가 모자라면 이 칸이 줄어들고, 목록은 들어가는 행까지만 보인다 */
+.lst-prev {
+  flex: 0 1 auto;
+  min-height: 56px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 9px 14px 11px;
+  background: var(--mes-surface-sub);
+  border-top: 1px solid var(--mes-line);
+}
+
+.lst-card.is-idle .lst-prev {
+  background: transparent;
+}
+
+.lst-prev .lst-sec-label {
+  margin-bottom: 4px;
+}
+
+.lst-sec-label span {
+  margin-left: 4px;
+  font-weight: 500;
+  letter-spacing: 0;
+}
+
+/* 직전 LOT 목록 — 한 줄씩: LOT번호 | 품명 | 시간 | 결과 */
+/* 넘치는 행은 오른쪽 숨은 열로 넘어가게(flex-wrap) — 행이 반쯤 잘려 보이지 않는다 */
+.lst-prev-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  column-gap: 40px;
+  overflow: hidden;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lst-prev-row {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 24px;
+  font-size: 12px;
+  color: var(--mes-text-sub);
+  font-variant-numeric: tabular-nums;
+}
+
+.lst-prev-row + .lst-prev-row {
+  border-top: 1px dashed var(--mes-line);
+}
+
+.lst-prev-lot {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--mes-text);
+}
+
+.lst-prev-prod {
+  overflow: hidden;
+  font-weight: 600;
+  color: var(--mes-text);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.lst-prev-when {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  white-space: nowrap;
+}
+
+.lst-prev-start {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.lst-prev-end-label {
+  display: none;
+  margin-right: 3px;
+  font-size: 11px;
+  color: var(--mes-text-faint);
+}
+
+.lst-prev-when svg {
+  color: var(--mes-text-faint);
+}
+
+.lst-prev-when b {
+  margin-right: 2px;
+  font-weight: 600;
+  color: var(--mes-accent-dark);
+}
+
+.lst-prev-row .lst-badge {
+  padding: 0 7px;
+  font-size: 11px;
+  line-height: 18px;
+}
+
+.lst-prev-empty {
+  font-size: 12px;
+  color: var(--mes-text-faint);
+}
+
+/* 높은 카드 — LOT마다 수량·설정값 줄까지 (3건일 때는 빼서 직전 LOT 자리를 남긴다) */
+@container (min-height: 430px) {
+  .lst-run-meta { display: block; }
+  .lst-run-row { padding: 7px 0; }
+  .lst-run-list.is-n3 .lst-run-meta { display: none; }
+  .lst-run-list.is-n3 .lst-run-row { padding: 5px 0; }
+}
+
+/* 3건 — 줄 사이를 조금 좁힌다 */
+.lst-run-list.is-n3 .lst-run-row { padding-top: 4px; padding-bottom: 4px; }
+
+/* 카드가 낮을 때 */
+@container (max-height: 400px) {
+  /* 3건이면 구간 이름 줄을 빼서 직전 LOT 자리를 남긴다 */
+  .lst-lot.is-n3 .lst-route-labels { display: none; }
+  .lst-current { padding-top: 8px; }
+  .lst-lot { gap: 6px; }
+  .lst-sec-label { margin-bottom: 4px; }
+  .lst-run-row { padding: 4px 0; }
+  .lst-prev { padding: 8px 14px 9px; }
+  .lst-prev-row { min-height: 22px; }
+}
+
+/* 더 낮을 때 — 구간 이름 줄을 빼고 막대를 조금 낮게 */
+@container (max-height: 330px) {
+  /* 배지와 막대를 한 줄로, '2건 동시 진행'은 '2건'으로 */
+  .lst-run-top { flex-direction: row; align-items: center; gap: 8px; }
+  .lst-run-top.has-alarm { flex-direction: column; align-items: stretch; gap: 5px; }
+  .lst-run-head { gap: 5px; }
+  .lst-run-multi { padding: 0 6px; }
+  .lst-run-multi-long { display: none; }
+  .lst-route-labels { display: none; }
+  .lst-route i { height: 17px; font-size: 10px; }
+  .lst-card-head { padding: 8px 14px; }
+  .lst-current { padding: 7px 14px 6px; }
+  .lst-lot { gap: 5px; }
+  .lst-run-row { padding: 3px 0; }
+  .lst-prev { padding: 6px 14px 7px; }
+  .lst-prev-row { min-height: 21px; }
+}
+
+/* 아주 낮을 때(1280×720 등) */
+@container (max-height: 300px) {
+  .lst-lot { gap: 4px; }
+  .lst-run-row { padding: 2px 0; }
+  .lst-run-head .lst-badge { line-height: 18px; }
+}
+
+
+/* 카드가 좁을 때 — 진행 중 LOT를 세 줄로: [LOT번호 … %] / [품명 · 품번] / [구간 · 장입 · 남은 시간] */
+@container (max-width: 400px) {
+  .lst-card-name { display: none; }
+
+  .lst-run-row {
+    grid-template-columns: 10px auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "dot lot note pct"
+      ".   prod prod prod"
+      ".   info info info";
+    row-gap: 1px;
+  }
+
+  .lst-run-info { gap: 2px 12px; }
+  .lst-run-eta { display: none; }
+  .lst-run-zone { min-width: 0; }
+  .lst-run-in { min-width: 0; }
+
+  /* 진행 중 LOT 3건 — 두 줄로 압축: [LOT번호 · 품명 … %] / [구간 · 장입 · 남은 시간] */
+  .lst-run-list.is-n3 .lst-run-row {
+    grid-template-columns: 10px auto auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "dot lot note prod pct"
+      ".   info info info info";
+    padding: 3px 0;
+  }
+
+  .lst-run-list.is-n3 .lst-lot-sub { display: none; }
+  .lst-run-list.is-n3 .lst-lotno { font-size: 14px; }
+  .lst-run-list.is-n3 .lst-lot-prod { font-size: 13px; }
+  .lst-run-list.is-n3 .lst-run-pct { font-size: 15px; }
+
+  /* 직전 LOT — 시작 시각은 빼고 '완료 hh:mm', 결과는 아이콘만 */
+  .lst-prev-start { display: none; }
+  .lst-prev-end-label { display: inline; }
+  .lst-prev-row .lst-badge { padding: 0 4px; }
+  .lst-prev-row .lst-badge > span { display: none; }
+
+  .lst-prev-row { gap: 8px; }
+}
+
+/* ── 과거 이력 ── */
+
+.lst-filter {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+}
+
+.lst-quick {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--mes-border);
+  border-radius: var(--mes-radius);
+  background: var(--mes-surface-sub);
+}
+
+.lst-quick button {
+  height: 28px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: var(--mes-radius-sm);
+  background: transparent;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--mes-text-sub);
+  cursor: pointer;
+}
+
+.lst-quick button.is-on {
+  background: var(--mes-surface);
+  color: var(--mes-accent);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .08);
+}
+
+.lst-quick button:focus-visible {
+  outline: 2px solid var(--mes-accent);
+  outline-offset: 1px;
+}
+
+.lst-dates {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--mes-text-faint);
+}
+
+.lst-dates input {
+  width: 140px;
+}
+
+.lst-keyword {
+  width: 220px;
+}
+
+.lst-filter-spacer {
+  flex: 1;
+}
+
+.lst-filter-info {
+  font-size: 12px;
+  color: var(--mes-text-faint);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.lst-filter-info .is-error {
+  color: var(--mes-danger);
+  font-weight: 600;
+}
+
+.lst-table-card {
+  flex: 1;
+  min-height: 0;
+}
+
+.lst-table-wrap {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.lst-table-wrap .mes-table-wrap {
+  flex: 1;
+  min-height: 0;
+}
+
+.lst-table-wrap .mes-table-wrap > div {
+  height: 100%;
+}
+
+.lst-t-code {
+  font-weight: 700;
+  color: var(--mes-text);
+}
+
+.lst-t-lot,
+.lst-t-time,
+.lst-t-mono {
+  font-variant-numeric: tabular-nums;
+}
+
+.lst-t-lot {
+  font-weight: 600;
+  color: var(--mes-text);
+}
+
+.lst-t-name,
+.lst-t-note {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.lst-t-note {
+  color: var(--mes-danger);
+}
+
+.lst-t-unit {
+  margin-left: 2px;
+  font-size: 11px;
+  color: var(--mes-text-faint);
+}
+
+.lst-t-empty {
+  color: var(--mes-text-faint);
+}
+
+/* ── 화면 크기 ── */
+
+@media (max-width: 1440px) {
+  .lst-kpi { padding: 0 12px; }
+  .lst-header { gap: 14px; }
+}
+
+/* 좁은 화면 — 상단은 [제목 · 갱신/전환] / [요약] 두 줄 */
+@media (max-width: 1200px) {
+  .lst-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 10px;
+  }
+
+  .lst-kpis {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}
+
+@media (max-height: 820px) {
+  .lst-page { gap: 10px; }
+  .lst-header { padding: 8px 14px; }
+  .lst-kpi dd { font-size: 17px; }
+  .lst-grid { gap: 10px; grid-template-rows: repeat(2, minmax(270px, 1fr)); }
+}
+
+@media (max-width: 768px) {
+  .lst-header {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .lst-head-right {
+    grid-row: 2;
+    justify-content: flex-start;
+  }
+
+  .lst-kpis {
+    grid-row: 3;
+  }
+
+  .lst-updated { display: none; }
+
+  .lst-switch button { padding: 0 9px; }
+
+  .lst-kpis { overflow-x: auto; }
+
+  .lst-keyword,
+  .lst-dates { width: 100%; }
+
+  .lst-dates input { flex: 1; width: auto; }
+
+  .lst-filter-spacer { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lst-badge.is-run i,
+  .lst-icon-btn.is-spinning svg {
+    animation: none;
+  }
+}

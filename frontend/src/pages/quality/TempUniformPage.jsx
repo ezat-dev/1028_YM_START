@@ -264,15 +264,15 @@ export default function TempUniformPage() {
   const columns = useMemo(() => [
     { key: 'no', title: 'No', width: 50, align: 'center', render: (r, idx) => idx + 1 },
     { key: 'equipName', title: '설비명', width: 150, sortValue: (r) => r.equipName, render: (r) => <EquipText value={r.equipName} /> },
-    { key: 'surveyDate', title: '조사일자', width: 100, sortValue: (r) => r.surveyDate, render: (r) => <MetaText value={r.surveyDate} /> },
+    { key: 'surveyDate', title: '조사일자', width: 100, align: 'center', sortValue: (r) => r.surveyDate, render: (r) => <MetaText value={r.surveyDate} /> },
     { key: 'setTemp', title: '설정온도', width: 90, align: 'right', render: (r) => <TempText value={r.setTemp} /> },
     { key: 'maxTemp', title: '최고', width: 80, align: 'right', render: (r) => <TempText value={r.maxTemp} /> },
     { key: 'minTemp', title: '최저', width: 80, align: 'right', render: (r) => <TempText value={r.minTemp} /> },
     { key: 'deviation', title: '편차', width: 90, align: 'right', render: (r) => <DeviationText value={r.deviation} /> },
     { key: 'judgment', title: '판정', width: 90, align: 'center', sortValue: (r) => r.judgment, render: (r) => <JudgmentTag value={r.judgment} /> },
-    { key: 'inspector', title: '검사자', width: 90, render: (r) => <MetaText value={r.inspector} /> },
+    { key: 'inspector', title: '검사자', width: 90, align: 'center', render: (r) => <MetaText value={r.inspector} /> },
     { key: 'fileName', title: '성적서', width: 200, render: (r) => <FileCell row={r} onView={(row) => setViewerFile(row)} /> },
-    { key: 'regDt', title: '등록일', width: 100, sortValue: (r) => r.regDt, render: (r) => <MetaText value={(r.regDt || '').slice(0, 10)} /> },
+    { key: 'regDt', title: '등록일', width: 100, align: 'center', sortValue: (r) => r.regDt, render: (r) => <MetaText value={(r.regDt || '').slice(0, 10)} /> },
     { key: 'remark', title: '비고', width: 200, render: (r) => <MetaText value={r.remark} /> },
   ], []);
 

@@ -1,9 +1,5 @@
 /* 조건관리 > 조절계 관리 — 온도조절계 정도검사(교정) 이력 */
 
-.ctrl-page-icon {
-  background: linear-gradient(135deg, #4ecdc4 0%, #1f8a82 100%);
-  box-shadow: 0 6px 16px -4px rgba(31, 138, 130, 0.45);
-}
 
 /* ── 상단 헤더 카드 ── */
 
@@ -87,7 +83,7 @@
 
 .ctrl-deviation {
   font-variant-numeric: tabular-nums;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--mes-text);
   letter-spacing: -0.2px;
 }
@@ -201,7 +197,7 @@
 
 .ctrl-file-list li.ctrl-file-new {
   background: var(--mes-accent-soft);
-  border-color: rgba(91, 127, 199, 0.3);
+  border-color: var(--mes-accent-border);
 }
 
 .ctrl-file-name {

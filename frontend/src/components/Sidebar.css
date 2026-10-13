@@ -1,0 +1,334 @@
+/* ============================================================================
+   사이드바 — 심플한 흰색 메뉴
+   대분류(작은 제목) 아래에 아이콘 + 이름으로 된 메뉴를 나열한다. 색은 global.css 토큰만 쓴다.
+   ========================================================================== */
+
+.sb {
+  position: relative;
+  z-index: 20;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  width: 240px;
+  height: 100%;
+  border-right: 1px solid var(--sb-border);
+  background: var(--sb-bg);
+  transition: width .2s ease;
+}
+
+/* ── 브랜드 ─────────────────────────────────────────────────────────── */
+.sb-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 60px;
+  padding: 0 16px;
+  flex-shrink: 0;
+}
+
+.sb-logo {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--mes-radius);
+  background: var(--mes-accent);
+  color: #fff;
+}
+
+.sb-brand-name {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--mes-text);
+  white-space: nowrap;
+}
+
+.sb-icon-btn {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: var(--mes-radius);
+  background: transparent;
+  color: var(--mes-text-sub);
+  cursor: pointer;
+}
+
+.sb-icon-btn:hover { background: var(--sb-hover); color: var(--mes-text); }
+
+/* ── 검색 ───────────────────────────────────────────────────────────── */
+.sb-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  margin: 0 12px 8px;
+  padding: 0 8px 0 10px;
+  border: 1px solid var(--sb-border);
+  border-radius: var(--mes-radius);
+  background: var(--sb-input-bg);
+  color: var(--mes-text-sub);
+}
+
+.sb-search:focus-within {
+  border-color: var(--mes-accent);
+  background: #fff;
+  box-shadow: 0 0 0 3px var(--mes-accent-soft);
+}
+
+.sb-search input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 13px;
+  color: var(--mes-text);
+}
+
+.sb-search input::placeholder { color: var(--mes-text-sub); }
+
+.sb-search-clear {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: var(--mes-radius);
+  background: transparent;
+  color: var(--mes-text-sub);
+  cursor: pointer;
+}
+
+.sb-search-clear:hover { background: var(--sb-hover); }
+
+/* ── 메뉴 ───────────────────────────────────────────────────────────── */
+.sb-nav {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0 8px 8px;
+  scrollbar-width: thin;
+  scrollbar-color: #d5dae3 transparent;
+}
+
+/* 그룹 사이 구분선 — 대분류가 바뀌는 지점을 분명하게 */
+.sb-group + .sb-group {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--sb-border);
+}
+
+/* 대분류 제목 — 진한 굵은 글자 + 파란 아이콘.
+   소분류(회색 아이콘, 보통 굵기)와 굵기·아이콘 색이 달라서 "구역 제목"으로 읽힌다. */
+.sb-group-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  height: 36px;
+  margin-bottom: 2px;
+  padding: 0 8px 0 12px;
+  border: none;
+  border-radius: var(--mes-radius);
+  background: transparent;
+  color: var(--mes-text);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sb-group-head:hover:not(:disabled) { background: var(--sb-hover); }
+.sb-group-head:disabled { cursor: default; }
+
+.sb-group-icon { flex-shrink: 0; color: var(--mes-accent); }
+
+/* 현재 화면이 속한 대분류는 글자도 포인트 색으로 */
+.sb-group-head.is-current { color: var(--mes-accent-dark); }
+
+.sb-group-label { flex: 1; white-space: nowrap; }
+
+.sb-chevron {
+  color: currentColor;
+  opacity: .7;
+  transition: transform .15s ease;
+}
+
+.sb-chevron.is-closed { transform: rotate(-90deg); }
+
+/* 메뉴 항목 */
+.sb-items { display: flex; flex-direction: column; gap: 2px; padding: 2px 0 4px; }
+
+.sb-link {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 40px;
+  padding: 0 10px 0 12px;
+  border: none;
+  border-radius: var(--mes-radius);
+  background: transparent;
+  color: var(--sb-item-fg);
+  font-size: 14px;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.sb-link:hover { background: var(--sb-hover); color: var(--mes-text); }
+
+.sb-link-icon { flex-shrink: 0; color: var(--sb-tile-fg); }
+
+.sb-link-label {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sb-link.is-active {
+  background: var(--sb-active-bg);
+  color: var(--mes-accent-dark);
+  font-weight: 600;
+}
+
+.sb-link.is-active .sb-link-icon { color: var(--mes-accent); }
+
+/* 검색 중 Enter로 이동할 첫 결과 */
+.sb-link.is-first { box-shadow: inset 0 0 0 1px var(--mes-accent-soft); background: var(--sb-hover); }
+
+.sb-empty {
+  padding: 20px 8px;
+  font-size: 13px;
+  color: var(--mes-text-sub);
+  text-align: center;
+}
+
+/* ── 하단 ───────────────────────────────────────────────────────────── */
+.sb-footer {
+  flex-shrink: 0;
+  padding: 8px;
+  border-top: 1px solid var(--sb-border);
+}
+
+.sb-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 4px 6px 8px;
+}
+
+.sb-avatar {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--sb-tile-bg);
+  color: var(--mes-accent-dark);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.sb-user-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.sb-user-name { font-size: 13px; font-weight: 600; color: var(--mes-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sb-user-dept { font-size: 12px; color: var(--mes-text-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.sb-logout:hover { color: var(--mes-danger); background: var(--mes-danger-soft); }
+
+.sb-collapse { color: var(--mes-text-sub); }
+
+/* ── 툴팁 (접힘 상태) ─────────────────────────────────────────────── */
+.sb-tooltip {
+  position: fixed;
+  z-index: 2000;
+  transform: translateY(-50%);
+  padding: 6px 10px;
+  border-radius: var(--mes-radius-sm);
+  background: var(--mes-text);
+  color: #fff;
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* ── 접힘 상태 (데스크톱): 아이콘만 ─────────────────────────────────── */
+.sb--collapsed { width: 64px; }
+
+.sb--collapsed .sb-brand { justify-content: center; padding: 0; }
+
+.sb--collapsed .sb-brand-name,
+.sb--collapsed .sb-link-label,
+.sb--collapsed .sb-user-text {
+  display: none;
+}
+
+.sb--collapsed .sb-search-btn { width: 44px; margin: 0 auto 8px; }
+
+.sb--collapsed .sb-link {
+  justify-content: center;
+  padding: 0;
+}
+
+/* 접힘 상태의 그룹 구분은 위의 .sb-group 테두리로 충분하다 */
+.sb--collapsed .sb-divider { display: none; }
+
+.sb--collapsed .sb-user {
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 0;
+}
+
+/* ── 모바일 서랍 ───────────────────────────────────────────────────── */
+.sb-backdrop { display: none; }
+
+@media (max-width: 768px) {
+  .sb {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 1100;
+    width: min(280px, 86vw);
+    transform: translateX(-100%);
+    transition: transform .22s ease;
+  }
+
+  .sb--mobile-open {
+    transform: translateX(0);
+    box-shadow: 0 16px 40px -12px rgba(16, 24, 40, .3);
+  }
+
+  .sb-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 1050;
+    background: rgba(15, 23, 42, .3);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s;
+  }
+
+  .sb-backdrop.is-visible { opacity: 1; pointer-events: auto; }
+}
+
+/* ── 키보드 포커스 & 움직임 줄이기 ────────────────────────────────── */
+.sb button:focus-visible,
+.sb a:focus-visible {
+  outline: 2px solid var(--mes-accent);
+  outline-offset: -2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sb, .sb * { transition: none !important; }
+}

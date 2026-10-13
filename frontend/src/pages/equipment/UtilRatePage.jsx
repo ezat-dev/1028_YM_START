@@ -1,420 +1,540 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  IconGauge, IconTrophy, IconAlertTriangle, IconTarget, IconClockHour4,
-  IconChartBar, IconChartAreaLine, IconChartPie, IconLock,
+  IconGauge, IconRefresh, IconLock, IconTarget, IconClockHour4, IconPlayerPause, IconAlertTriangleFilled, IconTool,
 } from '@tabler/icons-react';
-import {
-  ResponsiveContainer, BarChart, Bar, Cell, LabelList, XAxis, YAxis,
-  CartesianGrid, Tooltip as RTooltip, AreaChart, Area, ReferenceLine,
-  RadialBarChart, RadialBar, PolarAngleAxis, PieChart, Pie,
-} from 'recharts';
+import Highcharts from 'highcharts/esm/highcharts';
+import HighchartsReact from 'highcharts-react-official';
 import { usePermission } from '../../hooks/usePermission';
+import { FURNACES, STATUS_LABEL } from '../../mocks/furnaceMock';
+import { createUtilMock } from '../../mocks/utilRateMock';
+import { getUtilDays } from '../../api/equipment/utilRateApi';
+import { EQUIP_COLORS, STATE_COLORS, STATE_LABEL, LINE_BLUE } from '../../constants/equipColors';
 import './UtilRatePage.css';
 
-// ⚠️ UI 목업 — 실제 API/DB 연동 전 단계. 아래 데이터는 화면 구성 확인용 더미값이다.
-// 설비 코드는 이 앱의 TREND/조절계 관리 화면에서 실제로 쓰는 BCF1~BCF6 명명을 그대로 따른다.
+/*
+ * 설비관리 > 설비가동률분석 — 설비 6대의 가동/계획정지/고장정지/대기 시간으로 가동률을 본다.
+ *  - 요약 5칸, 설비별 가동 현황표(가동률·시간 구성 막대·7일 추이), 비가동 사유 TOP, 오늘 가동 타임라인, 가동률 추이
+ *  - 가동률 = 가동 시간 ÷ 지난 시간(오늘은 지금까지)
+ * 지금은 목업(USE_MOCK) — DB API가 준비되면 false로 바꾸면 된다(형식은 mocks/utilRateMock.js 주석).
+ */
+const USE_MOCK = true;
+const POLL_MS = 60000;
+const TARGET = 0.85;      // 가동률 목표
+const HISTORY_DAYS = 60;  // 한 번에 받아 두는 기간(현재·직전 기간·추이 모두 이 안에서 계산)
+const LOCAL_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+const STATES = ['run', 'plan', 'fail', 'wait'];
 
-const TARGET_RATE = 85;
-
-const SUCCESS = '#1f9d63';
-const WARNING = '#b7791f';
-const DANGER = '#d9483f';
-const TRACK = '#eef0f4';
-
-const EQUIP_COLORS = { BCF1: '#5b7fc7', BCF2: '#1f9d63', BCF3: '#f5a623', BCF4: '#e0483f', BCF5: '#805AD5', BCF6: '#0891b2' };
-
-const REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-const MOCK_EQUIP = [
-  { code: 'BCF1', name: '연속열처리로 1호기', rate: 94.2, runHours: 22.6, stopPlan: 0.8, stopFail: 0.6 },
-  { code: 'BCF2', name: '연속열처리로 2호기', rate: 88.5, runHours: 21.2, stopPlan: 1.5, stopFail: 1.3 },
-  { code: 'BCF3', name: '연속열처리로 3호기', rate: 91.7, runHours: 22.0, stopPlan: 1.2, stopFail: 0.8 },
-  { code: 'BCF4', name: '연속열처리로 4호기', rate: 76.3, runHours: 18.3, stopPlan: 2.4, stopFail: 3.3 },
-  { code: 'BCF5', name: '연속열처리로 5호기', rate: 96.8, runHours: 23.2, stopPlan: 0.5, stopFail: 0.3 },
-  { code: 'BCF6', name: '연속열처리로 6호기', rate: 82.1, runHours: 19.7, stopPlan: 2.1, stopFail: 2.2 },
+const RANGES = [
+  { key: 'today', label: '오늘', days: 1, prevLabel: '어제' },
+  { key: '7d', label: '최근 7일', days: 7, prevLabel: '직전 7일' },
+  { key: '30d', label: '최근 30일', days: 30, prevLabel: '직전 30일' },
 ];
 
-const TREND_DATA = [
-  { day: '8/26', rate: 85.1 },
-  { day: '8/27', rate: 87.4 },
-  { day: '8/28', rate: 83.9 },
-  { day: '8/29', rate: 89.6 },
-  { day: '8/30', rate: 91.2 },
-  { day: '8/31', rate: 86.8 },
-  { day: '9/1', rate: 88.3 },
-];
+const pad = (n) => String(n).padStart(2, '0');
+const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const daysAgo = (n) => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - n); return d; };
+const hm = (ms) => { const d = new Date(ms); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+const hms = (ms) => { const d = new Date(ms); return `${hm(ms)}:${pad(d.getSeconds())}`; };
 
-function healthColor(rate) {
-  if (rate >= 90) return SUCCESS;
-  if (rate >= 75) return WARNING;
-  return DANGER;
+/** 분 → '22.6h' (1시간 미만은 '35분') */
+function fmtH(min) {
+  if (min < 60) return `${Math.round(min)}분`;
+  const h = min / 60;
+  return h >= 100 ? `${Math.round(h).toLocaleString()}h` : `${h.toFixed(1)}h`;
 }
-function healthLabel(rate) {
-  if (rate >= 90) return '우수';
-  if (rate >= 75) return '주의';
-  return '경고';
-}
-function healthGradient(rate) {
-  if (rate >= 90) return ['#4ade80', '#0d9165'];
-  if (rate >= 75) return ['#fbbf55', '#a5670f'];
-  return ['#f88a80', '#a5271e'];
+const pct = (v, d = 1) => (v == null ? '-' : `${(v * 100).toFixed(d)}`);
+
+function tone(rate) {
+  if (rate == null) return 'none';
+  if (rate >= 0.9) return 'good';
+  if (rate >= TARGET) return 'ok';
+  if (rate >= 0.75) return 'warn';
+  return 'bad';
 }
 
-// 단일 값(가동률)을 예쁜 그라디언트 원형 게이지로 그린다 — recharts의 RadialBarChart를 그대로
-// 활용해 매끈한 호(arc)와 둥근 캡을 얻고, 중앙 %는 부모가 절대위치 오버레이로 얹는다.
-// "실시간" 느낌은 배경 글로우나 링 위에 얹는 점 대신, 호를 채우는 그라디언트 자체를
-// SVG <animateTransform>으로 아주 천천히 회전시켜서 낸다 — 새 요소 없이, 이미 있는 색이
-// 링 안에서 은은하게 흐르듯 움직이는 정도라 화면이 산만해지지 않는다.
-function RadialGauge({ value, gradId, from, to, thickness = 14, track = TRACK, spin = 6 }) {
-  return (
-    <div className="ur-gauge-chart-layer">
-      <ResponsiveContainer width="100%" height="100%">
-        <RadialBarChart
-          cx="50%"
-          cy="50%"
-          innerRadius="74%"
-          outerRadius="100%"
-          barSize={thickness}
-          data={[{ value }]}
-          startAngle={90}
-          endAngle={-270}
-        >
-          <defs>
-            <linearGradient id={gradId} x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor={from} />
-              <stop offset="100%" stopColor={to} />
-              {!REDUCED_MOTION && (
-                <animateTransform
-                  attributeName="gradientTransform"
-                  type="rotate"
-                  from="0 0.5 0.5"
-                  to="360 0.5 0.5"
-                  dur={`${spin}s`}
-                  repeatCount="indefinite"
-                />
-              )}
-            </linearGradient>
-          </defs>
-          <PolarAngleAxis type="number" domain={[0, 100]} tick={false} axisLine={false} />
-          <RadialBar
-            dataKey="value"
-            cornerRadius={thickness / 2}
-            fill={`url(#${gradId})`}
-            background={{ fill: track }}
-            animationDuration={1200}
-            animationEasing="ease-out"
-          />
-        </RadialBarChart>
-      </ResponsiveContainer>
-    </div>
-  );
-}
-
-function GaugeTip({ active, payload }) {
-  if (!active || !payload?.length) return null;
-  const p = payload[0].payload;
-  return (
-    <div className="ur-chart-tooltip">
-      <div className="ur-chart-tooltip-title">{p.name}</div>
-      <div className="ur-chart-tooltip-value" style={{ color: healthColor(p.rate) }}>{p.rate.toFixed(1)}%</div>
-    </div>
-  );
-}
-
-function TrendTip({ active, payload, label }) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="ur-chart-tooltip">
-      <div className="ur-chart-tooltip-title">{label}</div>
-      <div className="ur-chart-tooltip-value">{payload[0].value.toFixed(1)}%</div>
-    </div>
-  );
-}
-
-function BreakdownTip({ active, payload, total }) {
-  if (!active || !payload?.length) return null;
-  const p = payload[0].payload;
-  return (
-    <div className="ur-chart-tooltip">
-      <div className="ur-chart-tooltip-title">{p.label}</div>
-      <div className="ur-chart-tooltip-value" style={{ color: p.color }}>
-        {p.value.toFixed(1)}h · {total ? Math.round((p.value / total) * 100) : 0}%
-      </div>
-    </div>
-  );
+/** 설비·기간별 합계 */
+function sumRows(rows) {
+  const s = { span: 0, run: 0, plan: 0, fail: 0, wait: 0, failCount: 0 };
+  rows.forEach((r) => {
+    s.span += r.span; s.run += r.run; s.plan += r.plan; s.fail += r.fail; s.wait += r.wait;
+    s.failCount += r.stops.filter((x) => x.type === 'fail').length;
+  });
+  s.rate = s.span > 0 ? s.run / s.span : null;
+  s.down = s.plan + s.fail + s.wait;
+  return s;
 }
 
 export default function UtilRatePage() {
   const permission = usePermission('/equipment/utilRate');
-  const [hoverCode, setHoverCode] = useState(null);
+  const [source] = useState(() => (USE_MOCK ? createUtilMock() : { getUtilDays }));
+  const [rangeKey, setRangeKey] = useState('today');
+  const [rows, setRows] = useState(null);
+  const [loadedAt, setLoadedAt] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
 
-  const avgRate = useMemo(() => MOCK_EQUIP.reduce((s, e) => s + e.rate, 0) / MOCK_EQUIP.length, []);
-  const best = useMemo(() => [...MOCK_EQUIP].sort((a, b) => b.rate - a.rate)[0], []);
-  const worst = useMemo(() => [...MOCK_EQUIP].sort((a, b) => a.rate - b.rate)[0], []);
-  const achievedCount = MOCK_EQUIP.filter((e) => e.rate >= TARGET_RATE).length;
-  const totalRunHours = useMemo(() => MOCK_EQUIP.reduce((s, e) => s + e.runHours, 0), []);
+  const load = useCallback(() => {
+    setLoading(true);
+    return source.getUtilDays({ from: ymd(daysAgo(HISTORY_DAYS - 1)), to: ymd(daysAgo(0)) })
+      .then((list) => { setRows(list); setLoadedAt(Date.now()); setError(false); })
+      .catch(() => setError(true))
+      .finally(() => setTimeout(() => setLoading(false), 300));
+  }, [source]);
 
-  const rankedEquip = useMemo(() => [...MOCK_EQUIP].sort((a, b) => b.rate - a.rate), []);
+  useEffect(() => {
+    load();
+    const id = setInterval(load, POLL_MS);
+    return () => clearInterval(id);
+  }, [load]);
 
-  const breakdownDonut = useMemo(() => {
-    const run = MOCK_EQUIP.reduce((s, e) => s + e.runHours, 0);
-    const plan = MOCK_EQUIP.reduce((s, e) => s + e.stopPlan, 0);
-    const fail = MOCK_EQUIP.reduce((s, e) => s + e.stopFail, 0);
-    return [
-      { key: 'run', label: '가동', value: Number(run.toFixed(1)), color: SUCCESS, from: '#4ade80', to: '#0d9165' },
-      { key: 'plan', label: '계획정지', value: Number(plan.toFixed(1)), color: WARNING, from: '#fbbf55', to: '#a5670f' },
-      { key: 'fail', label: '고장정지', value: Number(fail.toFixed(1)), color: DANGER, from: '#f88a80', to: '#a5271e' },
-    ];
-  }, []);
-  const breakdownTotal = breakdownDonut.reduce((s, d) => s + d.value, 0);
+  const range = RANGES.find((r) => r.key === rangeKey);
+  const view = useMemo(() => (rows ? buildView(rows, range) : null), [rows, range]);
 
   if (!permission.loading && !permission.canRead) {
     return (
       <div className="mes-page">
-        <div className="mes-card" style={{ padding: 32, textAlign: 'center', color: 'var(--mes-text-faint)' }}>
-          <IconLock size={20} style={{ marginBottom: 8 }} />
-          <div>이 화면에 대한 조회 권한이 없습니다.</div>
-        </div>
+        <div className="mes-card ut-empty"><IconLock size={20} /><span>이 화면을 볼 권한이 없습니다.</span></div>
       </div>
     );
   }
 
-  const [heroFrom, heroTo] = ['#7dabff', '#3730a3'];
-
   return (
-    <div className="mes-page ur-page mes-page-fill">
-      <div className="mes-page-header">
-        <div className="mes-page-heading">
-          <div className="mes-page-icon ur-page-icon">
-            <IconGauge size={20} />
-          </div>
+    <div className="mes-page ut-page">
+      <div className="ut-header">
+        <div className="ut-title">
+          <div className="mes-page-icon"><IconGauge size={20} /></div>
           <div>
             <h2 className="mes-page-title">설비가동률분석</h2>
-            <p className="mes-page-desc">설비별 가동률·가동시간을 한눈에 비교합니다. (UI 목업 — 실데이터 연동 전)</p>
+            <span className="ut-sub">연속열처리로 {FURNACES.length}대 · 목표 가동률 {TARGET * 100}%{USE_MOCK && <em className="ut-mock">화면 예시 · MOCK</em>}</span>
           </div>
         </div>
-        <span className="ur-mock-badge">MOCK DATA</span>
+        <div className="ut-seg" role="tablist" aria-label="조회 기간">
+          {RANGES.map((r) => (
+            <button key={r.key} type="button" role="tab" aria-selected={rangeKey === r.key} className={rangeKey === r.key ? 'is-on' : ''} onClick={() => setRangeKey(r.key)}>
+              {r.label}
+            </button>
+          ))}
+        </div>
+        <div className="ut-head-right">
+          <span className={`ut-updated${error ? ' is-error' : ''}`}>{error ? '조회 실패' : '갱신'} <b>{loadedAt ? hms(loadedAt) : '-'}</b></span>
+          <button type="button" className={`mes-btn mes-btn-secondary ut-icon-btn${loading ? ' is-spinning' : ''}`} onClick={load} title="새로고침" aria-label="새로고침">
+            <IconRefresh size={15} />
+          </button>
+        </div>
       </div>
 
-      <div className="ur-scroll">
-        {/* ── 히어로: 전체 평균 가동률 + KPI 스탯 ── */}
-        <div className="ur-hero-row">
-          <div className="mes-card ur-hero-donut-card">
-            <div className="ur-hero-donut-wrap">
-              <RadialGauge value={avgRate} gradId="urHeroGrad" from={heroFrom} to={heroTo} thickness={20} spin={8} />
-              <div className="ur-hero-donut-center">
-                <div className="ur-hero-donut-value" style={{ color: heroTo }}>{avgRate.toFixed(1)}<span>%</span></div>
-                <div className="ur-hero-donut-label">전체 평균 가동률</div>
-              </div>
-            </div>
-            <div className="ur-hero-target">
-              목표 {TARGET_RATE}% · <b style={{ color: avgRate >= TARGET_RATE ? SUCCESS : DANGER }}>
-                {avgRate >= TARGET_RATE ? `+${(avgRate - TARGET_RATE).toFixed(1)}%p 초과` : `${(avgRate - TARGET_RATE).toFixed(1)}%p 미달`}
-              </b>
-            </div>
+      {!view ? (
+        <div className="mes-card ut-empty">{error ? '가동 데이터를 불러오지 못했습니다.' : '가동률을 불러오는 중…'}</div>
+      ) : (
+        <>
+          <KpiRow view={view} range={range} />
+
+          <div className="ut-row">
+            <Scoreboard view={view} range={range} />
+            <CauseCard view={view} range={range} />
           </div>
 
-          <div className="ur-kpi-grid">
-            <div className="mes-card ur-kpi-card">
-              <div className="ur-kpi-icon ur-kpi-icon-gold"><IconTrophy size={18} /></div>
-              <div className="ur-kpi-body">
-                <span className="ur-kpi-label">최고 가동 설비</span>
-                <span className="ur-kpi-value">{best.code} <em>{best.rate.toFixed(1)}%</em></span>
-              </div>
-            </div>
-            <div className="mes-card ur-kpi-card">
-              <div className="ur-kpi-icon ur-kpi-icon-danger"><IconAlertTriangle size={18} /></div>
-              <div className="ur-kpi-body">
-                <span className="ur-kpi-label">최저 가동 설비</span>
-                <span className="ur-kpi-value">{worst.code} <em>{worst.rate.toFixed(1)}%</em></span>
-              </div>
-            </div>
-            <div className="mes-card ur-kpi-card">
-              <div className="ur-kpi-icon ur-kpi-icon-accent"><IconTarget size={18} /></div>
-              <div className="ur-kpi-body">
-                <span className="ur-kpi-label">목표 달성 설비</span>
-                <span className="ur-kpi-value">{achievedCount} <em>/ {MOCK_EQUIP.length}대</em></span>
-              </div>
-            </div>
-            <div className="mes-card ur-kpi-card">
-              <div className="ur-kpi-icon ur-kpi-icon-purple"><IconClockHour4 size={18} /></div>
-              <div className="ur-kpi-body">
-                <span className="ur-kpi-label">총 가동시간(24h)</span>
-                <span className="ur-kpi-value">{totalRunHours.toFixed(1)} <em>시간</em></span>
-              </div>
-            </div>
-          </div>
-        </div>
+          <Timeline view={view} />
 
-        {/* ── 랭킹 막대그래프 + 가동/정지 비율 도넛 ── */}
-        <div className="ur-bottom-row">
-          <div className="mes-card ur-rank-card">
-            <div className="ur-section-title"><IconChartBar size={15} /> 설비별 가동률 순위</div>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart
-                data={rankedEquip}
-                layout="vertical"
-                margin={{ top: 4, right: 36, left: 6, bottom: 4 }}
-                onMouseMove={(s) => setHoverCode(s?.activePayload?.[0]?.payload?.code ?? null)}
-                onMouseLeave={() => setHoverCode(null)}
-              >
-                <defs>
-                  {rankedEquip.map((e) => {
-                    const [gFrom, gTo] = healthGradient(e.rate);
-                    return (
-                      <linearGradient key={e.code} id={`urBarGrad-${e.code}`} x1="0" y1="0" x2="1" y2="0">
-                        <stop offset="0%" stopColor={gFrom} />
-                        <stop offset="100%" stopColor={gTo} />
-                      </linearGradient>
-                    );
-                  })}
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--mes-line)" horizontal={false} />
-                <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11, fill: 'var(--mes-text-faint)' }} axisLine={false} tickLine={false} />
-                <YAxis type="category" dataKey="code" width={44} tick={{ fontSize: 12, fontWeight: 700, fill: 'var(--mes-text)' }} axisLine={false} tickLine={false} />
-                <RTooltip content={<GaugeTip />} cursor={{ fill: 'var(--mes-accent-soft)' }} />
-                <ReferenceLine x={TARGET_RATE} stroke="var(--mes-text-faint)" strokeDasharray="4 4" />
-                <Bar dataKey="rate" radius={[0, 8, 8, 0]} maxBarSize={26} name="가동률">
-                  {rankedEquip.map((e) => (
-                    <Cell key={e.code} fill={`url(#urBarGrad-${e.code})`} opacity={hoverCode && hoverCode !== e.code ? 0.45 : 1} />
-                  ))}
-                  <LabelList dataKey="rate" position="right" formatter={(v) => `${v.toFixed(1)}%`} style={{ fontSize: 11, fontWeight: 700, fill: 'var(--mes-text)' }} />
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-            <div className="ur-rank-legend">
-              <span><i style={{ background: SUCCESS }} />90% 이상</span>
-              <span><i style={{ background: WARNING }} />75~90%</span>
-              <span><i style={{ background: DANGER }} />75% 미만</span>
-              <span className="ur-rank-legend-target">┊ 목표 {TARGET_RATE}%</span>
-            </div>
-          </div>
+          <TrendChart view={view} />
+        </>
+      )}
+    </div>
+  );
+}
 
-          <div className="mes-card ur-breakdown-card">
-            <div className="ur-section-title"><IconChartPie size={15} /> 전체 시간 구성비 (24h × 6대)</div>
-            <div className="ur-breakdown-body">
-              <div className="ur-breakdown-donut-wrap">
-                <div className="ur-gauge-chart-layer">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <defs>
-                      {breakdownDonut.map((d, i) => (
-                        <linearGradient key={d.key} id={`urPieGrad-${d.key}`} x1="0" y1="0" x2="1" y2="1">
-                          <stop offset="0%" stopColor={d.from} />
-                          <stop offset="100%" stopColor={d.to} />
-                          {!REDUCED_MOTION && (
-                            <animateTransform
-                              attributeName="gradientTransform"
-                              type="rotate"
-                              from="0 0.5 0.5"
-                              to="360 0.5 0.5"
-                              dur={`${6 + i * 0.6}s`}
-                              repeatCount="indefinite"
-                            />
-                          )}
-                        </linearGradient>
-                      ))}
-                    </defs>
-                    <Pie
-                      data={breakdownDonut}
-                      dataKey="value"
-                      nameKey="label"
-                      innerRadius="64%"
-                      outerRadius="98%"
-                      paddingAngle={4}
-                      cornerRadius={7}
-                      startAngle={90}
-                      endAngle={-270}
-                      stroke="none"
-                      animationDuration={1200}
-                      animationEasing="ease-out"
-                    >
-                      {breakdownDonut.map((d) => <Cell key={d.key} fill={`url(#urPieGrad-${d.key})`} />)}
-                    </Pie>
-                    <RTooltip content={<BreakdownTip total={breakdownTotal} />} />
-                  </PieChart>
-                </ResponsiveContainer>
-                </div>
-                <div className="ur-breakdown-donut-center">
-                  <div className="ur-breakdown-donut-value">{breakdownTotal.toFixed(0)}</div>
-                  <div className="ur-breakdown-donut-label">시간</div>
-                </div>
-              </div>
-              <div className="ur-breakdown-legend">
-                {breakdownDonut.map((d) => (
-                  <div className="ur-breakdown-legend-item" key={d.key}>
-                    <span className="ur-breakdown-dot" style={{ background: `linear-gradient(135deg, ${d.from}, ${d.to})` }} />
-                    <div className="ur-breakdown-legend-text">
-                      <span className="ur-breakdown-label">{d.label}</span>
-                      <span className="ur-breakdown-meta">
-                        {d.value.toFixed(1)}h · <b>{breakdownTotal ? Math.round((d.value / breakdownTotal) * 100) : 0}%</b>
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
+/** 받아 둔 일자 데이터 → 화면용 묶음 */
+function buildView(rows, range) {
+  const today = ymd(daysAgo(0));
+  const curFrom = ymd(daysAgo(range.days - 1));
+  const prevFrom = ymd(daysAgo(range.days * 2 - 1));
+  const prevTo = ymd(daysAgo(range.days));
+  const trendDays = Math.max(7, range.days);
+  const trendFrom = ymd(daysAgo(trendDays - 1));
 
-        {/* ── 최근 7일 추이 ── */}
-        <div className="mes-card ur-trend-card">
-          <div className="ur-section-title"><IconChartAreaLine size={15} /> 최근 7일 평균 가동률 추이</div>
-          <ResponsiveContainer width="100%" height={200}>
-            <AreaChart data={TREND_DATA} margin={{ top: 16, right: 20, left: 4, bottom: 0 }}>
-              <defs>
-                <linearGradient id="urTrendFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="var(--mes-accent)" stopOpacity={0.35} />
-                  <stop offset="95%" stopColor="var(--mes-accent)" stopOpacity={0.02} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--mes-line)" vertical={false} />
-              <XAxis dataKey="day" tick={{ fontSize: 11, fill: 'var(--mes-text-faint)' }} axisLine={false} tickLine={false} />
-              <YAxis domain={[70, 100]} tick={{ fontSize: 11, fill: 'var(--mes-text-faint)' }} axisLine={false} tickLine={false} width={38} />
-              <RTooltip content={<TrendTip />} />
-              <ReferenceLine y={TARGET_RATE} stroke={SUCCESS} strokeDasharray="4 4" label={{ value: `목표 ${TARGET_RATE}%`, position: 'insideTopLeft', fontSize: 10, fill: SUCCESS, fontWeight: 700 }} />
-              <Area type="monotone" dataKey="rate" stroke="var(--mes-accent)" strokeWidth={2.5} fill="url(#urTrendFill)" dot={{ r: 3, fill: 'var(--mes-accent)', strokeWidth: 0 }} activeDot={{ r: 5 }} />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
+  const inCur = rows.filter((r) => r.date >= curFrom && r.date <= today);
+  const inPrev = rows.filter((r) => r.date >= prevFrom && r.date <= prevTo);
 
-        {/* ── 설비별 게이지 카드 6개 ── */}
-        <div className="ur-section-title"><IconChartPie size={15} /> 설비별 가동률</div>
-        <div className="ur-gauge-grid">
-          {MOCK_EQUIP.map((e, i) => {
-            const color = healthColor(e.rate);
-            const [gFrom, gTo] = healthGradient(e.rate);
-            return (
-              <div className="mes-card ur-gauge-card" key={e.code} style={{ '--ur-accent': EQUIP_COLORS[e.code] }}>
-                <div className="ur-gauge-card-head">
-                  <span className="ur-gauge-code" style={{ background: EQUIP_COLORS[e.code] }}>{e.code}</span>
-                  <span className="ur-gauge-name">{e.name}</span>
-                  <span className={`ur-health-badge ur-health-${e.rate >= 90 ? 'good' : e.rate >= 75 ? 'warn' : 'bad'}`}>
-                    {healthLabel(e.rate)}
-                  </span>
-                </div>
-                <div className="ur-gauge-donut-wrap">
-                  <RadialGauge value={e.rate} gradId={`urGaugeGrad-${e.code}`} from={gFrom} to={gTo} thickness={14} spin={5.5 + (i % 4) * 0.5} />
-                  <div className="ur-gauge-donut-center">
-                    <div className="ur-gauge-donut-value" style={{ color }}>{e.rate.toFixed(1)}</div>
-                    <div className="ur-gauge-donut-pct">%</div>
-                  </div>
-                </div>
-                <div className="ur-gauge-foot">
-                  <div className="ur-gauge-foot-item">
-                    <span className="ur-gauge-foot-dot" style={{ background: SUCCESS }} />
-                    가동 <b>{e.runHours.toFixed(1)}h</b>
-                  </div>
-                  <div className="ur-gauge-foot-item">
-                    <span className="ur-gauge-foot-dot" style={{ background: WARNING }} />
-                    정지 <b>{(e.stopPlan + e.stopFail).toFixed(1)}h</b>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+  const equips = FURNACES.map((f) => {
+    const cur = sumRows(inCur.filter((r) => r.code === f.code));
+    const prev = sumRows(inPrev.filter((r) => r.code === f.code));
+    const spark = [];
+    for (let i = 6; i >= 0; i -= 1) {
+      const d = ymd(daysAgo(i));
+      const r = rows.find((x) => x.code === f.code && x.date === d);
+      spark.push(r && r.span > 0 ? r.run / r.span : null);
+    }
+    return { ...f, color: EQUIP_COLORS[f.code], cur, prev, spark };
+  });
+
+  const fleet = sumRows(inCur);
+  const fleetPrev = sumRows(inPrev);
+
+  // 비가동 사유 — 사유별 시간·횟수
+  const causeMap = new Map();
+  inCur.forEach((r) => r.stops.forEach((st) => {
+    const key = `${st.type}|${st.cause}`;
+    const c = causeMap.get(key) ?? { type: st.type, cause: st.cause, min: 0, count: 0, codes: new Set() };
+    c.min += (st.end - st.start) / 60000;
+    c.count += 1;
+    c.codes.add(r.code);
+    causeMap.set(key, c);
+  }));
+  const causes = [...causeMap.values()].sort((a, b) => b.min - a.min);
+
+  // 추이 — 날짜별 설비 가동률
+  const trendDates = [];
+  for (let i = trendDays - 1; i >= 0; i -= 1) trendDates.push(daysAgo(i));
+  const trend = FURNACES.map((f) => ({
+    code: f.code,
+    color: EQUIP_COLORS[f.code],
+    data: trendDates.map((d) => {
+      const r = rows.find((x) => x.code === f.code && x.date === ymd(d));
+      return [d.getTime(), r && r.span > 0 ? Math.round((r.run / r.span) * 1000) / 10 : null];
+    }),
+  }));
+  const fleetTrend = trendDates.map((d) => {
+    const s = sumRows(rows.filter((x) => x.date === ymd(d)));
+    return [d.getTime(), s.rate == null ? null : Math.round(s.rate * 1000) / 10];
+  });
+
+  return {
+    equips,
+    fleet,
+    fleetPrev,
+    causes,
+    today: rows.filter((r) => r.date === today),
+    trend,
+    fleetTrend,
+    trendFrom,
+    trendDays,
+  };
+}
+
+function Delta({ cur, prev }) {
+  if (cur == null || prev == null) return <span className="ut-delta">비교 없음</span>;
+  const d = (cur - prev) * 100;
+  if (Math.abs(d) < 0.05) return <span className="ut-delta">변동 없음</span>;
+  return <span className={`ut-delta ${d > 0 ? 'is-up' : 'is-down'}`}>{d > 0 ? '▲' : '▼'} {Math.abs(d).toFixed(1)}%p</span>;
+}
+
+function KpiRow({ view, range }) {
+  const f = view.fleet;
+  const achieved = view.equips.filter((e) => e.cur.rate != null && e.cur.rate >= TARGET).length;
+  const t = tone(f.rate);
+  return (
+    <div className="ut-kpis">
+      <div className={`mes-card ut-kpi is-main is-${t}`}>
+        <span className="ut-kpi-label">평균 가동률</span>
+        <span className="ut-kpi-value">{pct(f.rate)}<small>%</small></span>
+        <span className="ut-kpi-sub"><Delta cur={f.rate} prev={view.fleetPrev.rate} /> {range.prevLabel} 대비</span>
+        <span className="ut-kpi-meter" aria-hidden="true">
+          <i style={{ width: `${(f.rate ?? 0) * 100}%`, background: LINE_BLUE }} />
+          <b style={{ left: `${TARGET * 100}%` }} />
+        </span>
+      </div>
+      <div className="mes-card ut-kpi">
+        <span className="ut-kpi-label"><IconTarget size={13} />목표 달성 설비</span>
+        <span className="ut-kpi-value">{achieved}<small>/ {view.equips.length}대</small></span>
+        <span className="ut-kpi-dots" aria-label={`목표 ${TARGET * 100}% 이상 ${achieved}대`}>
+          {view.equips.map((e) => (
+            <i key={e.code} className={e.cur.rate != null && e.cur.rate >= TARGET ? 'is-on' : ''} title={`${e.code} ${pct(e.cur.rate)}%`}>{e.code.slice(-1)}</i>
+          ))}
+        </span>
+      </div>
+      <div className="mes-card ut-kpi">
+        <span className="ut-kpi-label"><IconClockHour4 size={13} />가동 시간</span>
+        <span className="ut-kpi-value">{(f.run / 60).toFixed(1)}<small>h</small></span>
+        <span className="ut-kpi-sub">가능 {(f.span / 60).toFixed(1)}h 중</span>
+      </div>
+      <div className="mes-card ut-kpi">
+        <span className="ut-kpi-label"><IconPlayerPause size={13} />비가동 시간</span>
+        <span className="ut-kpi-value">{(f.down / 60).toFixed(1)}<small>h</small></span>
+        <span className="ut-kpi-split">
+          {['plan', 'fail', 'wait'].map((k) => (
+            <span key={k}><i style={{ background: STATE_COLORS[k] }} />{STATE_LABEL[k].replace('정지', '')} {fmtH(f[k])}</span>
+          ))}
+        </span>
+      </div>
+      <div className={`mes-card ut-kpi${f.failCount ? ' is-alert' : ''}`}>
+        <span className="ut-kpi-label"><IconAlertTriangleFilled size={13} />고장 정지</span>
+        <span className="ut-kpi-value">{f.failCount}<small>건</small></span>
+        <span className="ut-kpi-sub">합계 {fmtH(f.fail)} · 건당 평균 {f.failCount ? fmtH(f.fail / f.failCount) : '-'}</span>
       </div>
     </div>
+  );
+}
+
+/** 작은 7일 추이 — SVG 꺾은선(목표선 포함) */
+function Spark({ values, color }) {
+  const W = 96;
+  const H = 30;
+  const lo = 0.6;
+  const pts = values.map((v, i) => (v == null ? null : [(i / (values.length - 1)) * W, H - ((Math.max(lo, v) - lo) / (1 - lo)) * H]));
+  const path = pts.filter(Boolean).map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(' ');
+  const last = [...pts].reverse().find(Boolean);
+  const ty = H - ((TARGET - lo) / (1 - lo)) * H;
+  return (
+    <svg className="ut-spark" viewBox={`-3 -3 ${W + 6} ${H + 6}`} aria-hidden="true">
+      <line x1="0" x2={W} y1={ty} y2={ty} stroke="#cfd4da" strokeDasharray="2 3" strokeWidth="1" />
+      <path d={path} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+      {last && <circle cx={last[0]} cy={last[1]} r="2.8" fill={color} stroke="#fff" strokeWidth="1.5" />}
+    </svg>
+  );
+}
+
+/** 설비별 가동 현황 — 한 줄에 가동률, 시간 구성 막대(목표 눈금), 시간 내역, 7일 추이 */
+function Scoreboard({ view, range }) {
+  return (
+    <section className="mes-card ut-card ut-board">
+      <header className="ut-card-head">
+        <div>
+          <h3>설비별 가동 현황</h3>
+          <p>{range.label} · 막대 = 시간 구성(가동/계획정지/고장정지/대기) · 눈금 = 목표 {TARGET * 100}%</p>
+        </div>
+        <div className="ut-legend">
+          {STATES.map((k) => <span key={k}><i style={{ background: STATE_COLORS[k] }} />{STATE_LABEL[k]}</span>)}
+        </div>
+      </header>
+
+      <div className="ut-board-head" aria-hidden="true">
+        <span>설비</span><span>가동률</span><span>시간 구성</span><span>최근 7일</span>
+      </div>
+      <ul className="ut-board-list">
+        {view.equips.map((e) => {
+          const c = e.cur;
+          const t = tone(c.rate);
+          return (
+            <li key={e.code} className="ut-board-row" style={{ '--c': e.color }}>
+              <div className="ut-eq">
+                <i className="ut-eq-dot" aria-hidden="true" />
+                <div>
+                  <strong>{e.code}</strong>
+                  <span className={`ut-state is-${e.status}`}>
+                    {e.status === 'alarm' && <IconAlertTriangleFilled size={10} />}
+                    {e.status === 'idle' && <IconTool size={10} />}
+                    {e.status === 'idle' ? (e.idleReason ?? STATUS_LABEL.idle) : STATUS_LABEL[e.status]}
+                  </span>
+                </div>
+              </div>
+
+              <div className="ut-rate">
+                <span className={`ut-rate-v is-${t}`}>{pct(c.rate)}<small>%</small></span>
+                <Delta cur={c.rate} prev={e.prev.rate} />
+              </div>
+
+              <div className="ut-comp">
+                <div className="ut-comp-bar" role="img" aria-label={`${e.code} 가동 ${fmtH(c.run)}, 계획정지 ${fmtH(c.plan)}, 고장정지 ${fmtH(c.fail)}, 대기 ${fmtH(c.wait)}`}>
+                  {STATES.map((k) => (c[k] > 0 ? (
+                    <i key={k} style={{ width: `${(c[k] / c.span) * 100}%`, background: STATE_COLORS[k] }} title={`${STATE_LABEL[k]} ${fmtH(c[k])}`} />
+                  ) : null))}
+                  <b style={{ left: `${TARGET * 100}%` }} title={`목표 ${TARGET * 100}%`} />
+                </div>
+                <div className="ut-comp-text">
+                  <span>가동 <b>{fmtH(c.run)}</b></span>
+                  {c.plan > 0 && <span>계획 <b>{fmtH(c.plan)}</b></span>}
+                  {c.fail > 0 && <span className="is-fail">고장 <b>{fmtH(c.fail)}</b></span>}
+                  {c.wait > 0 && <span>대기 <b>{fmtH(c.wait)}</b></span>}
+                </div>
+              </div>
+
+              <Spark values={e.spark} color={e.color} />
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
+/** 비가동 사유 TOP — 사유별 시간(종류 색) */
+function CauseCard({ view, range }) {
+  const top = view.causes.slice(0, 8);
+  const max = top[0]?.min ?? 1;
+  const total = view.causes.reduce((a, c) => a + c.min, 0);
+  return (
+    <section className="mes-card ut-card ut-causes">
+      <header className="ut-card-head">
+        <div>
+          <h3>비가동 사유 TOP</h3>
+          <p>{range.label} · 합계 {fmtH(total)} · {view.causes.reduce((a, c) => a + c.count, 0)}건</p>
+        </div>
+      </header>
+      {top.length === 0 ? (
+        <div className="ut-causes-empty">비가동 기록이 없습니다.</div>
+      ) : (
+        <ol className="ut-cause-list">
+          {top.map((c, i) => (
+            <li key={`${c.type}-${c.cause}`}>
+              <span className="ut-cause-rank">{i + 1}</span>
+              <div className="ut-cause-main">
+                <div className="ut-cause-top">
+                  <span className="ut-cause-name">{c.cause}</span>
+                  <span className={`ut-cause-type is-${c.type}`}>{STATE_LABEL[c.type]}</span>
+                  <span className="ut-cause-val"><b>{fmtH(c.min)}</b> · {c.count}건</span>
+                </div>
+                <div className="ut-cause-bar"><i style={{ width: `${(c.min / max) * 100}%`, background: STATE_COLORS[c.type] }} /></div>
+                <div className="ut-cause-codes">{[...c.codes].sort().join(' · ')}</div>
+              </div>
+            </li>
+          ))}
+        </ol>
+      )}
+    </section>
+  );
+}
+
+/** 오늘 가동 타임라인 — 설비 6줄 × 0~24시, 정지 구간을 색 띠로 */
+function Timeline({ view }) {
+  const day0 = daysAgo(0).getTime();
+  const now = Date.now();
+  const nowPct = ((now - day0) / (24 * 3600000)) * 100;
+  return (
+    <section className="mes-card ut-card ut-timeline">
+      <header className="ut-card-head">
+        <div>
+          <h3>오늘 가동 타임라인</h3>
+          <p>0시 ~ 지금 · 정지 구간에 마우스를 올리면 사유와 시간이 나옵니다</p>
+        </div>
+        <div className="ut-legend">
+          {STATES.map((k) => <span key={k}><i style={{ background: STATE_COLORS[k] }} />{STATE_LABEL[k]}</span>)}
+        </div>
+      </header>
+      <div className="ut-tl">
+        <div className="ut-tl-axis" aria-hidden="true">
+          <span />
+          <div>
+            {[0, 3, 6, 9, 12, 15, 18, 21, 24].map((h) => <em key={h} style={{ left: `${(h / 24) * 100}%` }}>{h}시</em>)}
+          </div>
+        </div>
+        {FURNACES.map((f) => {
+          const r = view.today.find((x) => x.code === f.code);
+          const runPct = r ? (r.span / (24 * 60)) * 100 : 0;
+          return (
+            <div key={f.code} className="ut-tl-row">
+              <span className="ut-tl-code" style={{ '--c': EQUIP_COLORS[f.code] }}><i />{f.code}</span>
+              <div className="ut-tl-track">
+                <i className="ut-tl-run" style={{ width: `${runPct}%`, background: STATE_COLORS.run }} />
+                {r?.stops.map((st) => (
+                  <i
+                    key={`${st.start}-${st.type}`}
+                    className="ut-tl-stop"
+                    style={{ left: `${((st.start - day0) / 864e5) * 100}%`, width: `${Math.max(0.35, ((st.end - st.start) / 864e5) * 100)}%`, background: STATE_COLORS[st.type] }}
+                    title={`${STATE_LABEL[st.type]} · ${st.cause}\n${hm(st.start)} ~ ${hm(st.end)} (${fmtH((st.end - st.start) / 60000)})`}
+                  />
+                ))}
+                <span className="ut-tl-rate">{r && r.span ? `${pct(r.run / r.span)}%` : '-'}</span>
+              </div>
+            </div>
+          );
+        })}
+        <div className="ut-tl-now" style={{ '--xr': nowPct / 100 }} aria-hidden="true"><span>지금 {hm(now)}</span></div>
+      </div>
+    </section>
+  );
+}
+
+/** 가동률 추이 — 전력량 화면과 같은 Highcharts 곡선(목표선, 전체 평균은 굵은 점선) */
+function TrendChart({ view }) {
+  const [hidden, setHidden] = useState(() => new Set());
+  const visibleKey = FURNACES.filter((f) => !hidden.has(f.code)).map((f) => f.code).join(',');
+
+  const options = useMemo(() => {
+    const codes = visibleKey.split(',');
+    const vals = view.trend.flatMap((s) => s.data.map((d) => d[1])).filter((v) => v != null);
+    const lo = Math.max(0, Math.floor((Math.min(TARGET * 100, ...vals) - 5) / 5) * 5);
+    return {
+      chart: { type: 'spline', animation: false, backgroundColor: 'transparent', spacing: [16, 8, 6, 0], style: { fontFamily: 'inherit' } },
+      time: { timezone: LOCAL_TZ },
+      title: { text: null },
+      credits: { enabled: false },
+      exporting: { enabled: false },
+      legend: { enabled: false },
+      xAxis: {
+        type: 'datetime',
+        lineWidth: 0,
+        tickLength: 0,
+        tickInterval: view.trendDays > 10 ? 3 * 864e5 : 864e5,
+        crosshair: { color: '#c3cbd6', width: 1 },
+        labels: { format: '{value:%m/%d}', y: 20, style: { fontSize: '11px', color: '#8a929c' } },
+      },
+      yAxis: {
+        min: lo,
+        max: 100,
+        title: { text: null },
+        gridLineColor: '#eef0f3',
+        gridLineDashStyle: 'Dash',
+        labels: { align: 'left', x: 0, y: -4, format: '{value}%', style: { fontSize: '10.5px', color: '#9aa3ad' } },
+        plotLines: [{
+          value: TARGET * 100, color: '#7cc3a0', width: 1.5, dashStyle: 'ShortDash', zIndex: 3,
+          label: { text: `목표 ${TARGET * 100}%`, align: 'right', x: -4, y: -6, style: { fontSize: '11px', fontWeight: '700', color: '#2e8a5f' } },
+        }],
+      },
+      tooltip: {
+        shared: true,
+        useHTML: true,
+        outside: true,
+        backgroundColor: 'rgba(255, 255, 255, 0.98)',
+        borderColor: '#e1e4e8',
+        borderRadius: 10,
+        shadow: { color: 'rgba(16, 24, 40, 0.12)', offsetX: 0, offsetY: 6, width: 14 },
+        padding: 12,
+        formatter() {
+          const d = new Date(this.x);
+          const rowsHtml = [...this.points].filter((p) => p.y != null).sort((a, b) => b.y - a.y).map((p) => (
+            '<div style="display:flex;align-items:center;gap:8px;line-height:21px">'
+            + `<span style="width:3px;height:14px;border-radius:2px;background:${p.color}"></span>`
+            + `<span style="color:#57606a;font-weight:600">${p.series.name}</span>`
+            + `<span style="margin-left:auto;padding-left:20px;font-weight:700;color:${p.y < TARGET * 100 ? '#cf3b32' : '#1b1f24'}">${p.y.toFixed(1)}%</span></div>`
+          )).join('');
+          return `<div style="font-size:12px;font-variant-numeric:tabular-nums;min-width:160px"><div style="font-size:11.5px;font-weight:600;color:#8a929c;margin-bottom:6px">${d.getMonth() + 1}월 ${d.getDate()}일</div>${rowsHtml}</div>`;
+        },
+      },
+      plotOptions: {
+        series: {
+          animation: false,
+          lineWidth: 2.25,
+          connectNulls: true,
+          marker: { enabled: view.trendDays <= 10, radius: 3, symbol: 'circle', lineWidth: 2, lineColor: '#fff' },
+          states: { hover: { lineWidth: 3 }, inactive: { opacity: 0.22 } },
+        },
+      },
+      series: [
+        ...view.trend.filter((s) => codes.includes(s.code)).map((s) => ({ id: s.code, name: s.code, color: s.color, data: s.data })),
+        { id: 'fleet', name: '전체 평균', color: '#4a5563', dashStyle: 'Dash', lineWidth: 2, data: view.fleetTrend, zIndex: 5, marker: { enabled: false } },
+      ],
+    };
+  }, [view, visibleKey]);
+
+  const toggle = (code) => setHidden((prev) => {
+    const next = new Set(prev);
+    if (next.has(code)) next.delete(code);
+    else if (next.size < FURNACES.length - 1) next.add(code);
+    return next;
+  });
+
+  return (
+    <section className="mes-card ut-card ut-trend">
+      <header className="ut-card-head">
+        <div>
+          <h3>가동률 추이</h3>
+          <p>최근 {view.trendDays}일 · 일별 가동률 · 점선 = 전체 평균</p>
+        </div>
+        <div className="ut-chips" role="group" aria-label="설비 표시">
+          {view.equips.map((e) => {
+            const off = hidden.has(e.code);
+            return (
+              <button key={e.code} type="button" className={`ut-chip${off ? ' is-off' : ''}`} aria-pressed={!off} onClick={() => toggle(e.code)}>
+                <i style={{ background: e.color }} />{e.code}
+              </button>
+            );
+          })}
+          <span className="ut-chip is-static"><i className="is-dash" />전체 평균</span>
+        </div>
+      </header>
+      <div className="ut-trend-chart" role="img" aria-label="설비별 일별 가동률 추이 선 그래프">
+        <HighchartsReact highcharts={Highcharts} options={options} updateArgs={[true, true, false]} containerProps={{ style: { height: '100%' } }} />
+      </div>
+    </section>
   );
 }

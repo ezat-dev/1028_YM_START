@@ -796,7 +796,7 @@ export default function TrendPage() {
       </div>
 
       {memoModalOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }} onMouseDown={(e) => { if (e.target === e.currentTarget) setMemoModalOpen(false); }}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
           <div className="mes-card" style={{ width: 380 }}>
             <h3 style={{ marginBottom: 12 }}>메모 추가</h3>
             <div className="mes-field">

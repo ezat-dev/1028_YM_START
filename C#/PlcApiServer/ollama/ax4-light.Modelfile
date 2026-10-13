@@ -1,0 +1,10 @@
+# SKT A.X 4.0 Light (Qwen2.5 기반 한국어 특화 7B, Apache 2.0) — PLC 태그 관리 AI 어시스턴트용
+# 설치:
+#   ollama pull hf.co/mykor/A.X-4.0-Light-gguf:Q8_0
+#   ollama create ax4-light -f ollama/ax4-light.Modelfile
+# 확인: ollama show ax4-light → Capabilities에 tools가 있어야 채팅(tool-calling)이 동작한다.
+# 모델명은 appsettings.json의 Ollama:Model과 맞춘다.
+FROM hf.co/mykor/A.X-4.0-Light-gguf:Q8_0
+
+# 도구 호출 판단은 일관성이 중요해서 낮게 잡는다.
+PARAMETER temperature 0.2

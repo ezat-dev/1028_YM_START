@@ -2,18 +2,28 @@ import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { IconMenu2 } from '@tabler/icons-react';
 import Sidebar from '../components/Sidebar';
-import { SidebarProvider } from '../context/SidebarContext';
+import { SidebarProvider, useSidebar } from '../context/SidebarContext';
 
 export default function MainLayout() {
-  const [mobileOpen, setMobileOpen] = useState(false);
-
   return (
     <SidebarProvider>
-      <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-        <Sidebar mobileOpen={mobileOpen} onCloseMobile={() => setMobileOpen(false)} />
+      <LayoutShell />
+    </SidebarProvider>
+  );
+}
+
+// useSidebar()는 Provider 안쪽에서만 쓸 수 있어 레이아웃 본문을 따로 뺐다
+function LayoutShell() {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const { hidden } = useSidebar(); // 전체화면 모드 — 사이드바·모바일 헤더를 그리지 않음
+
+  return (
+    <>
+      <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: '#f5f6f8' }}>
+        {!hidden && <Sidebar mobileOpen={mobileOpen} onCloseMobile={() => setMobileOpen(false)} />}
 
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-          <div className="mes-mobile-header">
+          {!hidden && <div className="mes-mobile-header">
             <button
               className="mes-mobile-header-btn"
               onClick={() => setMobileOpen(true)}
@@ -22,7 +32,7 @@ export default function MainLayout() {
               <IconMenu2 size={20} />
             </button>
             <span className="mes-mobile-header-title">SMART MES</span>
-          </div>
+          </div>}
 
           <div style={{ flex: 1, overflow: 'auto', background: '#f5f6f8' }}>
             <Outlet />
@@ -41,13 +51,14 @@ export default function MainLayout() {
             height: 52px;
             flex-shrink: 0;
             padding: 0 14px;
-            background: #15171c;
-            color: #f2f3f5;
+            background: #fff;
+            border-bottom: 1px solid var(--sb-border);
+            color: var(--mes-text);
           }
           .mes-mobile-header-btn {
             border: none;
             background: transparent;
-            color: #d1d5db;
+            color: var(--mes-text-sub);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -55,13 +66,13 @@ export default function MainLayout() {
             cursor: pointer;
           }
           .mes-mobile-header-title {
-            font-size: 14px;
-            font-weight: 600;
+            font-size: 15px;
+            font-weight: 800;
             letter-spacing: .2px;
           }
         }
       `}</style>
       </div>
-    </SidebarProvider>
+    </>
   );
 }

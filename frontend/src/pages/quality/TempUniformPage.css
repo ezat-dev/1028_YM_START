@@ -1,9 +1,5 @@
 /* 품질관리 > 온도균일성보고서 — 로(furnace) 온도균일성조사(TUS) 기록 */
 
-.tu-page-icon {
-  background: linear-gradient(135deg, #f6ad55 0%, #b7591c 100%);
-  box-shadow: 0 6px 16px -4px rgba(183, 89, 28, 0.45);
-}
 
 /* ── 상단 헤더 카드 ── */
 
@@ -89,7 +85,7 @@
 
 .tu-deviation {
   font-variant-numeric: tabular-nums;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--mes-text);
   letter-spacing: -0.2px;
 }
@@ -230,7 +226,7 @@
 
 .tu-file-list li.tu-file-new {
   background: var(--mes-accent-soft);
-  border-color: rgba(91, 127, 199, 0.3);
+  border-color: var(--mes-accent-border);
 }
 
 .tu-file-name {
@@ -310,7 +306,7 @@
 
 .tu-print-header h1 {
   font-size: 22px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 1px;
   margin: 0 0 4px;
 }
@@ -390,7 +386,7 @@
 }
 
 .tu-print-judgment {
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .tu-print-judgment.pass { color: #15803d; }

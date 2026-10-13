@@ -15,12 +15,11 @@
   width: min(92%, 1320px);
   height: clamp(620px, 86vh, 740px);
   max-height: calc(100vh - 48px);
-  border-radius: 30px;
+  border-radius: 12px;
   overflow: hidden;
   background: #fff;
-  box-shadow:
-    0 30px 70px -24px rgba(15, 23, 42, 0.28),
-    0 10px 26px -12px rgba(15, 23, 42, 0.12);
+  border: 1px solid var(--mes-border);
+  box-shadow: 0 16px 40px -16px rgba(15, 23, 42, 0.18);
 }
 
 /* ===== 좌측 브랜드 패널 ===== */
@@ -36,11 +35,8 @@
   /* TODO: 회사 사진 준비되면 아래 background를
      background-image: url('/brand-photo.jpg');
      background-size: cover; background-position: center;
-     로 교체하면 됨. 지금은 사이드바 톤과 맞춘 그라디언트 placeholder. */
-  background:
-    radial-gradient(circle at 15% 15%, rgba(91, 127, 199, 0.35), transparent 45%),
-    radial-gradient(circle at 85% 85%, rgba(61, 90, 153, 0.4), transparent 50%),
-    linear-gradient(160deg, #15171c 0%, #1c2029 55%, #232a38 100%);
+     로 교체하면 됨. 지금은 어두운 단색 + 격자 placeholder. */
+  background: #1a1e26;
 }
 
 .login-brand::before {
@@ -188,8 +184,8 @@
 
 .login-net-glass-icon {
   flex-shrink: 0;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border-radius: 9px;
   border: 1px solid rgba(255, 255, 255, .14);
   background: rgba(255, 255, 255, .07);
@@ -211,7 +207,7 @@
 }
 
 .login-net-glass-title {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
   letter-spacing: -.1px;
   color: #fff;
@@ -223,32 +219,35 @@
 .login-net-glass-tag {
   margin-left: auto;
   flex-shrink: 0;
-  font-size: 8.5px;
-  font-weight: 600;
-  letter-spacing: .14em;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .08em;
   font-family: Consolas, monospace;
   color: var(--login-flow);
-  opacity: .8;
+  opacity: 1;
 }
 
 .login-net-glass-desc {
-  margin: 1px 0 0;
-  font-size: 9.5px;
+  margin: 3px 0 0;
+  font-size: 12px;
   line-height: 1.4;
-  color: rgba(255, 255, 255, .55);
-  white-space: nowrap;
+  color: rgba(255, 255, 255, .8);
+  /* 화면 폭이 좁아 카드가 줄면 말줄임(…) 대신 두 줄까지 줄바꿈 — 설명이 잘려 안 보이는 것보다 낫다 */
+  word-break: keep-all;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .login-net-edge-label {
   position: absolute;
   transform: translate(-50%, -50%);
   white-space: nowrap;
-  font-size: 9px;
-  letter-spacing: .16em;
-  color: rgba(255, 255, 255, .4);
-  font-family: Consolas, monospace;
+  font-size: 11px;
+  letter-spacing: .02em;
+  color: rgba(255, 255, 255, .65);
+  font-family: 'Malgun Gothic', '맑은 고딕', sans-serif;
 }
 
 .login-brand-bottom {
@@ -274,28 +273,24 @@
 }
 
 .login-form-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 5px 12px;
-  border-radius: 999px;
-  background: var(--mes-accent-soft);
-  color: var(--mes-accent-dark);
-  font-size: 11.5px;
-  font-weight: 700;
-  margin-bottom: 14px;
+  display: block;
+  color: var(--mes-accent);
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
 }
 
 .login-form-title {
-  font-size: 25px;
+  font-size: 24px;
   font-weight: 700;
-  letter-spacing: -0.3px;
+  letter-spacing: -0.02em;
   color: var(--mes-text);
   margin: 0 0 6px;
 }
 
 .login-form-desc {
   font-size: 13px;
-  color: var(--mes-text-faint);
+  color: var(--mes-text-sub);
   line-height: 1.6;
   margin: 0 0 28px;
 }
@@ -309,7 +304,7 @@
   align-items: center;
   gap: 6px;
   margin-bottom: 6px;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--mes-text-sub);
 }
@@ -318,7 +313,8 @@
   position: relative;
 }
 
-.login-field-control svg {
+/* 직계 svg(왼쪽 입력 아이콘)만 — 비밀번호 보기 버튼 안의 눈 아이콘까지 왼쪽으로 끌려가지 않게 */
+.login-field-control > svg {
   position: absolute;
   left: 13px;
   top: 50%;
@@ -328,30 +324,72 @@
 
 .login-field-control input {
   width: 100%;
-  padding: 12px 14px 12px 40px;
-  border: 1px solid var(--mes-border);
+  height: 44px;
+  padding: 0 14px 0 40px;
+  border: 1px solid var(--mes-border-strong);
   border-radius: var(--mes-radius);
   outline: none;
-  font-size: 13.5px;
+  font-size: 14px;
   transition: border-color .15s, box-shadow .15s;
-  background: #fafbfc;
+  background: #fff;
 }
 
 .login-field-control input:hover {
-  border-color: #d5d9e0;
+  border-color: #b9c0c8;
 }
 
 .login-field-control input:focus {
   border-color: var(--mes-accent);
   box-shadow: 0 0 0 3px var(--mes-accent-soft);
-  background: #fff;
+}
+
+.login-field-control.has-toggle input {
+  padding-right: 44px;
+}
+
+.login-password-toggle {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: var(--mes-radius);
+  background: transparent;
+  color: var(--mes-text-sub);
+  cursor: pointer;
+}
+
+.login-password-toggle:hover {
+  color: var(--mes-text);
+  background: rgba(15, 23, 42, 0.05);
+}
+
+.login-password-toggle:focus-visible {
+  outline: 2px solid var(--mes-accent);
+  outline-offset: 1px;
+}
+
+.login-capslock {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #b45309;
 }
 
 .login-remember {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--mes-text-sub);
   margin: 4px 0 20px;
   cursor: pointer;
@@ -366,34 +404,34 @@
 
 .login-error {
   background: var(--mes-danger-soft);
+  border-left: 3px solid var(--mes-danger);
   color: var(--mes-danger);
-  font-size: 12.5px;
+  font-size: 13px;
   padding: 10px 12px;
-  border-radius: var(--mes-radius);
+  border-radius: var(--mes-radius-sm);
   margin-bottom: 16px;
 }
 
 .login-submit {
   width: 100%;
-  padding: 12px;
+  height: 44px;
   border-radius: var(--mes-radius);
   border: none;
-  background: var(--mes-accent-grad);
+  background: var(--mes-accent);
   color: #fff;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 10px 22px -10px rgba(61, 90, 153, 0.5);
-  transition: box-shadow .15s, transform .05s;
+  transition: background-color .12s;
 }
 
 .login-submit:hover {
-  box-shadow: 0 14px 28px -10px rgba(61, 90, 153, 0.62);
+  background: var(--mes-accent-dark);
 }
 
-.login-submit:active {
-  transform: translateY(1px);
-  box-shadow: 0 6px 14px -8px rgba(61, 90, 153, 0.5);
+.login-submit:focus-visible {
+  outline: 2px solid var(--mes-accent);
+  outline-offset: 2px;
 }
 
 .login-submit:disabled {
@@ -401,31 +439,36 @@
   cursor: not-allowed;
 }
 
+.login-submit:disabled:hover {
+  background: var(--mes-accent);
+}
+
 .login-security-notice {
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  margin-top: 34px;
+  margin-top: 32px;
   padding: 12px 14px;
   border-radius: var(--mes-radius);
-  background: var(--mes-accent-soft);
+  border: 1px solid var(--mes-border);
+  background: var(--mes-surface-sub);
 }
 
 .login-security-notice svg {
   flex-shrink: 0;
   margin-top: 1px;
-  color: var(--mes-accent-dark);
+  color: var(--mes-text-sub);
 }
 
 .login-security-notice-title {
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--mes-text);
   margin-bottom: 3px;
 }
 
 .login-security-notice-desc {
-  font-size: 11.5px;
+  font-size: 12px;
   line-height: 1.55;
   color: var(--mes-text-sub);
 }
@@ -437,7 +480,7 @@
   gap: 12px;
   margin-top: 22px;
   font-size: 11.5px;
-  color: var(--mes-text-faint);
+  color: var(--mes-text-sub);
 }
 
 .login-footer-tag {
@@ -462,8 +505,8 @@
     width: 100%;
     height: auto;
     max-height: none;
-    border-radius: 20px;
-    box-shadow: 0 16px 40px -18px rgba(15, 23, 42, 0.22);
+    border-radius: 10px;
+    box-shadow: none;
   }
 
   .login-brand {

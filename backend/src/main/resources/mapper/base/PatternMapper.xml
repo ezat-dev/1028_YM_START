@@ -2,28 +2,118 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="PatternMapper">
 
-    <!-- 기준정보 > 패턴관리 (base_pattern) -->
+    <!-- 기준정보 > 패턴관리 (base_pattern / base_pattern_hist) -->
+
+    <!-- 제품·거래처 정보는 복사해 두지 않고 매번 조인해서 보여준다 -->
+    <sql id="patternSelect">
+        SELECT t.*,
+               p.product_code, p.part_no, p.product_name, p.spec, p.material,
+               p.surface_hard_min, p.surface_hard_max, p.surface_hard_unit,
+               p.core_hard_min, p.core_hard_max, p.core_hard_unit,
+               v.vendor_id, v.vendor_code, v.vendor_name
+        FROM base_pattern t
+        JOIN base_product p ON p.product_id = t.product_id
+        JOIN base_vendor v ON v.vendor_id = p.vendor_id
+    </sql>
 
     <select id="selectList" parameterType="map" resultType="com.mes.domain.base.Pattern">
-        SELECT id, use_yn, reg_dt, upd_dt
-        FROM base_pattern
+        <include refid="patternSelect" />
         <where>
+            <if test="vendorId != null">
+                AND p.vendor_id = #{vendorId}
+            </if>
+            <if test="productId != null">
+                AND t.product_id = #{productId}
+            </if>
+            <if test="useYn != null and useYn != ''">
+                AND t.use_yn = #{useYn}
+            </if>
             <if test="keyword != null and keyword != ''">
-                AND id LIKE CONCAT('%', #{keyword}, '%')
+                AND (p.part_no LIKE CONCAT('%', #{keyword}, '%')
+                     OR p.product_name LIKE CONCAT('%', #{keyword}, '%')
+                     OR t.pattern_code LIKE CONCAT('%', #{keyword}, '%')
+                     OR t.pattern_name LIKE CONCAT('%', #{keyword}, '%'))
             </if>
         </where>
-        ORDER BY id DESC
-        LIMIT #{size} OFFSET #{offset}
+        ORDER BY v.vendor_name ASC, p.part_no ASC, t.pattern_code ASC
     </select>
 
-    <select id="selectCount" parameterType="map" resultType="long">
-        SELECT COUNT(*)
+    <select id="selectById" parameterType="long" resultType="com.mes.domain.base.Pattern">
+        <include refid="patternSelect" />
+        WHERE t.pattern_id = #{patternId}
+    </select>
+
+    <select id="selectByCode" parameterType="string" resultType="com.mes.domain.base.Pattern">
+        SELECT * FROM base_pattern WHERE pattern_code = #{patternCode}
+    </select>
+
+    <select id="selectMaxAutoCodeNo" resultType="int">
+        SELECT IFNULL(MAX(CAST(SUBSTRING(pattern_code, 3) AS UNSIGNED)), 0)
         FROM base_pattern
-        <where>
-            <if test="keyword != null and keyword != ''">
-                AND id LIKE CONCAT('%', #{keyword}, '%')
-            </if>
-        </where>
+        WHERE pattern_code REGEXP '^PT[0-9]+$'
+    </select>
+
+    <select id="countByProductIds" parameterType="list" resultType="long">
+        SELECT COUNT(*) FROM base_pattern
+        WHERE product_id IN
+        <foreach collection="list" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </select>
+
+    <insert id="insert" parameterType="com.mes.domain.base.Pattern" useGeneratedKeys="true" keyProperty="patternId">
+        INSERT INTO base_pattern (
+            pattern_code, pattern_name, product_id, charge_weight_kg,
+            q1_zone, q2_zone, q3_zone, q4_zone, q5_zone, quench_speed, cp,
+            t1_zone, t2_zone, t3_zone, t4_zone, t5_zone, temper_speed,
+            speed_unit, remark, use_yn, reg_user_name, upd_user_name
+        ) VALUES (
+            #{patternCode}, #{patternName}, #{productId}, #{chargeWeightKg},
+            #{q1Zone}, #{q2Zone}, #{q3Zone}, #{q4Zone}, #{q5Zone}, #{quenchSpeed}, #{cp},
+            #{t1Zone}, #{t2Zone}, #{t3Zone}, #{t4Zone}, #{t5Zone}, #{temperSpeed},
+            #{speedUnit}, #{remark}, #{useYn}, #{regUserName}, #{regUserName}
+        )
+    </insert>
+
+    <!-- 패턴코드와 등록자는 등록 후 바꾸지 않는다 -->
+    <update id="update" parameterType="com.mes.domain.base.Pattern">
+        UPDATE base_pattern SET
+            pattern_name = #{patternName},
+            product_id = #{productId},
+            charge_weight_kg = #{chargeWeightKg},
+            q1_zone = #{q1Zone},
+            q2_zone = #{q2Zone},
+            q3_zone = #{q3Zone},
+            q4_zone = #{q4Zone},
+            q5_zone = #{q5Zone},
+            quench_speed = #{quenchSpeed},
+            cp = #{cp},
+            t1_zone = #{t1Zone},
+            t2_zone = #{t2Zone},
+            t3_zone = #{t3Zone},
+            t4_zone = #{t4Zone},
+            t5_zone = #{t5Zone},
+            temper_speed = #{temperSpeed},
+            speed_unit = #{speedUnit},
+            remark = #{remark},
+            use_yn = #{useYn},
+            upd_user_name = #{updUserName}
+        WHERE pattern_id = #{patternId}
+    </update>
+
+    <delete id="delete" parameterType="long">
+        DELETE FROM base_pattern WHERE pattern_id = #{patternId}
+    </delete>
+
+    <!-- ───────── 변경 이력 ───────── -->
+
+    <insert id="insertHist" parameterType="com.mes.domain.base.PatternHist">
+        INSERT INTO base_pattern_hist (pattern_id, pattern_code, action, field_label, before_value, after_value, user_name)
+        VALUES (#{patternId}, #{patternCode}, #{action}, #{fieldLabel}, #{beforeValue}, #{afterValue}, #{userName})
+    </insert>
+
+    <select id="selectHistByPatternId" parameterType="long" resultType="com.mes.domain.base.PatternHist">
+        SELECT * FROM base_pattern_hist
+        WHERE pattern_id = #{patternId}
+        ORDER BY hist_id DESC
     </select>
 
 </mapper>

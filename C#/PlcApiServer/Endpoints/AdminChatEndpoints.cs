@@ -3,7 +3,7 @@
 // ============================================================================
 // [파일 역할]
 //   "PLC 태그 관리" 화면의 채팅 영역 전용 API. 사용자가 자연어로 "PLC 목록 보여줘",
-//   "온도 태그 알려줘", "TEST 태그에 100 써줘" 같은 요청을 하면, 로컬 Ollama(qwen2.5:3b —
+//   "온도 태그 알려줘", "TEST 태그에 100 써줘" 같은 요청을 하면, 로컬 Ollama(A.X 4.0 Light, appsettings의 Ollama:Model —
 //   ai-diagnosis 기능에 이미 붙여둔 그 로컬 LLM)의 tool-calling 기능으로 어떤 동작인지 해석한
 //   뒤, 실제로는 이 서버 자신의 기존 API(/api/admin/plcs, /api/foldertag/write/by-name 등)를
 //   내부 루프백 HTTP 호출로 그대로 재사용해서 처리한다 — DB/폴링 로직을 새로 만들지 않고
@@ -29,7 +29,10 @@ namespace PlcApiServer.Endpoints;
 public static class AdminChatEndpoints
 {
     private const string OllamaChatUrl = "http://localhost:11434/api/chat";
-    private const string ChatModel = "qwen2.5:3b";
+    // appsettings.json의 Ollama:Model로 바꿀 수 있다(코드 수정 없이 모델 비교/교체용). 기본값은
+    // SKT A.X 4.0 Light(Qwen2.5 기반 한국어 특화 7B, Q8_0) — `ollama create ax4-light`로 등록한 이름.
+    private static string ChatModel = "ax4-light";
+    internal const string OllamaKeepAlive = "60m";
     private const string SelfBaseUrl = "http://localhost:5050";
     private const int MaxToolIterations = 6;
 
@@ -144,6 +147,8 @@ public static class AdminChatEndpoints
 
     public static void MapAdminChatEndpoints(this WebApplication app)
     {
+        ChatModel = app.Configuration["Ollama:Model"] ?? ChatModel;
+
         app.MapPost("/api/admin/chat", async (HttpRequest req) =>
         {
             try
@@ -169,7 +174,9 @@ public static class AdminChatEndpoints
 
                 // 도구가 28개로 늘고 시스템 프롬프트에 지식베이스까지 들어가면서 CPU로 돌아가는 3B 모델
                 // 기준 한 번의 응답이 60초를 넘기는 경우가 실제로 생겨(확인됨) 넉넉히 잡는다.
-                using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(180) };
+                // 7B(A.X 4.0 Light Q8_0)를 GPU 없이 CPU로 돌리면 결과 요약 호출 한 번이 3분 가까이 걸리는
+                // 경우가 실제로 확인돼(get_poll_status 요약) 더 늘렸다.
+                using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(300) };
                 var toolsUsed = new List<string>();
 
                 // 직전 턴에서 "쓰기" 도구 호출이 확인 대기 중이었고, 사용자가 방금 실행을 승인한 경우 —
@@ -202,7 +209,9 @@ public static class AdminChatEndpoints
                     // 내놓는 게 실제로 재현됨(예: "지금 켜져있는 알람 있어?"가 도구 호출 자체를 안 하고
                     // 빈 문자열만 반환). 프롬프트를 더 늘릴수록 이 문제가 더 자주 터지므로, 프롬프트를
                     // 줄이는 대신 컨텍스트 창 자체를 넉넉히 키운다.
-                    var ollamaReq = new { model = ChatModel, messages = ollamaMessages, tools = ToolSchema, stream = false, options = new { num_ctx = 8192 } };
+                    // keep_alive: Ollama 기본값(5분)이 지나면 모델을 메모리에서 내려서, 다음 질문 때 8.5GB를
+                    // 다시 올리는 시간이 매번 더해진다 — 현장에서 띄엄띄엄 묻는 사용 패턴이라 넉넉히 유지한다.
+                    var ollamaReq = new { model = ChatModel, messages = ollamaMessages, tools = ToolSchema, stream = false, keep_alive = OllamaKeepAlive, options = new { num_ctx = 8192 } };
                     var resp = await http.PostAsJsonAsync(OllamaChatUrl, ollamaReq);
                     if (!resp.IsSuccessStatusCode)
                         return Results.Ok(new { success = false, error = $"Ollama 응답 오류: {resp.StatusCode}" });

@@ -70,7 +70,7 @@
 
 .rank2-kpi-value b {
   color: var(--mes-danger);
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .rank2-sparkline {
@@ -136,7 +136,7 @@
   align-items: center;
   justify-content: center;
   font-size: 9.5px;
-  font-weight: 800;
+  font-weight: 700;
   color: #fff;
 }
 
@@ -233,7 +233,7 @@
 
 .rank2-donut-center-value {
   font-size: 19px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--mes-text);
   line-height: 1.05;
   font-family: Consolas, monospace;
@@ -299,7 +299,7 @@
 }
 
 .rank2-donut-tooltip-title {
-  font-weight: 800;
+  font-weight: 700;
   color: var(--mes-text);
   margin-bottom: 2px;
 }
@@ -330,7 +330,7 @@
   align-items: center;
   gap: 6px;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--mes-text);
   letter-spacing: -0.2px;
   flex-shrink: 0;

@@ -16,8 +16,8 @@
 //     → PLC 응답을 ReadFullAsync(PlcService.cs)로 읽고 워드/비트 값을 파싱해 반환
 //     → 결과가 그대로 PlcService.cs → Program.cs로 돌아가 JSON 응답이 된다.
 //   ※ 여기서 DB(MariaDB)는 전혀 관여하지 않는다. 순수하게 TCP 바이트 스트림 조립/파싱만 한다.
-//   ※ 워드 읽기/쓰기는 D/W/R 아무 디바이스나 가능하고, 비트 읽기/쓰기는 M/L/X/Y/B(+S)가 가능하다.
-//     타이머(T)는 접점/코일/현재값 중 무엇을 쓸지 아직 정해지지 않아 매핑에서 제외돼 있다.
+//   ※ 지원 디바이스는 아래 MitsubishiDevices 테이블 참고(SM/SD, 타이머 TS/TC/TN, 카운터 CS/CC/CN 등).
+//     래더 표기 T/C는 접점·현재값 두 디바이스로 나뉘어서, 어느 쪽을 읽을지는 호출부가 정한다.
 //
 // [LS/Modbus와 같은 연결 방식으로 통일 — 예전엔 매 요청마다 새로 연결했었음]
 //   Mitsubishi Ethernet 카드(QJ71E71 등)는 동시 접속 슬롯이 8~16개로 제한돼 있어서, 예전엔
@@ -303,28 +303,53 @@ public partial class PlcService
         return BuildMcHeader(commandData.ToArray());
     }
 
-    //  미쓰비시 디바이스 코드 테이블 (MC Protocol 3E Binary 기준)
+    //  미쓰비시 디바이스 코드 테이블 (MC Protocol 3E Binary 기준, Q/iQ-R)
     //  device 문자열(예: "D", "M")을 실제 프로토콜상의 1바이트 디바이스 코드로 변환한다.
-    private static byte GetMitsubishiDeviceCode(string device) => device.ToUpperInvariant() switch
+    //  타이머/카운터는 래더의 "T10"/"C190" 하나가 프로토콜상으론 접점(TS/CS)·코일(TC/CC)·현재값(TN/CN)
+    //  세 디바이스로 나뉜다 — 어느 걸 읽을지는 호출부(EzatBotEndpoints 등)가 정해서 넘긴다.
+    private static readonly Dictionary<string, (byte Code, bool IsBit)> MitsubishiDevices = new()
     {
-        "D" => 0xA8,   // 데이터 레지스터      (워드)
-        "W" => 0xB4,   // 링크 레지스터        (워드)
-        "R" => 0xAF,   // 파일 레지스터        (워드)
-        "M" => 0x90,   // 내부 릴레이          (비트)
-        "L" => 0x92,   // 래치 릴레이          (비트)
-        "X" => 0x9C,   // 입력 릴레이          (비트)
-        "Y" => 0x9D,   // 출력 릴레이          (비트)
-        "B" => 0xA0,   // 링크 릴레이          (비트)
-        "S" => 0x98,   // 스텝 릴레이          (비트)
-        _   => 0xA8    // 기본값 D
+        ["D"]  = (0xA8, false),  // 데이터 레지스터
+        ["W"]  = (0xB4, false),  // 링크 레지스터
+        ["R"]  = (0xAF, false),  // 파일 레지스터
+        ["ZR"] = (0xB0, false),  // 파일 레지스터(연번)
+        ["SD"] = (0xA9, false),  // 특수 레지스터
+        ["SW"] = (0xB5, false),  // 링크 특수 레지스터
+        ["Z"]  = (0xCC, false),  // 인덱스 레지스터
+        ["TN"] = (0xC2, false),  // 타이머 현재값
+        ["SN"] = (0xC8, false),  // 적산 타이머 현재값 (GX 표기 STN)
+        ["CN"] = (0xC5, false),  // 카운터 현재값
+        ["M"]  = (0x90, true),   // 내부 릴레이
+        ["L"]  = (0x92, true),   // 래치 릴레이
+        ["F"]  = (0x93, true),   // 어넌시에이터
+        ["V"]  = (0x94, true),   // 에지 릴레이
+        ["X"]  = (0x9C, true),   // 입력
+        ["Y"]  = (0x9D, true),   // 출력
+        ["B"]  = (0xA0, true),   // 링크 릴레이
+        ["S"]  = (0x98, true),   // 스텝 릴레이
+        ["SM"] = (0x91, true),   // 특수 릴레이
+        ["SB"] = (0xA1, true),   // 링크 특수 릴레이
+        ["DX"] = (0xA2, true),   // 다이렉트 입력
+        ["DY"] = (0xA3, true),   // 다이렉트 출력
+        ["TS"] = (0xC1, true),   // 타이머 접점
+        ["TC"] = (0xC0, true),   // 타이머 코일
+        ["SS"] = (0xC7, true),   // 적산 타이머 접점 (GX 표기 STS)
+        ["SC"] = (0xC6, true),   // 적산 타이머 코일 (GX 표기 STC)
+        ["CS"] = (0xC4, true),   // 카운터 접점
+        ["CC"] = (0xC3, true),   // 카운터 코일
     };
 
+    //  테이블에 없는 디바이스는 기존 동작 그대로 D로 간주한다 — 이미 등록된 태그의 폴링 동작을 바꾸지
+    //  않기 위해서다. 새 코드는 IsSupportedMitsubishiDevice로 먼저 걸러서 엉뚱한 D 값을 읽지 않게 한다.
+    private static byte GetMitsubishiDeviceCode(string device) =>
+        MitsubishiDevices.TryGetValue(device.ToUpperInvariant(), out var d) ? d.Code : (byte)0xA8;
+
     //  비트 단위 디바이스 여부 (워드 읽기 vs 비트 읽기 분기용) — MitsubishiReadAsync에서 사용
-    private static bool IsMitsubishiBitDevice(string device) => device.ToUpperInvariant() switch
-    {
-        "M" or "L" or "X" or "Y" or "B" or "S" => true,
-        _ => false
-    };
+    internal static bool IsMitsubishiBitDevice(string device) =>
+        MitsubishiDevices.TryGetValue(device.ToUpperInvariant(), out var d) && d.IsBit;
+
+    internal static bool IsSupportedMitsubishiDevice(string device) =>
+        MitsubishiDevices.ContainsKey(device.ToUpperInvariant());
 
     //  미쓰비시 패킷 빌더 — 워드 쓰기 (서브커맨드 0x0000). deviceCode로 D/W/R 등 임의 워드 디바이스 지정.
     private static byte[] BuildMcWritePacket(int dAddress, ushort value, byte deviceCode = 0xA8)

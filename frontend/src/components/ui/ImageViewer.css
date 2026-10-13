@@ -1,0 +1,257 @@
+/* 이미지 크게 보기 — 사진이 주인공이라 주변은 거의 검정에 가깝게 비우고, 도구는 위/아래 가장자리에만 둔다 */
+
+.iv-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  background: rgba(12, 14, 18, 0.94);
+  color: #e8eaed;
+  outline: none;
+  animation: iv-fade .14s ease-out;
+}
+
+@keyframes iv-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ── 위: 제목 / 번호 / 도구 ── */
+
+.iv-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: 56px;
+  padding: 0 12px 0 20px;
+}
+
+.iv-title {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  min-width: 0;
+  font-size: 14px;
+}
+
+.iv-title strong {
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+}
+
+.iv-counter {
+  font-size: 13px;
+  color: #9aa0a8;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.iv-filename {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: #7c828b;
+}
+
+.iv-tools {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.iv-tool,
+.iv-zoom-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  min-width: 36px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #d5d8dc;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background-color .12s, color .12s;
+}
+
+.iv-zoom-label {
+  min-width: 56px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: #9aa0a8;
+}
+
+.iv-tool:hover:not(:disabled),
+.iv-zoom-label:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+
+.iv-tool:disabled {
+  opacity: .35;
+  cursor: default;
+}
+
+.iv-tool:focus-visible,
+.iv-zoom-label:focus-visible,
+.iv-nav:focus-visible,
+.iv-strip-item:focus-visible {
+  outline: 2px solid #8fb0f0;
+  outline-offset: 2px;
+}
+
+.iv-tools-sep {
+  width: 1px;
+  height: 20px;
+  margin: 0 6px;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+/* ── 가운데: 사진 ── */
+
+.iv-stage {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 72px;
+  touch-action: none;
+  user-select: none;
+}
+
+.iv-stage.is-zoomed { cursor: grab; }
+.iv-stage.is-dragging { cursor: grabbing; }
+
+.iv-frame {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  transition: transform .12s ease-out;
+}
+
+.iv-stage.is-dragging .iv-frame {
+  transition: none;
+}
+
+.iv-image,
+.iv-placeholder {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 2px;
+}
+
+.iv-image {
+  opacity: 0;
+  transition: opacity .15s;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+}
+
+.iv-image.is-loaded {
+  opacity: 1;
+}
+
+/* 원본이 뜨기 전 썸네일을 같은 자리에 흐리게 */
+.iv-placeholder {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  filter: blur(6px);
+  opacity: .6;
+}
+
+.iv-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 64px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #e8eaed;
+  cursor: pointer;
+  transition: background-color .12s;
+}
+
+.iv-nav:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.iv-nav-prev { left: 12px; }
+.iv-nav-next { right: 12px; }
+
+/* ── 아래: 썸네일 줄 ── */
+
+.iv-strip {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px 6px;
+  overflow-x: auto;
+}
+
+.iv-strip-item {
+  flex-shrink: 0;
+  width: 64px;
+  height: 64px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  background: #1f2329;
+  overflow: hidden;
+  cursor: pointer;
+  opacity: .55;
+  transition: opacity .12s, border-color .12s;
+}
+
+.iv-strip-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.iv-strip-item:hover {
+  opacity: .85;
+}
+
+.iv-strip-item.is-active {
+  opacity: 1;
+  border-color: #fff;
+}
+
+.iv-hint {
+  padding: 4px 0 12px;
+  text-align: center;
+  font-size: 12px;
+  color: #6b7179;
+}
+
+@media (max-width: 768px) {
+  .iv-stage { padding: 8px 8px; }
+  .iv-nav { width: 40px; height: 52px; }
+  .iv-nav-prev { left: 4px; }
+  .iv-nav-next { right: 4px; }
+  .iv-filename, .iv-hint { display: none; }
+  .iv-strip-item { width: 52px; height: 52px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .iv-overlay { animation: none; }
+  .iv-frame, .iv-image { transition: none; }
+}

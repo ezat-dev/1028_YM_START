@@ -5,13 +5,19 @@ import { useToast } from '../../hooks/useToast';
 import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
 import { getList } from '../../api/base/loginHistApi';
 
+// 컬럼 폭 규칙
+// - 길이가 항상 같은 값(일시 19자, 결과 배지)은 내용에 딱 맞는 고정폭(px)
+// - 나머지(아이디·이름·IP·실패 사유)는 width를 주지 않는다 → table-layout:fixed에서
+//   남는 폭을 '똑같이' 나눠 가진다. 화면이 넓든 좁든 네 칸이 항상 같은 폭이라 고르게 보인다.
+// - 짧은 값은 가운데 정렬, 문장인 실패 사유만 왼쪽 정렬
+// - 표 최소 폭(.lh-table)보다 좁아지면 표 안에서 가로 스크롤
 const COLUMNS = [
-  { key: 'loginDt', label: '로그인 일시', sortable: true },
-  { key: 'loginId', label: '아이디', sortable: true },
-  { key: 'userName', label: '이름', sortable: true },
-  { key: 'loginIp', label: '접속 IP', sortable: false },
-  { key: 'successYn', label: '결과', sortable: true, align: 'center' },
-  { key: 'failReason', label: '실패 사유', sortable: false },
+  { key: 'loginDt', label: '로그인 일시', sortable: true, align: 'center', width: '170px' },
+  { key: 'loginId', label: '아이디', sortable: true, align: 'center' },
+  { key: 'userName', label: '이름', sortable: true, align: 'center' },
+  { key: 'loginIp', label: '접속 IP', sortable: false, align: 'center' },
+  { key: 'successYn', label: '결과', sortable: true, align: 'center', width: '84px' },
+  { key: 'failReason', label: '실패 사유', sortable: false, align: 'left' },
 ];
 
 function formatDt(v) {
@@ -185,14 +191,9 @@ export default function LoginHistPage() {
         </div>
 
         <div className="mes-table-scroll" onScroll={onScroll}>
-          <table className="mes-plain-table mes-table-fixed">
+          <table className="mes-plain-table mes-table-fixed lh-table">
             <colgroup>
-              <col style={{ width: '170px' }} />
-              <col style={{ width: '130px' }} />
-              <col style={{ width: '90px' }} />
-              <col style={{ width: '130px' }} />
-              <col style={{ width: '80px' }} />
-              <col />
+              {COLUMNS.map((col) => <col key={col.key} style={col.width ? { width: col.width } : undefined} />)}
             </colgroup>
             <thead>
               <tr>
@@ -219,16 +220,16 @@ export default function LoginHistPage() {
               )}
               {paged.map((r, i) => (
                 <tr key={`${r.loginId}-${r.loginDt}-${i}`}>
-                  <td>{formatDt(r.loginDt)}</td>
-                  <td>{r.loginId}</td>
-                  <td>{r.userName}</td>
-                  <td>{r.loginIp}</td>
+                  <td style={{ textAlign: 'center' }}>{formatDt(r.loginDt)}</td>
+                  <td className="truncate" style={{ textAlign: 'center' }} title={r.loginId}>{r.loginId}</td>
+                  <td className="truncate" style={{ textAlign: 'center' }}>{r.userName}</td>
+                  <td className="truncate" style={{ textAlign: 'center' }} title={r.loginIp}>{r.loginIp}</td>
                   <td style={{ textAlign: 'center' }}>
                     <span className={`mes-badge ${r.successYn === 'Y' ? 'mes-badge-success' : 'mes-badge-danger'}`}>
                       {r.successYn === 'Y' ? '성공' : '실패'}
                     </span>
                   </td>
-                  <td className="truncate">{r.failReason}</td>
+                  <td className="truncate" title={r.failReason || undefined}>{r.failReason}</td>
                 </tr>
               ))}
             </tbody>

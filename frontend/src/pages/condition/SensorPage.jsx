@@ -204,12 +204,12 @@ export default function SensorPage() {
   const columns = useMemo(() => [
     { key: 'no', title: 'No', width: 50, align: 'center', render: (r, idx) => idx + 1 },
     { key: 'equipName', title: '설비명', width: 150, sortValue: (r) => r.equipName, render: (r) => <span className="sen-equip-name">{r.equipName}</span> },
-    { key: 'sensorType', title: '구분', width: 100, sortValue: (r) => r.sensorType, render: (r) => <TypeTag value={r.sensorType} /> },
+    { key: 'sensorType', title: '구분', width: 100, align: 'center', sortValue: (r) => r.sensorType, render: (r) => <TypeTag value={r.sensorType} /> },
     { key: 'zoneName', title: '존구분', width: 180, sortValue: (r) => r.zoneName, render: (r) => <ZoneTag value={r.zoneName} /> },
-    { key: 'prevChangeDate', title: '이전교체일자', width: 120, render: (r) => <MetaText value={r.prevChangeDate} /> },
-    { key: 'changeDate', title: '교체일자', width: 120, sortValue: (r) => r.changeDate, render: (r) => <DateText value={r.changeDate} /> },
-    { key: 'nextChangeDate', title: '차기교체일자', width: 130, sortValue: (r) => r.nextChangeDate, render: (r) => <NextDateText value={r.nextChangeDate} /> },
-    { key: 'regUserName', title: '등록자', width: 100, render: (r) => <MetaText value={r.regUserName} /> },
+    { key: 'prevChangeDate', title: '이전교체일자', width: 120, align: 'center', render: (r) => <MetaText value={r.prevChangeDate} /> },
+    { key: 'changeDate', title: '교체일자', width: 120, align: 'center', sortValue: (r) => r.changeDate, render: (r) => <DateText value={r.changeDate} /> },
+    { key: 'nextChangeDate', title: '차기교체일자', width: 130, align: 'center', sortValue: (r) => r.nextChangeDate, render: (r) => <NextDateText value={r.nextChangeDate} /> },
+    { key: 'regUserName', title: '등록자', width: 100, align: 'center', render: (r) => <MetaText value={r.regUserName} /> },
     { key: 'remark', title: '비고', width: 260, render: (r) => <MetaText value={r.remark} /> },
   ], []);
 

@@ -2,28 +2,137 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="ProductMapper">
 
-    <!-- 기준정보 > 제품관리 (base_product) -->
+    <!-- 기준정보 > 제품관리 (base_product / base_product_image) -->
 
+    <sql id="productColumns">
+        p.*, v.vendor_code, v.vendor_name
+    </sql>
+
+    <!-- 제품도 많아야 수천 건 수준이라 페이징 없이 내려주고 화면에서 정렬/선택한다 -->
     <select id="selectList" parameterType="map" resultType="com.mes.domain.base.Product">
-        SELECT id, use_yn, reg_dt, upd_dt
-        FROM base_product
+        SELECT <include refid="productColumns" />
+        FROM base_product p
+        JOIN base_vendor v ON v.vendor_id = p.vendor_id
         <where>
+            <if test="vendorId != null">
+                AND p.vendor_id = #{vendorId}
+            </if>
+            <if test="useYn != null and useYn != ''">
+                AND p.use_yn = #{useYn}
+            </if>
             <if test="keyword != null and keyword != ''">
-                AND id LIKE CONCAT('%', #{keyword}, '%')
+                AND (p.part_no LIKE CONCAT('%', #{keyword}, '%')
+                     OR p.product_name LIKE CONCAT('%', #{keyword}, '%')
+                     OR p.product_code LIKE CONCAT('%', #{keyword}, '%'))
             </if>
         </where>
-        ORDER BY id DESC
-        LIMIT #{size} OFFSET #{offset}
+        ORDER BY p.product_code ASC
     </select>
 
-    <select id="selectCount" parameterType="map" resultType="long">
-        SELECT COUNT(*)
-        FROM base_product
-        <where>
-            <if test="keyword != null and keyword != ''">
-                AND id LIKE CONCAT('%', #{keyword}, '%')
-            </if>
-        </where>
+    <select id="selectById" parameterType="long" resultType="com.mes.domain.base.Product">
+        SELECT <include refid="productColumns" />
+        FROM base_product p
+        JOIN base_vendor v ON v.vendor_id = p.vendor_id
+        WHERE p.product_id = #{productId}
     </select>
+
+    <select id="selectByCode" parameterType="string" resultType="com.mes.domain.base.Product">
+        SELECT * FROM base_product WHERE product_code = #{productCode}
+    </select>
+
+    <!-- 같은 거래처에 같은 품번이 이미 있는지 (수정 시 자기 자신 제외) -->
+    <select id="selectByVendorPart" parameterType="map" resultType="com.mes.domain.base.Product">
+        SELECT * FROM base_product
+        WHERE vendor_id = #{vendorId} AND part_no = #{partNo}
+        <if test="excludeId != null">
+            AND product_id != #{excludeId}
+        </if>
+        LIMIT 1
+    </select>
+
+    <select id="selectMaxAutoCodeNo" resultType="int">
+        SELECT IFNULL(MAX(CAST(SUBSTRING(product_code, 2) AS UNSIGNED)), 0)
+        FROM base_product
+        WHERE product_code REGEXP '^P[0-9]+$'
+    </select>
+
+    <select id="countByVendorIds" parameterType="list" resultType="long">
+        SELECT COUNT(*) FROM base_product
+        WHERE vendor_id IN
+        <foreach collection="list" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </select>
+
+    <insert id="insert" parameterType="com.mes.domain.base.Product" useGeneratedKeys="true" keyProperty="productId">
+        INSERT INTO base_product (
+            product_code, vendor_id, part_no, product_name, material, spec,
+            charge_weight_kg, unit_weight_g, unit_price, price_unit,
+            surface_hard_min, surface_hard_max, surface_hard_unit,
+            core_hard_min, core_hard_max, core_hard_unit,
+            remark, use_yn, reg_user_name
+        ) VALUES (
+            #{productCode}, #{vendorId}, #{partNo}, #{productName}, #{material}, #{spec},
+            #{chargeWeightKg}, #{unitWeightG}, #{unitPrice}, #{priceUnit},
+            #{surfaceHardMin}, #{surfaceHardMax}, #{surfaceHardUnit},
+            #{coreHardMin}, #{coreHardMax}, #{coreHardUnit},
+            #{remark}, #{useYn}, #{regUserName}
+        )
+    </insert>
+
+    <!-- 제품코드와 등록자는 등록 후 바꾸지 않는다 -->
+    <update id="update" parameterType="com.mes.domain.base.Product">
+        UPDATE base_product SET
+            vendor_id = #{vendorId},
+            part_no = #{partNo},
+            product_name = #{productName},
+            material = #{material},
+            spec = #{spec},
+            charge_weight_kg = #{chargeWeightKg},
+            unit_weight_g = #{unitWeightG},
+            unit_price = #{unitPrice},
+            price_unit = #{priceUnit},
+            surface_hard_min = #{surfaceHardMin},
+            surface_hard_max = #{surfaceHardMax},
+            surface_hard_unit = #{surfaceHardUnit},
+            core_hard_min = #{coreHardMin},
+            core_hard_max = #{coreHardMax},
+            core_hard_unit = #{coreHardUnit},
+            remark = #{remark},
+            use_yn = #{useYn}
+        WHERE product_id = #{productId}
+    </update>
+
+    <delete id="delete" parameterType="long">
+        DELETE FROM base_product WHERE product_id = #{productId}
+    </delete>
+
+    <!-- ───────── 이미지 ───────── -->
+
+    <select id="selectImagesByProductIds" parameterType="list" resultType="com.mes.domain.base.ProductImage">
+        SELECT * FROM base_product_image
+        WHERE product_id IN
+        <foreach collection="list" item="id" open="(" separator="," close=")">#{id}</foreach>
+        ORDER BY product_id, slot
+    </select>
+
+    <select id="selectImageById" parameterType="long" resultType="com.mes.domain.base.ProductImage">
+        SELECT * FROM base_product_image WHERE image_id = #{imageId}
+    </select>
+
+    <select id="selectImageBySlot" parameterType="map" resultType="com.mes.domain.base.ProductImage">
+        SELECT * FROM base_product_image WHERE product_id = #{productId} AND slot = #{slot}
+    </select>
+
+    <insert id="insertImage" parameterType="com.mes.domain.base.ProductImage" useGeneratedKeys="true" keyProperty="imageId">
+        INSERT INTO base_product_image (product_id, slot, orig_file_name, file_name, thumb_file_name, file_size)
+        VALUES (#{productId}, #{slot}, #{origFileName}, #{fileName}, #{thumbFileName}, #{fileSize})
+    </insert>
+
+    <update id="updateImageSlot" parameterType="map">
+        UPDATE base_product_image SET slot = #{slot} WHERE image_id = #{imageId}
+    </update>
+
+    <delete id="deleteImage" parameterType="long">
+        DELETE FROM base_product_image WHERE image_id = #{imageId}
+    </delete>
 
 </mapper>

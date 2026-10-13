@@ -6,6 +6,8 @@ const MENU_DATA = [
     { name: '거래처관리', path: '/base/vendor' },
     { name: '제품관리', path: '/base/product' },
     { name: '패턴관리', path: '/base/pattern' },
+    { name: '설비관리', path: '/base/equipment' },
+    { name: '비가동관리', path: '/base/downtime' },
     { name: '사용자권한', path: '/base/auth' },
     { name: '로그인이력', path: '/base/loginHist' },
   ]},

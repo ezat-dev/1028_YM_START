@@ -119,6 +119,12 @@
   font-size: 14px;
 }
 
+/* 날짜별로 칸을 옮겨 다니며 입력하는 표라 다른 목록 표와 달리 옅은 세로줄을 남긴다 */
+.dc-grid-wrap .mes-table-wrap .tabulator-row .tabulator-cell,
+.dc-grid-wrap .mes-table-wrap .tabulator .tabulator-header .tabulator-col {
+  border-right: 1px solid var(--mes-line);
+}
+
 .dc-grid-wrap .tabulator-cell.dc-today-col {
   background: var(--mes-accent-soft);
 }

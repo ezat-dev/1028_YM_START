@@ -1,9 +1,5 @@
 /* 조건관리 > 열전대/센서 관리 — 존(zone)별 연간 열전대 교체이력 */
 
-.sen-page-icon {
-  background: linear-gradient(135deg, #f0a868 0%, #c2622d 100%);
-  box-shadow: 0 6px 16px -4px rgba(194, 98, 45, 0.45);
-}
 
 .sen-page .mes-field textarea {
   padding: 10px 12px;

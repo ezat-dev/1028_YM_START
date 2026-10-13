@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="DowntimeMapper">
+
+    <!-- ===== 비가동 사유 기준정보 (base_downtime_reason) ===== -->
+
+    <select id="selectReasonList" parameterType="map" resultType="com.mes.domain.base.DowntimeReason">
+        SELECT r.*,
+               (SELECT COUNT(*) FROM base_downtime d WHERE d.reason_id = r.reason_id) AS use_count
+        FROM base_downtime_reason r
+        <where>
+            <if test="reasonType != null and reasonType != ''">
+                AND r.reason_type = #{reasonType}
+            </if>
+            <if test="useYn != null and useYn != ''">
+                AND r.use_yn = #{useYn}
+            </if>
+        </where>
+        ORDER BY r.sort_order ASC, r.reason_code ASC
+    </select>
+
+    <select id="selectReasonById" parameterType="long" resultType="com.mes.domain.base.DowntimeReason">
+        SELECT * FROM base_downtime_reason WHERE reason_id = #{reasonId}
+    </select>
+
+    <select id="selectReasonByCode" parameterType="string" resultType="com.mes.domain.base.DowntimeReason">
+        SELECT * FROM base_downtime_reason WHERE reason_code = #{reasonCode}
+    </select>
+
+    <!-- 자동 채번용: DR001 형식 코드 중 가장 큰 번호 -->
+    <select id="selectReasonMaxAutoCodeNo" resultType="int">
+        SELECT IFNULL(MAX(CAST(SUBSTRING(reason_code, 3) AS UNSIGNED)), 0)
+        FROM base_downtime_reason
+        WHERE reason_code REGEXP '^DR[0-9]+$'
+    </select>
+
+    <insert id="insertReason" parameterType="com.mes.domain.base.DowntimeReason" useGeneratedKeys="true" keyProperty="reasonId">
+        INSERT INTO base_downtime_reason (reason_code, reason_name, reason_type, sort_order, remark, use_yn, reg_user_id, reg_user_name)
+        VALUES (#{reasonCode}, #{reasonName}, #{reasonType}, #{sortOrder}, #{remark}, #{useYn}, #{regUserId}, #{regUserName})
+    </insert>
+
+    <update id="updateReason" parameterType="com.mes.domain.base.DowntimeReason">
+        UPDATE base_downtime_reason SET
+            reason_name = #{reasonName},
+            reason_type = #{reasonType},
+            sort_order = #{sortOrder},
+            remark = #{remark},
+            use_yn = #{useYn},
+            upd_user_id = #{updUserId},
+            upd_user_name = #{updUserName}
+        WHERE reason_id = #{reasonId}
+    </update>
+
+    <delete id="deleteReason" parameterType="long">
+        DELETE FROM base_downtime_reason WHERE reason_id = #{reasonId}
+    </delete>
+
+    <!-- ===== 비가동 내역 (base_downtime) ===== -->
+
+    <!-- 기간은 '그 기간과 겹치는' 비가동(진행 중 포함). 지속 시간은 진행 중이면 지금까지 -->
+    <select id="selectList" parameterType="map" resultType="com.mes.domain.base.Downtime">
+        SELECT d.*,
+               e.equip_code, e.equip_name,
+               r.reason_code, r.reason_name, r.reason_type,
+               TIMESTAMPDIFF(MINUTE, d.start_dt, IFNULL(d.end_dt, NOW())) AS duration_min
+        FROM base_downtime d
+        JOIN base_equipment e ON e.equip_id = d.equip_id
+        JOIN base_downtime_reason r ON r.reason_id = d.reason_id
+        <where>
+            <if test="from != null">
+                AND IFNULL(d.end_dt, NOW()) &gt;= #{from}
+            </if>
+            <if test="to != null">
+                AND d.start_dt &lt; #{to}
+            </if>
+            <if test="equipId != null">
+                AND d.equip_id = #{equipId}
+            </if>
+            <if test="reasonType != null and reasonType != ''">
+                AND r.reason_type = #{reasonType}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND (r.reason_name LIKE CONCAT('%', #{keyword}, '%')
+                     OR d.memo LIKE CONCAT('%', #{keyword}, '%')
+                     OR d.reg_user_name LIKE CONCAT('%', #{keyword}, '%')
+                     OR d.reg_user_id LIKE CONCAT('%', #{keyword}, '%')
+                     OR d.upd_user_name LIKE CONCAT('%', #{keyword}, '%')
+                     OR d.upd_user_id LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+        ORDER BY d.start_dt DESC, e.equip_code ASC
+    </select>
+
+    <select id="selectById" parameterType="long" resultType="com.mes.domain.base.Downtime">
+        SELECT d.*,
+               e.equip_code, e.equip_name,
+               r.reason_code, r.reason_name, r.reason_type,
+               TIMESTAMPDIFF(MINUTE, d.start_dt, IFNULL(d.end_dt, NOW())) AS duration_min
+        FROM base_downtime d
+        JOIN base_equipment e ON e.equip_id = d.equip_id
+        JOIN base_downtime_reason r ON r.reason_id = d.reason_id
+        WHERE d.downtime_id = #{downtimeId}
+    </select>
+
+    <!-- 같은 설비에서 시간이 겹치는 비가동이 있는지 (수정 시 자기 자신 제외) -->
+    <select id="countOverlap" parameterType="map" resultType="long">
+        SELECT COUNT(*)
+        FROM base_downtime
+        WHERE equip_id = #{equipId}
+          AND start_dt &lt; IFNULL(#{endDt}, '9999-12-31')
+          AND IFNULL(end_dt, '9999-12-31') &gt; #{startDt}
+        <if test="excludeId != null">
+            AND downtime_id != #{excludeId}
+        </if>
+    </select>
+
+    <select id="countByEquipIds" parameterType="list" resultType="long">
+        SELECT COUNT(*) FROM base_downtime WHERE equip_id IN
+        <foreach collection="list" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </select>
+
+    <select id="countByReasonIds" parameterType="list" resultType="long">
+        SELECT COUNT(*) FROM base_downtime WHERE reason_id IN
+        <foreach collection="list" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </select>
+
+    <insert id="insert" parameterType="com.mes.domain.base.Downtime" useGeneratedKeys="true" keyProperty="downtimeId">
+        INSERT INTO base_downtime (equip_id, reason_id, start_dt, end_dt, source, memo, reg_user_id, reg_user_name)
+        VALUES (#{equipId}, #{reasonId}, #{startDt}, #{endDt}, #{source}, #{memo}, #{regUserId}, #{regUserName})
+    </insert>
+
+    <update id="update" parameterType="com.mes.domain.base.Downtime">
+        UPDATE base_downtime SET
+            equip_id = #{equipId},
+            reason_id = #{reasonId},
+            start_dt = #{startDt},
+            end_dt = #{endDt},
+            memo = #{memo},
+            upd_user_id = #{updUserId},
+            upd_user_name = #{updUserName}
+        WHERE downtime_id = #{downtimeId}
+    </update>
+
+    <delete id="delete" parameterType="long">
+        DELETE FROM base_downtime WHERE downtime_id = #{downtimeId}
+    </delete>
+
+</mapper>

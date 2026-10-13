@@ -1,0 +1,278 @@
+/* 기준정보 > 설비관리 — 거래처관리와 같은 구성(헤더 카드 + 표 카드) */
+
+.eqp-page .mes-field textarea {
+  padding: 8px 10px;
+  border: 1px solid var(--mes-border-strong);
+  border-radius: var(--mes-radius);
+  outline: none;
+  background: var(--mes-surface);
+  resize: vertical;
+  font-family: inherit;
+  font-size: inherit;
+  transition: border-color .15s, box-shadow .15s;
+}
+
+.eqp-page .mes-field textarea:focus {
+  border-color: var(--mes-accent);
+  box-shadow: 0 0 0 3px var(--mes-accent-soft);
+}
+
+/* ── 상단 헤더 카드 ── */
+
+.eqp-header-card {
+  background: var(--mes-surface);
+  border: 1px solid var(--mes-border);
+  border-radius: var(--mes-radius-lg);
+  padding: 18px 20px;
+  margin-bottom: 16px;
+}
+
+.eqp-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.eqp-header-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.eqp-header-sep {
+  height: 1px;
+  background: var(--mes-line);
+  margin: 16px 0 14px;
+}
+
+.eqp-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.eqp-keyword {
+  width: 240px;
+}
+
+.eqp-header-spacer {
+  flex: 1;
+}
+
+.eqp-count {
+  margin-left: 4px;
+  font-size: 13px;
+  color: var(--mes-text-sub);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 상태별 대수 */
+.eqp-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 12.5px;
+  color: var(--mes-text-sub);
+}
+
+.eqp-summary-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.eqp-summary-item b {
+  font-weight: 700;
+  color: var(--mes-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.eqp-summary-item.is-zero {
+  opacity: .5;
+}
+
+/* ── 상태 색(가동/정지/고장/점검/유지보수) ── */
+
+.eqp-page {
+  --st-run: #2e8a5f;
+  --st-run-bg: rgba(108, 193, 150, .16);
+  --st-stop: #57606a;
+  --st-stop-bg: #eef0f3;
+  --st-fail: #cf3b32;
+  --st-fail-bg: rgba(229, 115, 115, .14);
+  --st-check: #a3620b;
+  --st-check-bg: rgba(235, 189, 104, .2);
+  --st-maint: #4a68ad;
+  --st-maint-bg: rgba(95, 128, 198, .13);
+}
+
+.eqp-page .is-run { --st: var(--st-run); --st-bg: var(--st-run-bg); }
+.eqp-page .is-stop { --st: var(--st-stop); --st-bg: var(--st-stop-bg); }
+.eqp-page .is-fail { --st: var(--st-fail); --st-bg: var(--st-fail-bg); }
+.eqp-page .is-check { --st: var(--st-check); --st-bg: var(--st-check-bg); }
+.eqp-page .is-maint { --st: var(--st-maint); --st-bg: var(--st-maint-bg); }
+
+.eqp-summary-item i,
+.eqp-status i,
+.eqp-status-opt i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--st);
+}
+
+.eqp-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: var(--st-bg);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 22px;
+  color: var(--st);
+  white-space: nowrap;
+}
+
+/* ── 표 영역 ── */
+
+.eqp-table-card {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+
+.eqp-table-wrap {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.eqp-empty {
+  color: var(--mes-text-faint);
+}
+
+.eqp-code {
+  font-weight: 700;
+  color: var(--mes-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.eqp-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  color: var(--mes-text);
+}
+
+.eqp-sub {
+  color: var(--mes-text-sub);
+}
+
+.eqp-num {
+  font-variant-numeric: tabular-nums;
+  color: var(--mes-text-sub);
+}
+
+.eqp-two {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.35;
+}
+
+.eqp-two-main,
+.eqp-two-sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.eqp-two-main {
+  color: var(--mes-text);
+}
+
+.eqp-two-sub {
+  font-size: 12px;
+  color: var(--mes-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.eqp-badge-off {
+  background: #eef0f3;
+  color: var(--mes-text-faint);
+}
+
+/* ── 등록/수정 폼 ── */
+
+.eqp-form-section {
+  margin: 4px 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--mes-line);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--mes-text);
+}
+
+.eqp-form-section ~ .eqp-form-section {
+  margin-top: 18px;
+}
+
+.eqp-grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* 설비 상태 고르기 — 색 점 + 글자 버튼 */
+.eqp-status-pick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.eqp-status-opt {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid var(--mes-border-strong);
+  border-radius: var(--mes-radius);
+  background: var(--mes-surface);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mes-text-sub);
+  cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s;
+}
+
+.eqp-status-opt:hover {
+  border-color: var(--st);
+}
+
+.eqp-status-opt.is-on {
+  border-color: var(--st);
+  background: var(--st-bg);
+  color: var(--st);
+  box-shadow: inset 0 0 0 1px var(--st);
+}
+
+.eqp-status-opt:focus-visible {
+  outline: 2px solid var(--mes-accent);
+  outline-offset: 1px;
+}
+
+@media (max-width: 768px) {
+  .eqp-grid-3 { grid-template-columns: minmax(0, 1fr); }
+  .eqp-keyword { width: 100%; }
+}

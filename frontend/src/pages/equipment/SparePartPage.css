@@ -1,9 +1,5 @@
 /* 설비관리 > SPARE 부품관리 — 설비별 스페어부품 재고 + 입출고 이력 */
 
-.spr-page-icon {
-  background: linear-gradient(135deg, #6fc0a8 0%, #2d8a6b 100%);
-  box-shadow: 0 6px 16px -4px rgba(45, 138, 107, 0.45);
-}
 
 .spr-page .mes-field textarea {
   padding: 10px 12px;
@@ -139,7 +135,7 @@
 
 .spr-stock-value {
   font-variant-numeric: tabular-nums;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.2px;
   color: var(--mes-text);
 }

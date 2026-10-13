@@ -3,6 +3,8 @@ import UserPage from '../pages/base/UserPage';
 import VendorPage from '../pages/base/VendorPage';
 import ProductPage from '../pages/base/ProductPage';
 import PatternPage from '../pages/base/PatternPage';
+import EquipmentPage from '../pages/base/EquipmentPage';
+import DowntimePage from '../pages/base/DowntimePage';
 import AuthPage from '../pages/base/AuthPage';
 import LoginHistPage from '../pages/base/LoginHistPage';
 import ProdStatusPage from '../pages/monitoring/ProdStatusPage';
@@ -44,6 +46,8 @@ const menuRoutes = [
   { path: 'base/vendor', element: VendorPage },
   { path: 'base/product', element: ProductPage },
   { path: 'base/pattern', element: PatternPage },
+  { path: 'base/equipment', element: EquipmentPage },
+  { path: 'base/downtime', element: DowntimePage },
   { path: 'base/auth', element: AuthPage },
   { path: 'base/loginHist', element: LoginHistPage },
   { path: 'monitoring/prodStatus', element: ProdStatusPage },

@@ -764,6 +764,10 @@ CREATE TABLE IF NOT EXISTS tb_string_tag (
     // TempMonitorService가 이미 폴링해서 메모리(또는 tb_temp_snapshot)에 들고 있는 값만 꺼내 보여준다 =================
     private static void MapMonitorEndpoints(WebApplication app)
     {
+        // ai-diagnosis가 쓰는 모델 — 채팅(AdminChatEndpoints)과 같은 설정값을 써야 Ollama가 두 모델을
+        // 번갈아 메모리에 올렸다 내리는(모델 스왑) 지연이 생기지 않는다.
+        string ollamaModel = app.Configuration["Ollama:Model"] ?? "ax4-light";
+
         // GET /api/admin/monitor/foldertags?folderId= (생략 시 전체) — FolderTagValues(메모리) 그대로 조회
         app.MapGet("/api/admin/monitor/foldertags", async (int? folderId, LiveTagMonitorService monitor, PlcRepository repo) =>
         {
@@ -959,8 +963,9 @@ SELECT log_id, tag_type, tag_id, tag_name, address, plc_id, old_value, new_value
 
                 string prompt = BuildDiagnosisPrompt(doc.RootElement);
 
-                using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(60) };
-                var ollamaReq = new { model = "qwen2.5:3b", prompt, stream = false };
+                // 7B 모델은 처음 호출될 때 GPU에 올리는 시간까지 더해지므로 60초로는 빠듯해 넉넉히 잡는다.
+                using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(120) };
+                var ollamaReq = new { model = ollamaModel, prompt, stream = false, keep_alive = AdminChatEndpoints.OllamaKeepAlive };
                 var resp = await http.PostAsJsonAsync("http://localhost:11434/api/generate", ollamaReq);
                 if (!resp.IsSuccessStatusCode)
                     return Results.Ok(new { success = false, error = $"Ollama 응답 오류: {resp.StatusCode}" });

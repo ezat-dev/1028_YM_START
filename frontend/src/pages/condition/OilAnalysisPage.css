@@ -1,9 +1,5 @@
 /* 조건관리 > 열처리유성상분석 — 설비별 오일 성상분석 PDF 등록대장 */
 
-.oil-page-icon {
-  background: linear-gradient(135deg, #5fb0e0 0%, #2d7bb0 100%);
-  box-shadow: 0 6px 16px -4px rgba(45, 123, 176, 0.45);
-}
 
 .oil-page .mes-field textarea {
   padding: 10px 12px;

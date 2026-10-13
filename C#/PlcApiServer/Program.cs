@@ -109,6 +109,9 @@ app.MapAdminTagEndpoints();
 // "PLC 태그 관리" 화면의 채팅(자연어 조작) API — Endpoints/AdminChatEndpoints.cs
 app.MapAdminChatEndpoints();
 
+// EZ BOT "PLC 래더 조회" 화면 전용 — 래더 주소 여러 개를 한 번에 읽기(미쓰비시 Q/iQ-R) — Endpoints/EzatBotEndpoints.cs
+app.MapEzatBotEndpoints();
+
 // ============================================================================
 // [A] 기본(default) PLC 1대 전용 API — DB를 거치지 않고 PlcRegistry(메모리)만 사용
 //     흐름: 웹 → 5050 → 이 핸들러 → PlcRegistry.GetOrCreateDefault()
@@ -659,6 +662,41 @@ app.MapGet("/api/foldertag/write/by-name", async (string name, int value, int? f
 
         await TagWriteLog.LogAsync(repo.ConnectionString, "FOLDER", tag.Id, name, tag.Address, tag.PlcId, oldRaw, value);
         return Results.Ok(new { success = true, name, plcId = tag.PlcId, address = tag.Address, type = isBit ? "BIT" : "WORD", value });
+    }
+    catch (Exception ex) { return Results.Ok(new { success = false, error = ex.Message }); }
+});
+
+// GET /api/foldertag/read/by-address?plcId=MST_MITSUBISHI&address=X0A1&device=X (device 생략 시 address 접두문자로 추정)
+//   folders_tags를 아예 거치지 않고 plc_id+주소만으로 "지금 이 순간" PLC와 직접 통신해서 즉시 읽는다
+//   (캐시/메모리 값이 아니라 write/by-address와 동일하게 매번 실제로 통신함).
+//   write/by-address와 완전히 대칭되는 읽기 버전 — X/Y 접점처럼 8진수/16진수 구분이 필요한
+//   주소도 ParseAddressFull이 자동으로 판별해주므로, 호출하는 쪽이 직접 변환할 필요가 없다.
+app.MapGet("/api/foldertag/read/by-address", async (string plcId, string address, string? device, PlcRepository repo, PlcServiceCache cache) =>
+{
+    var cfg = await repo.GetByIdAsync(plcId);
+    if (cfg == null) return Results.Ok(new { success = false, error = $"tb_plc에 '{plcId}'가 없음" });
+
+    var parsed = LiveTagMonitorService.ParseAddressFull(address);
+    if (parsed == null) return Results.Ok(new { success = false, error = $"주소 형식을 해석할 수 없음: '{address}'" });
+
+    string dev = !string.IsNullOrWhiteSpace(device) ? device! : parsed.Value.Device;
+    bool isBit = "MLXYBS".Contains(dev, StringComparison.OrdinalIgnoreCase);
+
+    try
+    {
+        var svc = cache.GetOrCreate(cfg);
+        int value;
+        if (isBit)
+        {
+            var bits = await svc.ReadBitsAsync(parsed.Value.Addr, 1, dev);
+            value = bits[0] ? 1 : 0;
+        }
+        else
+        {
+            var words = await svc.ReadWordsAsync(parsed.Value.Addr, 1, dev);
+            value = words[0];
+        }
+        return Results.Ok(new { success = true, plcId, address, device = dev, type = isBit ? "BIT" : "WORD", value });
     }
     catch (Exception ex) { return Results.Ok(new { success = false, error = ex.Message }); }
 });

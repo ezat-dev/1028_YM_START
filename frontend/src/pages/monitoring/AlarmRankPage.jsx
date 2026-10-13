@@ -48,12 +48,12 @@ function formatBucket(bucket, bucketUnit) {
 
 const HIST_COLUMNS = [
   { key: 'folderName', label: '설비', sortable: false },
-  { key: 'occurTime', label: '발생시각', sortable: true },
-  { key: 'clearTime', label: '해제시각', sortable: true },
+  { key: 'occurTime', label: '발생시각', sortable: true, align: 'center' },
+  { key: 'clearTime', label: '해제시각', sortable: true, align: 'center' },
   { key: 'tagName', label: '태그', sortable: false },
   { key: 'alarmMsg', label: '메시지', sortable: false },
   { key: 'level', label: '레벨', sortable: false, align: 'center' },
-  { key: 'valueAtOccur', label: '발생값', sortable: false },
+  { key: 'valueAtOccur', label: '발생값', sortable: false, align: 'right' },
 ];
 
 export default function AlarmRankPage() {
@@ -454,12 +454,12 @@ export default function AlarmRankPage() {
                 {!histLoading && pagedHistRows.map((a) => (
                   <tr key={a.historyId}>
                     <td>{a.folderName}</td>
-                    <td>{fmtDt(a.occurTime)}</td>
-                    <td>{a.clearTime ? fmtDt(a.clearTime) : <span style={{ color: 'var(--mes-danger)' }}>활성</span>}</td>
+                    <td style={{ textAlign: 'center' }}>{fmtDt(a.occurTime)}</td>
+                    <td style={{ textAlign: 'center' }}>{a.clearTime ? fmtDt(a.clearTime) : <span style={{ color: 'var(--mes-danger)' }}>활성</span>}</td>
                     <td>{a.tagName}</td>
                     <td>{a.alarmMsg}</td>
                     <td style={{ textAlign: 'center' }}><span className={`mes-badge ${levelBadge(a.level)}`}>Lv{a.level}</span></td>
-                    <td>{a.valueAtOccur}</td>
+                    <td style={{ textAlign: 'right' }}>{a.valueAtOccur}</td>
                   </tr>
                 ))}
               </tbody>

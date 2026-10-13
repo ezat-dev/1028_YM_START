@@ -19,10 +19,10 @@ const EMPTY_FORM = {
 const COLUMNS = [
   { key: 'userName', label: '사용자', sortable: true },
   { key: 'deptName', label: '부서', sortable: true },
-  { key: 'phone', label: '연락처', sortable: false },
+  { key: 'phone', label: '연락처', sortable: false, align: 'center' },
   { key: 'email', label: '이메일', sortable: false },
   { key: 'useYn', label: '상태', sortable: true, align: 'center' },
-  { key: 'regDt', label: '등록일', sortable: true },
+  { key: 'regDt', label: '등록일', sortable: true, align: 'center' },
   { key: 'actions', label: '관리', sortable: false, align: 'center' },
 ];
 
@@ -223,15 +223,16 @@ export default function UserPage() {
         </div>
 
         <div className="mes-table-scroll" onScroll={onScroll}>
-          <table className="mes-plain-table">
+          <table className="mes-plain-table mes-table-fixed">
             <colgroup>
-              <col style={{ width: '24%' }} />
-              <col />
-              <col style={{ width: '130px' }} />
-              <col style={{ width: '190px' }} />
-              <col style={{ width: '80px' }} />
-              <col style={{ width: '140px' }} />
-              <col style={{ width: '130px' }} />
+              {/* 한 칸이 남는 폭을 독차지하지 않도록 비율로 고르게 나눈다 (합 100%) */}
+              <col style={{ width: '18%' }} />
+              <col style={{ width: '16%' }} />
+              <col style={{ width: '15%' }} />
+              <col style={{ width: '17%' }} />
+              <col style={{ width: '8%' }} />
+              <col style={{ width: '14%' }} />
+              <col style={{ width: '12%' }} />
             </colgroup>
             <thead>
               <tr>
@@ -268,14 +269,14 @@ export default function UserPage() {
                     </div>
                   </td>
                   <td>{u.deptName}</td>
-                  <td>{u.phone}</td>
+                  <td style={{ textAlign: 'center' }}>{u.phone}</td>
                   <td className="truncate">{u.email}</td>
                   <td style={{ textAlign: 'center' }}>
                     <span className={`mes-badge ${u.useYn === 'Y' ? 'mes-badge-success' : 'mes-badge-danger'}`}>
                       {u.useYn === 'Y' ? '사용' : '중지'}
                     </span>
                   </td>
-                  <td>{formatDt(u.regDt)}</td>
+                  <td style={{ textAlign: 'center' }}>{formatDt(u.regDt)}</td>
                   <td style={{ textAlign: 'center' }}>
                     <div className="mes-row-actions" style={{ justifyContent: 'center' }}>
                       <button className="mes-btn mes-btn-ghost" onClick={() => openEdit(u)}>수정</button>

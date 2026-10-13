@@ -1,0 +1,1089 @@
+/* 모니터링 > LOT 트래킹 (화면 예시) — 연속열처리로 6대 레인 위 트레이 위치 */
+
+.lt-page {
+  gap: 12px;
+  --info-w: 176px;
+  /* 구간 바탕색 — 벨트(레인) 위에 깔리는 옅은 색 */
+  --band-load: #eef0f3;
+  --band-q: #fbe2d4;
+  --band-oil: #dde5ee;
+  --band-wash: #e4eff7;
+  --band-t: #fbf0d8;
+  /* 같은 구간의 진한 색 — 머리줄 밑선, 하단 미니 진행 막대 */
+  --mark-load: #c3c8cf;
+  --mark-q: #ee9f74;
+  --mark-oil: #93a6bc;
+  --mark-wash: #8fc2de;
+  --mark-t: #e6bd62;
+}
+
+.lt-loading {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  font-size: 13px;
+  color: var(--mes-text-faint);
+}
+
+/* ── 상단 한 줄 ── */
+
+.lt-header {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 18px;
+  padding: 12px 16px;
+  background: var(--mes-surface);
+  border: 1px solid var(--mes-border);
+  border-radius: var(--mes-radius-lg);
+}
+
+.lt-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lt-title .mes-page-icon {
+  width: 32px;
+  height: 32px;
+}
+
+.lt-title .mes-page-title {
+  margin: 0;
+  font-size: 17px;
+  white-space: nowrap;
+}
+
+.lt-mock-badge {
+  display: inline-block;
+  margin-top: 2px;
+  padding: 0 6px;
+  border: 1px dashed var(--mes-border-strong);
+  border-radius: var(--mes-radius-sm);
+  font-size: 11px;
+  line-height: 17px;
+  font-weight: 600;
+  color: var(--mes-text-faint);
+  white-space: nowrap;
+  cursor: help;
+}
+
+.lt-kpis {
+  display: flex;
+  align-items: center;
+  margin: 0;
+  min-width: 0;
+}
+
+.lt-kpi {
+  padding: 0 18px;
+  border-left: 1px solid var(--mes-line);
+  white-space: nowrap;
+}
+
+.lt-kpi:first-child {
+  border-left: none;
+  padding-left: 4px;
+}
+
+.lt-kpi dt {
+  font-size: 11.5px;
+  color: var(--mes-text-faint);
+}
+
+.lt-kpi dd {
+  margin: 1px 0 0;
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--mes-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.lt-kpi small {
+  margin-left: 1px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--mes-text-faint);
+}
+
+/* 수신 상태 — 실시간(초록) / 수신 지연(빨강) / 조회 멈춤(회색) + 마지막 수신 시각 */
+.lt-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lt-link-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--mes-success);
+  animation: lt-live 2s ease-out infinite;
+}
+
+.lt-link.is-stale .lt-link-dot {
+  background: var(--mes-danger);
+  animation: none;
+}
+
+.lt-link.is-paused .lt-link-dot {
+  background: var(--mes-text-faint);
+  animation: none;
+}
+
+@keyframes lt-live {
+  0% { box-shadow: 0 0 0 0 rgba(26, 127, 78, .45); }
+  70% { box-shadow: 0 0 0 7px rgba(26, 127, 78, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(26, 127, 78, 0); }
+}
+
+.lt-link-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.lt-link-text span {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--mes-success);
+}
+
+.lt-link.is-stale .lt-link-text span { color: var(--mes-danger); }
+.lt-link.is-paused .lt-link-text span { color: var(--mes-text-faint); }
+
+.lt-link-text strong {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--mes-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.lt-pause {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+}
+
+.lt-pause[aria-pressed="true"] {
+  border-color: var(--mes-accent-border);
+  background: var(--mes-accent-soft);
+  color: var(--mes-accent-dark);
+}
+
+/* ── 보드: 구간 머리줄 + 레인 6줄 ── */
+
+.lt-board {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 10px 12px 12px;
+  background: var(--mes-surface);
+  border: 1px solid var(--mes-border);
+  border-radius: var(--mes-radius-lg);
+}
+
+.lt-board-inner {
+  height: 100%;
+  min-width: 940px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lt-stagehead {
+  flex-shrink: 0;
+  display: grid;
+  grid-template-columns: var(--info-w) minmax(0, 1fr);
+  gap: 10px;
+}
+
+.lt-stagehead-corner {
+  align-self: end;
+  padding: 0 0 5px 2px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--mes-text-faint);
+}
+
+/* 레인 바탕과 같은 칸 비율(fr)이라 구간 경계가 정확히 맞는다 */
+.lt-stagehead-grid {
+  display: grid;
+  grid-template-columns: var(--stage-cols);
+  grid-template-rows: 19px 18px;
+}
+
+.lt-stagehead-grid > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mes-text-sub);
+  white-space: nowrap;
+}
+
+/* 구간마다 밑선 색 — 레인 바탕보다 한 단계 진하게 */
+.lt-stagehead-grid > span.is-load,
+.lt-stagehead-grid > span.is-out,
+.lt-stagehead-grid > span.is-oil,
+.lt-stagehead-grid > span.is-wash,
+.lt-stagehead-grid > .lt-zone-no {
+  border-bottom: 3px solid var(--mark);
+}
+
+.lt-stagehead-grid .is-load,
+.lt-stagehead-grid .is-out { --mark: var(--mark-load); }
+.lt-stagehead-grid .is-q { --mark: var(--mark-q); }
+.lt-stagehead-grid .is-oil { --mark: var(--mark-oil); }
+.lt-stagehead-grid .is-wash { --mark: var(--mark-wash); }
+.lt-stagehead-grid .is-t { --mark: var(--mark-t); }
+
+.lt-stagehead-grid > .is-group.is-q { color: #b4542a; }
+.lt-stagehead-grid > .is-group.is-t { color: #8a6210; }
+
+.lt-zone-no {
+  font-size: 11px !important;
+  font-weight: 600;
+  color: var(--mes-text-faint) !important;
+  font-variant-numeric: tabular-nums;
+  box-shadow: inset 1px 0 0 var(--mes-surface);
+}
+
+.lt-lanes {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: repeat(6, minmax(72px, 1fr));
+  gap: 8px;
+}
+
+/* 한 레인 = [설비 정보] [벨트] */
+.lt-lane {
+  display: grid;
+  grid-template-columns: var(--info-w) minmax(0, 1fr);
+  gap: 10px;
+  min-height: 0;
+}
+
+.lt-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+  padding: 6px 12px;
+  background: var(--mes-surface-sub);
+  border: 1px solid var(--mes-line);
+  border-radius: var(--mes-radius);
+}
+
+.lt-lane.is-alarm .lt-info {
+  background: #fdf4f3;
+  border-color: rgba(207, 59, 50, .28);
+}
+
+.lt-info-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.lt-info-top strong {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--mes-text);
+}
+
+.lt-status {
+  display: inline-flex;
+  flex-shrink: 0;
+  white-space: nowrap;
+  align-items: center;
+  gap: 3px;
+  padding: 0 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 19px;
+  background: var(--mes-success-soft);
+  color: var(--mes-success);
+}
+
+.lt-status.is-alarm {
+  background: var(--mes-danger-soft);
+  color: var(--mes-danger);
+}
+
+.lt-status.is-idle {
+  background: #eceef1;
+  color: var(--mes-text-sub);
+}
+
+/* 이송 신호를 받은 동안 '이송 n초 전' 자리에 표시 */
+.lt-moving {
+  padding: 0 6px;
+  border-radius: var(--mes-radius-sm);
+  background: var(--mes-accent-soft);
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 17px;
+  color: var(--mes-accent-dark);
+  animation: lt-moving-in .25s ease-out;
+}
+
+@keyframes lt-moving-in {
+  from { opacity: 0; transform: translateX(-4px); }
+  to { opacity: 1; transform: none; }
+}
+
+.lt-info-line {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--mes-text-sub);
+  white-space: nowrap;
+}
+
+.lt-info-line.is-muted {
+  color: var(--mes-text-faint);
+}
+
+.lt-info-pattern {
+  margin: 0 -5px;
+  padding: 0 5px;
+  border-radius: var(--mes-radius-sm);
+}
+
+.lt-info-pattern i {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.lt-info-code {
+  font-weight: 700;
+  color: var(--mes-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.lt-info-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 제품이 막 바뀐 레인 — 패턴 줄이 잠깐 강조됐다가 사라진다 */
+.lt-info-pattern.is-changed {
+  color: var(--mes-accent-dark);
+  animation: lt-changed 8s ease-out both;
+}
+
+@keyframes lt-changed {
+  0%, 60% { background: var(--mes-accent-soft); }
+  100% { background: transparent; }
+}
+
+.lt-info-count {
+  font-variant-numeric: tabular-nums;
+}
+
+.lt-info-count b {
+  font-weight: 700;
+  color: var(--mes-text);
+}
+
+.lt-info-count > span[aria-hidden] {
+  color: var(--mes-border-strong);
+}
+
+/* ── 벨트 ── */
+
+.lt-track {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: var(--mes-radius);
+  container-type: inline-size;
+}
+
+.lt-bands {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template-columns: var(--stage-cols);
+}
+
+.lt-band {
+  position: relative;
+  background: var(--band);
+}
+
+/* 존 사이 가는 흰 선 — 칸 사이 gap 대신 안쪽 그림자로(트레이 위치 계산이 칸 비율과 정확히 맞도록) */
+.lt-band + .lt-band {
+  box-shadow: inset 1px 0 0 rgba(255, 255, 255, .85);
+}
+
+.lt-band.is-load,
+.lt-band.is-out { --band: var(--band-load); }
+.lt-band.is-q { --band: var(--band-q); }
+.lt-band.is-oil { --band: var(--band-oil); }
+.lt-band.is-wash { --band: var(--band-wash); }
+.lt-band.is-t { --band: var(--band-t); }
+
+/* 알람 존 — 천천히 붉게 숨쉬기 */
+.lt-band.is-alarm {
+  animation: lt-alarm 2.4s ease-in-out infinite alternate;
+}
+
+@keyframes lt-alarm {
+  from { background: var(--band-q); }
+  to { background: #f4b9ae; }
+}
+
+.lt-band-alarm {
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 5px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: var(--mes-surface);
+  box-shadow: 0 0 0 1px rgba(207, 59, 50, .35);
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 16px;
+  color: var(--mes-danger);
+  white-space: nowrap;
+}
+
+/* 벨트 레일 + 롤러 — 평소엔 멈춰 있고, 이송 신호가 오면 트레이와 같은 시간·같은 가속으로 정확히 한 칸만 돈다.
+   롤러 간격을 '한 칸의 1/4'로 잡아 한 칸 이동 뒤 원위치로 돌아가도 무늬가 튀지 않는다. */
+.lt-rail {
+  --slot-w: calc(100cqw / var(--slots));
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 16px;
+  transform: translateY(-50%);
+  background:
+    linear-gradient(rgba(60, 70, 82, .32), rgba(60, 70, 82, .32)) 0 0 / 100% 1.5px no-repeat,
+    linear-gradient(rgba(60, 70, 82, .32), rgba(60, 70, 82, .32)) 0 100% / 100% 1.5px no-repeat,
+    repeating-linear-gradient(90deg, rgba(60, 70, 82, .17) 0 3px, transparent 3px calc(var(--slot-w) / 4));
+}
+
+.lt-rail.is-moving {
+  animation: lt-roll var(--move) cubic-bezier(.45, .05, .25, 1);
+}
+
+@keyframes lt-roll {
+  from { background-position: 0 0, 0 100%, 0 0; }
+  to { background-position: 0 0, 0 100%, var(--slot-w) 0; }
+}
+
+/* ── 트레이(LOT) ──
+   바깥(.lt-tray)은 위치 이동만, 안쪽(.lt-tray-body)은 모양·등장·퇴장·강조만 맡는다.
+   바깥의 animation 값은 절대 바꾸지 않는다(바꾸면 처음부터 다시 출발한다). */
+.lt-tray {
+  --tray-h: 38px;
+  position: absolute;
+  left: 0;
+  top: 50%;
+  z-index: 1;
+  width: calc(100cqw / var(--slots) - 10px);
+  height: var(--tray-h);
+  margin-top: calc(var(--tray-h) / -2);
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  /* 받은 슬롯 위치에 놓는다 */
+  transform: translateX(calc(var(--x) * 100cqw - 50%));
+}
+
+/* 이송 중인 레인에서만 새 슬롯까지 미끄러진다 — 창 크기가 바뀔 때 트레이가 따라 미끄러지지 않게 */
+.lt-lane.is-moving .lt-tray {
+  transition: transform var(--move) cubic-bezier(.45, .05, .25, 1);
+}
+
+/* 트레이 한 칸 폭이 좁아(레인 너비 / 슬롯 수) 기본은 '위쪽 제품 색 띠 + LOT 끝 3자리'만,
+   레인이 넓으면 품명 두 줄까지 보여준다 */
+.lt-tray-body {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 4px 2px 0;
+  overflow: hidden;
+  background: var(--mes-surface);
+  border: 1px solid rgba(27, 31, 36, .16);
+  border-radius: 5px;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, .14);
+  text-align: center;
+  transition: opacity .3s ease, box-shadow .2s ease, transform .2s ease, border-color .2s ease;
+}
+
+/* 제품 색 띠 */
+.lt-tray-body::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 5px;
+  background: var(--c);
+}
+
+.lt-tray-body strong {
+  display: none;
+}
+
+.lt-tray-body small {
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 13px;
+  color: var(--mes-text-sub);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+@container (min-width: 760px) {
+  .lt-tray {
+    --tray-h: 48px;
+  }
+
+  .lt-tray-body {
+    padding: 5px 3px 0;
+    gap: 1px;
+  }
+
+  .lt-tray-body strong {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    font-size: 10.5px;
+    font-weight: 600;
+    line-height: 12.5px;
+    color: var(--mes-text);
+    word-break: keep-all;
+  }
+
+  .lt-tray-body small {
+    font-size: 10px;
+    font-weight: 500;
+    line-height: 12px;
+    color: var(--mes-text-faint);
+  }
+}
+
+.lt-tray:hover .lt-tray-body {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(16, 24, 40, .16);
+}
+
+.lt-tray:focus-visible {
+  outline: none;
+}
+
+.lt-tray:focus-visible .lt-tray-body {
+  box-shadow: 0 0 0 2px var(--mes-surface), 0 0 0 4px var(--mes-accent);
+}
+
+/* 알람 구간을 지난 LOT — 붉은 테두리 + 모서리 경고 */
+.lt-tray.is-flag .lt-tray-body {
+  border-color: rgba(207, 59, 50, .6);
+}
+
+.lt-tray-flag {
+  position: absolute;
+  top: 6px;
+  right: 2px;
+  display: flex;
+  color: var(--mes-danger);
+}
+
+/* 투입: 위에서 벨트 위로 내려앉는다 */
+.lt-tray.is-new .lt-tray-body {
+  animation: lt-in .7s cubic-bezier(.2, .8, .2, 1) both;
+}
+
+@keyframes lt-in {
+  from { opacity: 0; transform: translateY(-14px) scale(.85); }
+  to { opacity: 1; transform: none; }
+}
+
+/* 배출: 벨트 끝에서 아래로 빠지며 사라진다 */
+.lt-tray.is-leaving {
+  pointer-events: none;
+}
+
+.lt-tray.is-leaving .lt-tray-body {
+  animation: lt-out .9s ease-in forwards;
+}
+
+@keyframes lt-out {
+  to { opacity: 0; transform: translateY(12px) scale(.9); }
+}
+
+/* 검색·선택 중에는 나머지를 흐리게 */
+.lt-board.is-focusing .lt-tray:not(.is-selected) .lt-tray-body {
+  opacity: .32;
+}
+
+.lt-tray.is-selected {
+  z-index: 3;
+}
+
+.lt-tray.is-selected .lt-tray-body {
+  border-color: var(--mes-accent);
+  box-shadow: 0 0 0 2px var(--mes-accent), 0 6px 14px rgba(47, 91, 181, .28);
+  transform: translateY(-2px);
+}
+
+/* 선택한 트레이 주위로 퍼지는 고리 — 어디 있는지 한눈에 */
+.lt-tray.is-selected::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border: 2px solid var(--mes-accent);
+  border-radius: 8px;
+  pointer-events: none;
+  animation: lt-halo 1.8s ease-out infinite;
+}
+
+@keyframes lt-halo {
+  from { opacity: .55; transform: translateY(-2px) scale(1); }
+  to { opacity: 0; transform: translateY(-2px) scale(1.28, 1.6); }
+}
+
+/* 정지 레인 */
+.lt-lane.is-idle .lt-bands {
+  filter: grayscale(1);
+  opacity: .55;
+}
+
+.lt-idle {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: repeating-linear-gradient(135deg, rgba(125, 133, 143, .09) 0 8px, transparent 8px 16px);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--mes-text-sub);
+}
+
+.lt-idle > * {
+  position: relative;
+}
+
+.lt-idle span {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--mes-surface);
+  box-shadow: 0 0 0 1px var(--mes-border);
+}
+
+.lt-idle svg {
+  padding: 3px;
+  box-sizing: content-box;
+  border-radius: 50%;
+  background: var(--mes-surface);
+  box-shadow: 0 0 0 1px var(--mes-border);
+}
+
+/* ── 하단: 제품 범례 / 선택한 LOT 상세 ── */
+
+.lt-foot {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  min-height: 56px;
+  padding: 8px 14px;
+  background: var(--mes-surface);
+  border: 1px solid var(--mes-border);
+  border-radius: var(--mes-radius-lg);
+}
+
+.lt-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 18px;
+  width: 100%;
+  font-size: 12.5px;
+}
+
+.lt-legend-title {
+  font-weight: 700;
+  color: var(--mes-text-sub);
+}
+
+.lt-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.lt-legend-item i {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.lt-legend-item strong {
+  font-weight: 600;
+  color: var(--mes-text);
+}
+
+.lt-legend-item span {
+  color: var(--mes-text-faint);
+}
+
+.lt-legend-item em {
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--mes-surface-sub);
+  box-shadow: inset 0 0 0 1px var(--mes-line);
+  font-style: normal;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 18px;
+  text-align: center;
+  color: var(--mes-text-sub);
+  font-variant-numeric: tabular-nums;
+}
+
+.lt-legend-hint {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--mes-text-faint);
+}
+
+.lt-detail {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  width: 100%;
+  min-width: 0;
+  animation: lt-detail-in .25s ease-out;
+}
+
+@keyframes lt-detail-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+
+.lt-detail-id {
+  display: flex;
+  flex-direction: column;
+  padding-left: 10px;
+  border-left: 4px solid var(--c);
+  white-space: nowrap;
+}
+
+.lt-detail-lot {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--mes-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.lt-detail-sub {
+  font-size: 11.5px;
+  color: var(--mes-text-faint);
+}
+
+.lt-detail-prod {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.lt-detail-prod strong {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--mes-text);
+}
+
+.lt-detail-prod span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  color: var(--mes-text-sub);
+}
+
+.lt-detail-where {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lt-detail-stage {
+  min-width: 84px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--mes-accent-dark);
+  white-space: nowrap;
+}
+
+/* 미니 진행 막대 — 레인과 같은 구간 비율, 지금 위치에 표시 막대 */
+.lt-mini {
+  position: relative;
+  display: grid;
+  grid-template-columns: var(--stage-cols);
+  width: clamp(160px, 16vw, 280px);
+  height: 8px;
+}
+
+.lt-mini i {
+  background: var(--mark-load);
+  opacity: .55;
+}
+
+.lt-mini i:first-child { border-radius: 4px 0 0 4px; }
+.lt-mini i:nth-last-child(2) { border-radius: 0 4px 4px 0; }
+.lt-mini i + i { box-shadow: inset 1px 0 0 var(--mes-surface); }
+.lt-mini i.is-q { background: var(--mark-q); }
+.lt-mini i.is-oil { background: var(--mark-oil); }
+.lt-mini i.is-wash { background: var(--mark-wash); }
+.lt-mini i.is-t { background: var(--mark-t); }
+.lt-mini i.is-here { opacity: 1; }
+
+.lt-mini b {
+  position: absolute;
+  top: -5px;
+  width: 4px;
+  height: 18px;
+  margin-left: -2px;
+  border-radius: 2px;
+  background: var(--mes-text);
+  box-shadow: 0 0 0 2px var(--mes-surface);
+  transition: left .5s linear;
+}
+
+.lt-detail-pos {
+  min-width: 48px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--mes-text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.lt-detail-pos small {
+  margin-left: 2px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--mes-text-faint);
+}
+
+.lt-detail-time {
+  display: flex;
+  gap: 18px;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.lt-detail-time dt {
+  font-size: 11px;
+  color: var(--mes-text-faint);
+}
+
+.lt-detail-time dd {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mes-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.lt-detail-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--mes-danger-soft);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--mes-danger);
+  white-space: nowrap;
+}
+
+.lt-detail-close {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-left: auto;
+  flex-shrink: 0;
+  padding: 0;
+  border: 1px solid var(--mes-border);
+  border-radius: var(--mes-radius);
+  background: var(--mes-surface);
+  color: var(--mes-text-sub);
+  cursor: pointer;
+}
+
+.lt-detail-close:hover {
+  border-color: var(--mes-border-strong);
+  color: var(--mes-text);
+}
+
+.lt-detail-close:focus-visible {
+  outline: 2px solid var(--mes-accent);
+  outline-offset: 2px;
+}
+
+/* ── 화면 크기 ── */
+
+@media (max-width: 1480px) {
+  .lt-page { --info-w: 156px; }
+  .lt-header { gap: 14px; }
+  .lt-kpi { padding: 0 12px; }
+  .lt-detail { gap: 16px; }
+  .lt-detail-time { gap: 12px; }
+}
+
+/* 좁은 화면 — 상세 중 덜 중요한 칸은 감춤 */
+@media (max-width: 1280px) {
+  .lt-detail-time div:first-child { display: none; }
+  .lt-mini { width: 140px; }
+}
+
+/* 더 좁은 화면 — 상단은 [제목 · 수신 상태] / [요약] 두 줄, 하단 상세는 두 줄로 */
+@media (max-width: 1100px) {
+  .lt-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 10px;
+  }
+
+  .lt-kpis {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .lt-foot {
+    min-width: 0;
+  }
+
+  .lt-detail {
+    flex-wrap: wrap;
+    gap: 8px 18px;
+    padding-right: 36px;
+    position: relative;
+  }
+
+  .lt-detail-close {
+    position: absolute;
+    top: 0;
+    right: 0;
+  }
+
+  .lt-legend-hint {
+    margin-left: 0;
+  }
+}
+
+/* 낮은 화면 — 트레이·머리줄을 조금 낮게 */
+@media (max-height: 820px) {
+  .lt-page { gap: 10px; }
+  .lt-header { padding: 8px 14px; }
+  .lt-kpi dd { font-size: 17px; }
+  .lt-lanes { grid-template-rows: repeat(6, minmax(60px, 1fr)); gap: 6px; }
+  .lt-tray { --tray-h: 34px; }
+
+  /* 낮은 레인에서는 품명 두 줄만(LOT 번호는 툴팁·상세로) */
+  @container (min-width: 760px) {
+    .lt-tray { --tray-h: 40px; }
+    .lt-tray-body small { display: none; }
+  }
+  .lt-info { gap: 2px; padding: 4px 10px; }
+  .lt-info-top strong { font-size: 15px; }
+  .lt-foot { min-height: 48px; padding: 6px 14px; }
+}
+
+/* 아주 낮은 화면 — 레인 위아래 여백이 없어 알람 존 태그가 트레이를 가리므로 숨김(존 깜빡임·트레이 경고는 유지) */
+@media (max-height: 740px) {
+  .lt-band-alarm { display: none; }
+}
+
+/* 휴대폰 — 보드는 옆으로 스크롤, 페이지는 아래로 */
+@media (max-width: 768px) {
+  .lt-kpis {
+    overflow-x: auto;
+  }
+
+  .lt-board {
+    flex: none;
+  }
+
+  /* 옆으로 스크롤해도 설비 이름 칸은 왼쪽에 붙어 있게 */
+  .lt-info,
+  .lt-stagehead-corner {
+    position: sticky;
+    left: 0;
+    z-index: 4;
+  }
+
+  .lt-stagehead-corner {
+    background: var(--mes-surface);
+  }
+
+  .lt-lanes {
+    flex: none;
+    grid-template-rows: repeat(6, 84px);
+  }
+
+  .lt-detail {
+    flex-wrap: wrap;
+    gap: 8px 16px;
+  }
+
+  .lt-legend-hint {
+    margin-left: 0;
+  }
+}
+
+/* 움직임 줄이기 설정 — 트레이 이동은 정보라서 그대로 두고, 꾸밈 애니메이션만 끈다 */
+@media (prefers-reduced-motion: reduce) {
+  .lt-rail,
+  .lt-band.is-alarm,
+  .lt-tray.is-selected::after,
+  .lt-info-pattern.is-changed,
+  .lt-link-dot {
+    animation: none;
+  }
+
+  .lt-tray.is-new .lt-tray-body,
+  .lt-tray.is-leaving .lt-tray-body {
+    animation-duration: .01s;
+  }
+}

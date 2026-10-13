@@ -24,6 +24,8 @@ public class MenuServiceImpl implements MenuService {
                         new MenuItem("거래처관리", "/base/vendor"),
                         new MenuItem("제품관리", "/base/product"),
                         new MenuItem("패턴관리", "/base/pattern"),
+                        new MenuItem("설비관리", "/base/equipment"),
+                        new MenuItem("비가동관리", "/base/downtime"),
                         new MenuItem("사용자권한", "/base/auth"),
                         new MenuItem("로그인이력", "/base/loginHist"))),
                 new MenuGroup("모니터링", "/monitoring", List.of(

@@ -1,29 +1,46 @@
-/* ===== 디자인 토큰 ===== */
+/* ===== 디자인 토큰 =====
+   현장 PC(24인치 FHD)에서 하루 종일 보는 화면이라 장식보다 "읽히는 것"을 우선한다.
+   - 포인트 색은 파랑 하나. 그라디언트/색 그림자는 쓰지 않는다.
+   - 카드는 그림자 대신 테두리로 구분한다. 그림자는 떠 있는 것(모달, 토스트, 드롭다운)에만.
+   - 글자 크기는 12 / 13 / 14 / 16 / 20 다섯 단계 안에서 고른다. */
 :root {
-  --mes-bg: #f4f5f8;
+  --mes-bg: #f3f4f6;
   --mes-surface: #ffffff;
-  --mes-border: #e6e8ec;
-  --mes-line: #eef0f3;
-  --mes-text: #171a21;
-  --mes-text-sub: #667085;
-  --mes-text-faint: #98a1b0;
-  --mes-accent: #5b7fc7;
-  --mes-accent-dark: #3d5a99;
-  --mes-accent-soft: rgba(91, 127, 199, 0.1);
-  --mes-accent-grad: linear-gradient(135deg, #6a8ed6 0%, #3d5a99 100%);
-  --mes-danger: #d9483f;
-  --mes-danger-soft: rgba(217, 72, 63, 0.09);
-  --mes-success: #1f9d63;
-  --mes-success-soft: rgba(31, 157, 99, 0.1);
-  --mes-warning: #b7791f;
-  --mes-warning-soft: rgba(183, 121, 31, 0.12);
-  --mes-sidebar-bg: #15171c;
-  --mes-radius-sm: 7px;
-  --mes-radius: 10px;
-  --mes-radius-lg: 16px;
-  --mes-shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 1px rgba(16, 24, 40, 0.03);
-  --mes-shadow: 0 10px 28px -6px rgba(16, 24, 40, 0.12), 0 2px 8px -2px rgba(16, 24, 40, 0.06);
-  --mes-shadow-lg: 0 20px 48px -10px rgba(16, 24, 40, 0.22);
+  --mes-surface-sub: #f8f9fa;   /* 표 헤더, 입력창 기본 배경 */
+  --mes-border: #e1e4e8;
+  --mes-border-strong: #cfd4da;
+  --mes-line: #eceef1;
+  --mes-text: #1b1f24;
+  --mes-text-sub: #57606a;
+  --mes-text-faint: #7d858f;
+  --mes-accent: #2f5bb5;
+  --mes-accent-dark: #234a94;
+  --mes-accent-soft: rgba(47, 91, 181, 0.08);
+  --mes-accent-border: rgba(47, 91, 181, 0.32);
+  /* 예전 그라디언트 토큰 — 쓰는 곳이 많아 이름은 남겨두고 단색으로 바꿨다 */
+  --mes-accent-grad: var(--mes-accent);
+  --mes-danger: #cf3b32;
+  --mes-danger-soft: rgba(207, 59, 50, 0.08);
+  --mes-success: #1a7f4e;
+  --mes-success-soft: rgba(26, 127, 78, 0.09);
+  --mes-warning: #a3620b;
+  --mes-warning-soft: rgba(191, 120, 20, 0.11);
+  --mes-sidebar-bg: #ffffff;
+  /* 사이드바(흰색 메뉴) — components/Sidebar.css 전용 */
+  --sb-bg: var(--mes-sidebar-bg);
+  --sb-border: var(--mes-border);
+  --sb-input-bg: var(--mes-surface-sub);
+  --sb-hover: #f2f4f6;
+  --sb-tile-bg: #e9eef8;
+  --sb-tile-fg: #6a727c;
+  --sb-item-fg: #333a42;
+  --sb-active-bg: rgba(47, 91, 181, .09);
+  --mes-radius-sm: 4px;
+  --mes-radius: 6px;
+  --mes-radius-lg: 8px;
+  --mes-shadow-sm: none;
+  --mes-shadow: 0 4px 14px rgba(16, 24, 40, 0.08);
+  --mes-shadow-lg: 0 12px 32px rgba(16, 24, 40, 0.16), 0 2px 6px rgba(16, 24, 40, 0.06);
   --mes-header-h: 56px;
 }
 
@@ -39,12 +56,13 @@ body {
   margin: 0;
   background: var(--mes-bg);
   color: var(--mes-text);
-  font-family: '맑은 고딕', 'Malgun Gothic', 'Apple SD Gothic Neo', -apple-system,
-    BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  /* Pretendard는 npm 패키지로 번들에 같이 들어간다(main.jsx) — 사내망에서도 CDN 없이 뜬다 */
+  font-family: 'Pretendard Variable', Pretendard, 'Malgun Gothic', '맑은 고딕',
+    'Apple SD Gothic Neo', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   font-size: 14px;
   line-height: 1.5;
-  letter-spacing: -0.1px;
+  letter-spacing: -0.01em;
 }
 
 button, input, select, textarea {
@@ -53,10 +71,24 @@ button, input, select, textarea {
   color: inherit;
 }
 
+/* 숫자가 세로로 줄 맞춰 보이도록(표, KPI) */
+.tabulator,
+.mes-plain-table,
+.mes-stat-value {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 키보드로 이동할 때만 포커스 테두리 */
+.mes-btn:focus-visible,
+.mes-user-list-item:focus-visible {
+  outline: 2px solid var(--mes-accent);
+  outline-offset: 2px;
+}
+
 /* ===== 페이지 레이아웃 ===== */
 
 .mes-page {
-  padding: 24px 20px 36px;
+  padding: 20px 24px 32px;
 }
 
 .mes-page-header {
@@ -64,39 +96,40 @@ button, input, select, textarea {
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 22px;
+  margin-bottom: 18px;
   flex-wrap: wrap;
 }
 
 .mes-page-heading {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
 }
 
+/* 화면 제목 옆 아이콘 — 페이지마다 색을 바꾸지 않는다. 메뉴 아이콘과 같은 톤. */
 .mes-page-icon {
-  width: 42px;
-  height: 42px;
+  width: 36px;
+  height: 36px;
   border-radius: var(--mes-radius);
-  background: var(--mes-accent-grad);
-  color: #fff;
+  background: var(--sb-tile-bg);
+  color: var(--mes-accent);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 6px 16px -4px rgba(61, 90, 153, 0.45);
 }
 
 .mes-page-title {
   font-size: 20px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--mes-text);
-  margin: 0 0 3px;
-  letter-spacing: -0.3px;
+  margin: 0 0 2px;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
 }
 
 .mes-page-desc {
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--mes-text-faint);
   margin: 0;
 }
@@ -114,17 +147,16 @@ button, input, select, textarea {
   background: var(--mes-surface);
   border: 1px solid var(--mes-border);
   border-radius: var(--mes-radius-lg);
-  padding: 16px 18px;
-  box-shadow: var(--mes-shadow-sm);
+  padding: 14px 16px;
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
 .mes-stat-icon {
-  width: 34px;
-  height: 34px;
-  border-radius: var(--mes-radius-sm);
+  width: 32px;
+  height: 32px;
+  border-radius: var(--mes-radius);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -132,16 +164,16 @@ button, input, select, textarea {
 }
 
 .mes-stat-card .mes-stat-value {
-  font-size: 21px;
-  font-weight: 800;
+  font-size: 20px;
+  font-weight: 700;
   color: var(--mes-text);
   line-height: 1.2;
 }
 
 .mes-stat-card .mes-stat-label {
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--mes-text-sub);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 /* ===== 카드 / 툴바 ===== */
@@ -150,8 +182,7 @@ button, input, select, textarea {
   background: var(--mes-surface);
   border: 1px solid var(--mes-border);
   border-radius: var(--mes-radius-lg);
-  box-shadow: var(--mes-shadow-sm);
-  padding: 18px;
+  padding: 16px;
 }
 
 .mes-toolbar {
@@ -172,23 +203,28 @@ button, input, select, textarea {
 
 .mes-search input {
   width: 100%;
-  padding: 9px 12px 9px 36px;
+  height: 34px;
+  padding: 0 12px 0 34px;
   border: 1px solid var(--mes-border);
   border-radius: var(--mes-radius);
-  background: #fafbfc;
+  background: var(--mes-surface);
+  font-size: 13px;
   outline: none;
-  transition: border-color .15s, box-shadow .15s, background .15s;
+  transition: border-color .15s, box-shadow .15s;
+}
+
+.mes-search input:hover {
+  border-color: var(--mes-border-strong);
 }
 
 .mes-search input:focus {
   border-color: var(--mes-accent);
   box-shadow: 0 0 0 3px var(--mes-accent-soft);
-  background: #fff;
 }
 
 .mes-search svg {
   position: absolute;
-  left: 11px;
+  left: 10px;
   top: 50%;
   transform: translateY(-50%);
   color: var(--mes-text-faint);
@@ -197,49 +233,48 @@ button, input, select, textarea {
 
 /* ===== 버튼 ===== */
 
+/* 버튼 높이는 34px로 통일 — 검색창·인라인 입력과 한 줄에 놓였을 때 윗선/아랫선이 맞는다 */
 .mes-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  padding: 9px 15px;
+  height: 34px;
+  padding: 0 14px;
   border-radius: var(--mes-radius);
   border: 1px solid transparent;
   font-size: 13px;
   font-weight: 600;
+  line-height: 1;
   cursor: pointer;
-  transition: background .15s, border-color .15s, color .15s, transform .05s, box-shadow .15s;
+  transition: background-color .12s, border-color .12s, color .12s;
   white-space: nowrap;
 }
 
-.mes-btn:active {
-  transform: translateY(1px);
-}
-
 .mes-btn-primary {
-  background: var(--mes-accent-grad);
+  background: var(--mes-accent);
+  border-color: var(--mes-accent);
   color: #fff;
-  box-shadow: 0 4px 12px -3px rgba(61, 90, 153, 0.5);
 }
 
 .mes-btn-primary:hover {
-  filter: brightness(1.05);
-  box-shadow: 0 6px 16px -3px rgba(61, 90, 153, 0.55);
+  background: var(--mes-accent-dark);
+  border-color: var(--mes-accent-dark);
 }
 
 .mes-btn-secondary {
-  background: #fff;
-  border-color: var(--mes-border);
+  background: var(--mes-surface);
+  border-color: var(--mes-border-strong);
   color: var(--mes-text);
 }
 
 .mes-btn-secondary:hover {
-  background: #f6f7f9;
-  border-color: #d8dbe1;
+  background: var(--mes-surface-sub);
 }
 
 .mes-btn-danger {
-  background: #fff;
-  border-color: var(--mes-border);
+  background: var(--mes-surface);
+  border-color: var(--mes-border-strong);
   color: var(--mes-danger);
 }
 
@@ -249,20 +284,25 @@ button, input, select, textarea {
 }
 
 .mes-btn-ghost {
+  height: auto;
   background: transparent;
   color: var(--mes-text-sub);
   padding: 6px 10px;
 }
 
 .mes-btn-ghost:hover {
-  background: #f0f1f4;
+  background: var(--sb-hover);
   color: var(--mes-text);
 }
 
 .mes-btn:disabled {
-  opacity: .5;
+  opacity: .45;
   cursor: not-allowed;
-  box-shadow: none;
+}
+
+.mes-btn-primary:disabled:hover {
+  background: var(--mes-accent);
+  border-color: var(--mes-accent);
 }
 
 /* ===== 배지 ===== */
@@ -270,11 +310,12 @@ button, input, select, textarea {
 .mes-badge {
   display: inline-flex;
   align-items: center;
-  padding: 3px 10px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: .2px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: var(--mes-radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .mes-badge-success {
@@ -303,17 +344,30 @@ button, input, select, textarea {
 
 .mes-field label {
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--mes-text-sub);
 }
 
 .mes-field input, .mes-field select {
-  padding: 10px 12px;
-  border: 1px solid var(--mes-border);
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--mes-border-strong);
   border-radius: var(--mes-radius);
   outline: none;
   transition: border-color .15s, box-shadow .15s;
-  background: #fff;
+  background: var(--mes-surface);
+}
+
+/* 체크박스/라디오/파일은 위 높이·패딩을 받으면 모양이 깨진다 */
+.mes-field input[type="checkbox"],
+.mes-field input[type="radio"] {
+  height: auto;
+  padding: 0;
+}
+
+.mes-field input[type="file"] {
+  height: auto;
+  padding: 6px 8px;
 }
 
 .mes-field input:focus, .mes-field select:focus {
@@ -322,17 +376,18 @@ button, input, select, textarea {
 }
 
 .mes-field input:disabled {
-  background: #f3f4f6;
+  background: var(--mes-surface-sub);
   color: var(--mes-text-faint);
 }
 
 /* 툴바 등 라벨 없이 인라인으로 쓰는 입력 (검색창, 날짜 범위 등) */
 .mes-field-inline {
-  padding: 8px 12px;
-  border: 1px solid var(--mes-border);
-  border-radius: var(--mes-radius-sm);
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--mes-border-strong);
+  border-radius: var(--mes-radius);
   outline: none;
-  background: #fff;
+  background: var(--mes-surface);
   font-size: 13px;
   transition: border-color .15s, box-shadow .15s;
 }
@@ -342,7 +397,7 @@ button, input, select, textarea {
 }
 
 .mes-field .mes-hint {
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--mes-text-faint);
 }
 
@@ -375,28 +430,29 @@ button, input, select, textarea {
 }
 
 .mes-identity-cell .mes-identity-text .mes-identity-sub {
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--mes-text-faint);
 }
 
 .mes-error {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--mes-danger);
   background: var(--mes-danger-soft);
-  padding: 9px 12px;
-  border-radius: var(--mes-radius);
+  border-left: 3px solid var(--mes-danger);
+  padding: 8px 12px;
+  border-radius: var(--mes-radius-sm);
 }
 
 /* ===== 토스트 ===== */
 
 .mes-toast {
   position: fixed;
-  top: 20px;
-  right: 20px;
+  top: 16px;
+  right: 16px;
   z-index: 2000;
-  padding: 12px 18px;
+  padding: 10px 16px;
   border-radius: var(--mes-radius);
-  background: var(--mes-text);
+  background: #24292f;
   color: #fff;
   font-size: 13px;
   font-weight: 500;
@@ -422,8 +478,7 @@ button, input, select, textarea {
 .mes-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(10, 12, 18, 0.5);
-  backdrop-filter: blur(2px);
+  background: rgba(15, 20, 28, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -439,8 +494,8 @@ button, input, select, textarea {
   background: var(--mes-surface);
   border-radius: var(--mes-radius-lg);
   box-shadow: var(--mes-shadow-lg);
-  padding: 24px;
-  animation: mes-modal-in .16s ease-out;
+  padding: 20px 24px;
+  animation: mes-modal-in .14s ease-out;
 }
 
 .mes-modal-lg {
@@ -467,29 +522,31 @@ button, input, select, textarea {
 }
 
 @keyframes mes-modal-in {
-  from { opacity: 0; transform: translateY(8px) scale(.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .mes-modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 18px;
+  margin: -4px 0 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--mes-line);
 }
 
 .mes-modal-header h3 {
   margin: 0;
-  font-size: 16.5px;
-  font-weight: 800;
+  font-size: 16px;
+  font-weight: 700;
 }
 
 .mes-modal-footer {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  margin-top: 18px;
-  padding-top: 16px;
+  margin-top: 16px;
+  padding-top: 14px;
   border-top: 1px solid var(--mes-line);
 }
 
@@ -497,6 +554,11 @@ button, input, select, textarea {
    주의: .tabulator-cell 의 display 속성은 절대 건드리지 말 것.
    Tabulator는 셀을 inline-block 기반으로 가로 배치하는데, display:flex로
    바꾸면 block 레벨이 되어 셀이 세로로 쌓이는 버그가 생긴다(실제로 겪었음). */
+
+/* 표 3종(Tabulator / SimpleTable / mes-plain-table)이 같은 모양으로 보이도록 맞춘 규칙:
+   헤더 36px · 행 최소 40px · 좌우 패딩 12px · 세로줄 없음 · 가로줄만 · 줄무늬 없음.
+   Tabulator 기본 테마(#e6e6e6 헤더, #aaa 세로줄)가 선택자 우선순위로 이기지 않도록
+   .mes-table-wrap .tabulator ... 로 한 단계 더 구체적으로 쓴다. */
 
 .mes-table-wrap .tabulator {
   border: 1px solid var(--mes-border);
@@ -506,79 +568,125 @@ button, input, select, textarea {
   overflow: hidden;
 }
 
-.mes-table-wrap .tabulator-header {
-  background: #fafbfc;
-  border-bottom: 1px solid var(--mes-border);
+.mes-table-wrap .tabulator .tabulator-tableholder {
+  background: var(--mes-surface);
 }
 
-.mes-table-wrap .tabulator-col {
+.mes-table-wrap .tabulator .tabulator-header {
+  background: var(--mes-surface-sub);
+  border-bottom: 1px solid var(--mes-border);
+  color: var(--mes-text-sub);
+  font-weight: 600;
+}
+
+.mes-table-wrap .tabulator .tabulator-header .tabulator-col {
   background: transparent;
+  border-right: none;
+}
+
+.mes-table-wrap .tabulator .tabulator-header .tabulator-col .tabulator-col-content {
+  padding: 9px 12px;
 }
 
 .mes-table-wrap .tabulator-col-title {
-  font-weight: 700;
-  font-size: 11.5px;
+  font-weight: 600;
+  font-size: 12px;
   color: var(--mes-text-sub);
-  text-transform: uppercase;
-  letter-spacing: .4px;
 }
 
-.mes-table-wrap .tabulator-col.tabulator-sortable:hover {
-  background: #f1f2f5;
+.mes-table-wrap .tabulator .tabulator-header .tabulator-col.tabulator-sortable.tabulator-col-sorter-element:hover {
+  background: #eff1f4;
 }
 
-.mes-table-wrap .tabulator-arrow {
+/* 정렬 화살표는 정렬 중인 열에만. 나머지는 마우스를 올렸을 때만 흐리게 */
+.mes-table-wrap .tabulator .tabulator-col .tabulator-arrow {
   border-bottom-color: var(--mes-text-faint) !important;
+  opacity: 0;
+  transition: opacity .12s;
 }
 
-.mes-table-wrap .tabulator-col-sorter[aria-sort="asc"] .tabulator-arrow,
-.mes-table-wrap .tabulator-col-sorter[aria-sort="desc"] .tabulator-arrow {
+.mes-table-wrap .tabulator .tabulator-col:hover .tabulator-arrow {
+  opacity: .6;
+}
+
+.mes-table-wrap .tabulator .tabulator-col[aria-sort="ascending"] .tabulator-arrow,
+.mes-table-wrap .tabulator .tabulator-col[aria-sort="descending"] .tabulator-arrow {
   border-bottom-color: var(--mes-accent) !important;
+  border-top-color: var(--mes-accent) !important;
+  opacity: 1;
 }
 
 .mes-table-wrap .tabulator-row {
+  min-height: 40px;
+  background: var(--mes-surface);
   border-bottom: 1px solid var(--mes-line);
 }
 
 .mes-table-wrap .tabulator-row.tabulator-row-even {
-  background: #fbfbfc;
+  background: var(--mes-surface);
 }
 
+.mes-table-wrap .tabulator-row.tabulator-selectable:hover,
 .mes-table-wrap .tabulator-row:hover {
-  background: var(--mes-accent-soft) !important;
+  background: #f1f5fc !important;
 }
 
 .mes-table-wrap .tabulator-row .tabulator-cell {
-  padding: 8px 12px;
+  padding: 10px 12px;
+  border-right: none;
+  border-left: none;
 }
 
-.mes-table-wrap .tabulator-footer {
-  background: #fafbfc;
+.mes-table-wrap .tabulator .tabulator-placeholder .tabulator-placeholder-contents {
+  color: var(--mes-text-faint);
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.mes-table-wrap .tabulator .tabulator-footer {
+  background: var(--mes-surface);
   border-top: 1px solid var(--mes-border);
-  padding: 6px 10px;
+  padding: 8px 12px;
+  color: var(--mes-text-sub);
+  font-size: 12px;
+  font-weight: 400;
 }
 
-.mes-table-wrap .tabulator-footer .tabulator-page {
+.mes-table-wrap .tabulator .tabulator-footer .tabulator-page {
+  min-width: 28px;
+  height: 28px;
+  margin: 0 1px;
+  padding: 0 8px;
   border-radius: var(--mes-radius-sm);
   border: 1px solid transparent;
-  font-weight: 600;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 500;
   color: var(--mes-text-sub);
 }
 
-.mes-table-wrap .tabulator-footer .tabulator-page.active {
+.mes-table-wrap .tabulator .tabulator-footer .tabulator-page.active {
   background: var(--mes-accent);
+  border-color: var(--mes-accent);
   color: #fff;
+  font-weight: 600;
 }
 
-.mes-table-wrap .tabulator-footer .tabulator-page:not(.disabled):hover {
-  background: var(--mes-accent-soft);
-  color: var(--mes-accent-dark);
+.mes-table-wrap .tabulator .tabulator-footer .tabulator-page:not(.disabled):not(.active):hover {
+  background: var(--sb-hover);
+  color: var(--mes-text);
 }
 
-.mes-table-wrap .tabulator-footer select {
-  border: 1px solid var(--mes-border);
+.mes-table-wrap .tabulator .tabulator-footer .tabulator-page.disabled {
+  opacity: .4;
+}
+
+.mes-table-wrap .tabulator .tabulator-footer select {
+  height: 28px;
+  border: 1px solid var(--mes-border-strong);
   border-radius: var(--mes-radius-sm);
-  padding: 3px 6px;
+  padding: 0 6px;
+  background: var(--mes-surface);
 }
 
 .mes-table-wrap .tabulator-icon-tick {
@@ -648,19 +756,31 @@ button, input, select, textarea {
 .mes-plain-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: 13px;
   white-space: nowrap;
 }
 .mes-plain-table th,
 .mes-plain-table td {
-  padding: 7px 10px;
+  padding: 10px 12px;
   border-bottom: 1px solid var(--mes-line);
   text-align: left;
+  vertical-align: middle;
 }
+/* 값이 없는 칸은 빈칸 대신 흐린 '-' */
+.mes-plain-table td:empty::after {
+  content: '-';
+  color: var(--mes-text-faint);
+}
+/* th 높이(12px × 1.5 + 패딩 18 = 36px)는 아래 .mes-group-row의 sticky top과 맞물려 있다 */
 .mes-plain-table th {
+  height: 36px;
+  padding-top: 0;
+  padding-bottom: 0;
+  font-size: 12px;
   color: var(--mes-text-sub);
   font-weight: 600;
-  background: var(--mes-bg);
+  background: var(--mes-surface-sub);
+  border-bottom-color: var(--mes-border);
   position: sticky;
   top: 0;
   z-index: 3;
@@ -673,7 +793,7 @@ button, input, select, textarea {
   table-layout: fixed;
 }
 .mes-plain-table tbody tr:hover {
-  background: var(--mes-accent-soft);
+  background: #f1f5fc;
 }
 
 .mes-plain-table th.sortable {
@@ -683,13 +803,13 @@ button, input, select, textarea {
 
 .mes-plain-table th.sortable:hover {
   color: var(--mes-text);
-  background: #eef0f3;
+  background: #eff1f4;
 }
 
 .mes-plain-table th .sort-arrow {
-  display: inline-block;
-  margin-left: 4px;
-  font-size: 10px;
+  display: inline-flex;
+  vertical-align: -1px;
+  margin-left: 3px;
   color: var(--mes-accent);
 }
 
@@ -701,15 +821,21 @@ button, input, select, textarea {
 }
 
 .mes-plain-table .mes-group-row td {
-  background: #f6f7fa;
+  background: #f5f6f8;
   border-bottom: 1px solid var(--mes-border);
-  font-weight: 700;
-  font-size: 12.5px;
+  font-weight: 600;
+  font-size: 13px;
   color: var(--mes-text);
-  padding: 7px 10px;
+  padding: 8px 12px;
   position: sticky;
-  top: 33px;
+  top: 36px;
   z-index: 2;
+}
+
+/* 로그인이력 표 — 1024px 노트북(사이드바 펼침)에서도 가로 스크롤 없이 들어가는 최소 폭.
+   이보다 좁으면 표 안에서 가로 스크롤. 긴 IPv6는 말줄임 + 마우스 올리면 전체 표시. */
+.lh-table {
+  min-width: 680px;
 }
 
 .mes-table-empty {
@@ -755,29 +881,29 @@ button, input, select, textarea {
 }
 
 .mes-table-wrap .tabulator-group {
-  background: #f6f7fa;
+  background: #f5f6f8;
   border-bottom: 1px solid var(--mes-border);
-  font-weight: 700;
-  font-size: 12.5px;
+  font-weight: 600;
+  font-size: 13px;
   color: var(--mes-text);
 }
 
 .mes-row-actions {
   display: flex;
-  gap: 6px;
+  gap: 4px;
 }
 
 /* 표 안 "수정/삭제" 버튼 — 테두리 없는 텍스트만으로는 서로 붙어 보여 가독성이 떨어져서
    옅은 테두리를 얹어 각각 하나의 칩으로 구분되게 한다. */
 .mes-row-actions .mes-btn-ghost {
   border: 1px solid var(--mes-border);
-  border-radius: 6px;
+  border-radius: var(--mes-radius-sm);
   font-size: 12px;
-  padding: 5px 10px;
+  padding: 3px 9px;
 }
 
 .mes-row-actions .mes-btn-ghost:hover {
-  border-color: var(--mes-accent);
+  border-color: var(--mes-accent-border);
   color: var(--mes-accent-dark);
   background: var(--mes-accent-soft);
 }
@@ -798,7 +924,6 @@ button, input, select, textarea {
   background: var(--mes-surface);
   border: 1px solid var(--mes-border);
   border-radius: var(--mes-radius-lg);
-  box-shadow: var(--mes-shadow-sm);
   padding: 14px;
   display: flex;
   flex-direction: column;
@@ -809,23 +934,17 @@ button, input, select, textarea {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--mes-text-sub);
-  text-transform: uppercase;
-  letter-spacing: .4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--mes-text);
   margin: 2px 2px 10px;
 }
 
 .mes-user-panel-count {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--mes-accent-dark);
-  background: var(--mes-accent-soft);
-  padding: 2px 8px;
-  border-radius: 20px;
-  text-transform: none;
-  letter-spacing: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mes-text-sub);
+  font-variant-numeric: tabular-nums;
 }
 
 .mes-user-list {
@@ -853,12 +972,11 @@ button, input, select, textarea {
 }
 
 .mes-user-list-item:hover {
-  background: #f6f7f9;
+  background: var(--sb-hover);
 }
 
 .mes-user-list-item.active {
-  background: var(--mes-accent-soft);
-  border-color: rgba(91, 127, 199, 0.35);
+  background: var(--sb-active-bg);
   box-shadow: inset 3px 0 0 var(--mes-accent);
 }
 
@@ -888,20 +1006,21 @@ button, input, select, textarea {
   padding: 20px 6px;
   text-align: center;
   color: var(--mes-text-faint);
-  font-size: 12.5px;
+  font-size: 13px;
 }
 
+/* 사이드바 하단 사용자 아바타와 같은 모양 */
 .mes-avatar {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: var(--mes-accent-grad);
-  color: #fff;
+  background: var(--sb-tile-bg);
+  color: var(--mes-accent-dark);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12.5px;
-  font-weight: 700;
+  font-size: 13px;
+  font-weight: 600;
   flex-shrink: 0;
 }
 
@@ -915,7 +1034,7 @@ button, input, select, textarea {
 }
 
 .mes-user-list-item .mes-user-id {
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--mes-text-faint);
   white-space: nowrap;
   overflow: hidden;
@@ -964,5 +1083,12 @@ button, input, select, textarea {
 
   .mes-stat-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mes-toast,
+  .mes-modal {
+    animation: none;
   }
 }
