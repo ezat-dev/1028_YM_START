@@ -164,8 +164,8 @@
         LIMIT 10
     </select>
 
-    <!-- ── 설비(tb_alarm_folder)별 랭킹 — "PLC별"이 아니라 폴더(=실제 설비 단위, 예: BCF1~12) 기준.
-         한 PLC가 여러 설비를 함께 제어하는 배치(현재 미쓰비시 PLC 1대가 BCF1~12 전부를 담당)라
+    <!-- ── 설비(tb_alarm_folder)별 랭킹 — "PLC별"이 아니라 폴더(=실제 설비 단위, 예: MBF1~12) 기준.
+         한 PLC가 여러 설비를 함께 제어하는 배치(현재 미쓰비시 PLC 1대가 MBF1~12 전부를 담당)라
          plc_id로 묶으면 사실상 항상 1행이라 무의미 — folder_id가 진짜 "설비" 구분자다.
          폴더 개수가 적은 내부 설비관리 툴이라 TOP-N으로 자르지 않고 전체를 반환한다. -->
     <select id="selectAlarmRankByFolder" parameterType="map" resultType="com.mes.domain.monitoring.AlarmRank">

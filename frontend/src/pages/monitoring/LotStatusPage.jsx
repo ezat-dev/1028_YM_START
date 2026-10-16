@@ -88,7 +88,7 @@ export default function LotStatusPage() {
   );
 
   return (
-    <div className="mes-page lst-page mes-page-fill">
+    <div className="mes-page lst-page mes-page-fill mes-page-compact">
       {view === 'history'
         ? <HistoryView source={source} viewSwitch={viewSwitch} />
         : <CurrentView source={source} viewSwitch={viewSwitch} />}

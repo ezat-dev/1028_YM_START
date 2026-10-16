@@ -151,23 +151,20 @@
 }
 
 .eqh-status {
+  /* 설비이력관리의 이력유형(.eqh-type)과 같은 모양 — 배경 없이 네모 점 + 색 글씨 */
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 0 9px;
-  border-radius: 999px;
-  background: var(--b);
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 22px;
+  font-size: 12.5px;
+  font-weight: 600;
   color: var(--c);
   white-space: nowrap;
 }
 
 .eqh-status i {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
   background: var(--d);
 }
 

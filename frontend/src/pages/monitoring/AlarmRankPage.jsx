@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { IconTrophy, IconFileSpreadsheet, IconArrowUp, IconArrowDown, IconListDetails } from '@tabler/icons-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, Tooltip as RTooltip } from 'recharts';
 import * as XLSX from 'xlsx';
-import DonutExtruded from '../../components/charts/DonutExtruded';
 import Toast from '../../components/ui/Toast';
 import { useToast } from '../../hooks/useToast';
 import { useInfiniteScroll } from '../../hooks/useInfiniteScroll';
@@ -35,7 +34,8 @@ const PERIODS = [
 const medalColor = (i) => (i === 0 ? '#d4a017' : i === 1 ? '#9aa1ac' : i === 2 ? '#b0764a' : 'var(--mes-text-faint)');
 const levelBadge = (level) => (level >= 3 ? 'mes-badge-danger' : level === 2 ? 'mes-badge-warning' : 'mes-badge-success');
 
-const DONUT_COLORS = ['#5b7fc7', '#1f9d63', '#f5a623', '#e0483f', '#805AD5', '#0891b2'];
+// 다른 화면(전력량·설비 색)과 같은 연한 계열 — 순서대로 쓰고 돌려 쓰지 않는다(상위 6개 + 기타)
+const DONUT_COLORS = ['#5f80c6', '#e6a35a', '#35ad9c', '#9a85db', '#e57a7f', '#55ade6'];
 const DONUT_OTHER_COLOR = '#c3c9d4';
 
 function formatBucket(bucket, bucketUnit) {
@@ -47,14 +47,75 @@ function formatBucket(bucket, bucketUnit) {
 }
 
 const HIST_COLUMNS = [
-  { key: 'folderName', label: '설비', sortable: false },
+  { key: 'folderName', label: '설비', sortable: false, align: 'center' },
   { key: 'occurTime', label: '발생시각', sortable: true, align: 'center' },
   { key: 'clearTime', label: '해제시각', sortable: true, align: 'center' },
   { key: 'tagName', label: '태그', sortable: false },
   { key: 'alarmMsg', label: '메시지', sortable: false },
   { key: 'level', label: '레벨', sortable: false, align: 'center' },
-  { key: 'valueAtOccur', label: '발생값', sortable: false, align: 'right' },
+  { key: 'valueAtOccur', label: '발생값', sortable: false, align: 'center' },
 ];
+
+/**
+ * 얇은 링 도넛 — 조각 사이 2px 틈, 마우스를 올린 조각만 두껍게.
+ * 가운데에는 평소 총 건수, 조각(또는 오른쪽 목록)에 올리면 그 메시지의 비율을 보여준다.
+ */
+const RING_R = 46;
+const RING_W = 12;
+const RING_C = 2 * Math.PI * RING_R;
+const RING_GAP = 2.2; // 조각 사이 틈(둘레 길이 기준)
+
+function MessageRing({ data, total, active, onActive }) {
+  let acc = 0;
+  const gap = data.length > 1 ? RING_GAP : 0;
+  const arcs = data.map((d) => {
+    const len = total ? (d.value / total) * RING_C : 0;
+    const arc = { ...d, start: acc, len: Math.max(0.01, len - gap) };
+    acc += len;
+    return arc;
+  });
+  const cur = arcs.find((a) => a.key === active);
+  return (
+    <div className="rank2-ring">
+      <svg viewBox="0 0 120 120" role="img" aria-label={data.map((d) => `${d.label} ${d.value}건`).join(', ')}>
+        <circle cx="60" cy="60" r={RING_R} fill="none" stroke="var(--mes-line)" strokeWidth={RING_W} opacity=".5" />
+        {arcs.map((a) => {
+          const on = a.key === active;
+          return (
+            <circle
+              key={a.key}
+              cx="60"
+              cy="60"
+              r={RING_R}
+              fill="none"
+              stroke={a.color}
+              strokeWidth={on ? RING_W + 4 : RING_W}
+              strokeDasharray={`${a.len} ${RING_C - a.len}`}
+              strokeDashoffset={-a.start}
+              transform="rotate(-90 60 60)"
+              className={`rank2-ring-seg${active && !on ? ' is-dim' : ''}`}
+              onMouseEnter={() => onActive(a.key)}
+              onMouseLeave={() => onActive(null)}
+            />
+          );
+        })}
+      </svg>
+      <div className="rank2-ring-center" aria-hidden="true">
+        {cur ? (
+          <>
+            <b>{Math.round((cur.value / total) * 100)}<small>%</small></b>
+            <span>{cur.value}건</span>
+          </>
+        ) : (
+          <>
+            <b>{total}</b>
+            <span>전체 건수</span>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function AlarmRankPage() {
   // ── 사이드바: 랭킹/스탯/스파크라인 ──
@@ -189,6 +250,7 @@ export default function AlarmRankPage() {
   }, [messageCounts]);
 
   const donutTotal = topMessagesDonut.reduce((s, r) => s + r.value, 0);
+  const [donutActive, setDonutActive] = useState(null);
 
   // 설비별 추이를 전체 합계 하나로 접어 사이드바용 미니 스파크라인만 그린다(설비별 세부 추이는
   // 이제 이 페이지의 주인공이 아니라서 뺐다 — 필요하면 설비별 랭킹에서 절대량 비교로 충분).
@@ -379,24 +441,28 @@ export default function AlarmRankPage() {
             {topMessagesDonut.length === 0 ? (
               <div className="rank2-empty">데이터 없음</div>
             ) : (
-              <>
-                <div className="rank2-donut-chart">
-                  <DonutExtruded data={topMessagesDonut} height={200} />
-                  <div className="rank2-donut-center">
-                    <div className="rank2-donut-center-value">{donutTotal}</div>
-                    <div className="rank2-donut-center-label">건</div>
-                  </div>
-                </div>
-                <div className="rank2-donut-legend">
-                  {topMessagesDonut.map((d) => (
-                    <div className="rank2-donut-legend-item" key={d.key} title={d.label}>
-                      <span className="rank2-donut-dot" style={{ background: d.color }} />
-                      <span className="rank2-donut-legend-label">{d.label}</span>
-                      <span className="rank2-donut-legend-pct">{donutTotal ? Math.round((d.value / donutTotal) * 100) : 0}%</span>
-                    </div>
-                  ))}
-                </div>
-              </>
+              <div className="rank2-msg">
+                <MessageRing data={topMessagesDonut} total={donutTotal} active={donutActive} onActive={setDonutActive} />
+                <ol className="rank2-msg-list">
+                  {topMessagesDonut.map((d) => {
+                    const pct = donutTotal ? Math.round((d.value / donutTotal) * 100) : 0;
+                    return (
+                      <li
+                        key={d.key}
+                        className={`rank2-msg-row${donutActive === d.key ? ' is-on' : ''}${donutActive && donutActive !== d.key ? ' is-dim' : ''}`}
+                        title={d.detail ? `${d.label} (${d.detail})` : d.label}
+                        onMouseEnter={() => setDonutActive(d.key)}
+                        onMouseLeave={() => setDonutActive(null)}
+                      >
+                        <span className="rank2-msg-dot" style={{ background: d.color }} />
+                        <span className="rank2-msg-label">{d.label}</span>
+                        <span className="rank2-msg-cnt">{d.value}건</span>
+                        <span className="rank2-msg-pct">{pct}%</span>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </div>
             )}
           </div>
         </div>
@@ -453,13 +519,13 @@ export default function AlarmRankPage() {
                 )}
                 {!histLoading && pagedHistRows.map((a) => (
                   <tr key={a.historyId}>
-                    <td>{a.folderName}</td>
+                    <td style={{ textAlign: 'center' }}>{a.folderName}</td>
                     <td style={{ textAlign: 'center' }}>{fmtDt(a.occurTime)}</td>
                     <td style={{ textAlign: 'center' }}>{a.clearTime ? fmtDt(a.clearTime) : <span style={{ color: 'var(--mes-danger)' }}>활성</span>}</td>
                     <td>{a.tagName}</td>
                     <td>{a.alarmMsg}</td>
                     <td style={{ textAlign: 'center' }}><span className={`mes-badge ${levelBadge(a.level)}`}>Lv{a.level}</span></td>
-                    <td style={{ textAlign: 'right' }}>{a.valueAtOccur}</td>
+                    <td style={{ textAlign: 'center' }}>{a.valueAtOccur}</td>
                   </tr>
                 ))}
               </tbody>

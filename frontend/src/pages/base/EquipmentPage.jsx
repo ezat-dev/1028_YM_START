@@ -292,7 +292,7 @@ export default function EquipmentPage() {
                 <input
                   value={form.equipCode}
                   onChange={(e) => setField('equipCode', e.target.value.toUpperCase())}
-                  placeholder="예) BCF7"
+                  placeholder="예) MBF7"
                   disabled={!!editing}
                   maxLength={20}
                   autoFocus={!editing}

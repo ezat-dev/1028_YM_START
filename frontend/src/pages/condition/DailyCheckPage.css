@@ -142,3 +142,18 @@
   color: var(--mes-text-sub);
   white-space: nowrap;
 }
+
+/* 편집 모드 — 고칠 수 있는 항목 칸을 살짝 표시 */
+.dc-grid-wrap .tabulator-cell.dc-item-editable {
+  background: rgba(95, 128, 198, .05);
+  cursor: text;
+}
+
+.dc-grid-wrap .tabulator-cell.dc-item-editable:hover {
+  box-shadow: inset 0 0 0 1px var(--mes-accent);
+}
+
+.dc-edit-hint {
+  font-size: 12px;
+  color: var(--mes-text-faint);
+}

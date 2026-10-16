@@ -507,6 +507,13 @@ SELECT t.id, t.address, t.type,
         string device  = i > 0 ? address[..i].ToUpperInvariant() : "D";
         string numPart = address[i..];
 
+        if (device == "B")
+        {
+            if (int.TryParse(numPart, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int hexAddr))
+                return (device, hexAddr);
+            return null;
+        }
+
         // X/Y(미쓰비시 입출력 접점) 주소는 실제 현장에서 8진수 라벨(Y110~Y117 등, 실제 물리
         // 상태와 일치하는 걸로 확인됨)과 16진수 블록(Y118~Y11F, X04A/X04B처럼 8진수로는 애초에
         // 표현 안 되는 8/9/A~F 포함)이 "같은 시스템 안에 실제로 섞여" 들어온다 — 그래서 무조건

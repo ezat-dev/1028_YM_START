@@ -409,7 +409,7 @@ export default function ControllerPage() {
               </div>
               <div className="mes-field">
                 <label>설비명 *</label>
-                <input value={form.equipName} onChange={(e) => setForm({ ...form, equipName: e.target.value })} placeholder="예) BCF1" />
+                <input value={form.equipName} onChange={(e) => setForm({ ...form, equipName: e.target.value })} placeholder="예) MBF1" />
               </div>
               <div className="mes-field mes-field-full">
                 <label>구분값(존 위치) *</label>

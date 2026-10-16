@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 public class Equipment {
 
     private Long equipId; // PK
-    private String equipCode; // 설비코드 (예: BCF1)
+    private String equipCode; // 설비코드 (예: MBF1)
     private String equipName; // 설비명
     private String equipType; // 설비 유형
     private String maker; // 제조사

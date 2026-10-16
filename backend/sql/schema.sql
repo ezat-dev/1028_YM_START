@@ -422,7 +422,7 @@ CREATE TABLE IF NOT EXISTS base_pattern_hist (
 -- 설비 상태: 가동 | 정지 | 고장 | 점검 | 유지보수 (현재 상태를 사람이 관리. PLC 신호 연동 후에는 자동 갱신 예정)
 CREATE TABLE IF NOT EXISTS base_equipment (
     equip_id        BIGINT AUTO_INCREMENT PRIMARY KEY,
-    equip_code      VARCHAR(20)  NOT NULL,                -- 설비코드 (예: BCF1)
+    equip_code      VARCHAR(20)  NOT NULL,                -- 설비코드 (예: MBF1)
     equip_name      VARCHAR(100) NOT NULL,                -- 설비명
     equip_type      VARCHAR(50)  NOT NULL DEFAULT '',     -- 설비 유형 (예: 연속열처리로)
     maker           VARCHAR(100) NOT NULL DEFAULT '',     -- 제조사

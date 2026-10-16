@@ -2,28 +2,161 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="FproofMapper">
 
-    <!-- 품질관리 > F/PROOF (quality_fproof) -->
+    <!-- 품질관리 > F/PROOF SAVE / F/PROOF LIST.
+         ez_scada(ezScadaSession)의 tb_alarm_folder / tb_alarm_tag / tb_alarm_history / tb_fproof_alarm / tb_fproof_trigger를 쓴다.
 
-    <select id="selectList" parameterType="map" resultType="com.mes.domain.quality.Fproof">
-        SELECT id, use_yn, reg_dt, upd_dt
-        FROM quality_fproof
-        <where>
-            <if test="keyword != null and keyword != ''">
-                AND id LIKE CONCAT('%', #{keyword}, '%')
-            </if>
-        </where>
-        ORDER BY id DESC
-        LIMIT #{size} OFFSET #{offset}
+         설비 = tb_alarm_folder(예: MBF1~). 이 환경은 PLC 1대(MST_MITSUBISHI)가 모든 설비를 담당해서
+         plc_id로는 설비를 구분할 수 없다(경보랭킹의 "설비별" 집계와 같은 기준).
+
+         Fool Proof 세션 = 설비의 "시작 트리거" 알람이 발생한 시각 ~ 그 뒤 처음 발생한 "종료 트리거" 알람 시각.
+         트리거는 설비별로 tb_fproof_trigger에 지정한다. 지정이 없는 설비는 알람 문구가
+         'Fool Proof 시작' / 'Fool Proof 종료'인 태그를 기본값으로 쓴다. -->
+
+    <!-- ── 테이블 보장(최초 호출 시 1회). 이미 있으면 아무것도 하지 않는다. ── -->
+    <update id="createFproofAlarmTable">
+        CREATE TABLE IF NOT EXISTS tb_fproof_alarm (
+            tag_id  INT         NOT NULL,
+            plc_id  VARCHAR(50) NOT NULL DEFAULT '',
+            PRIMARY KEY (tag_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    </update>
+
+    <update id="createFproofTriggerTable">
+        CREATE TABLE IF NOT EXISTS tb_fproof_trigger (
+            folder_id     INT       NOT NULL,
+            start_tag_id  INT       NOT NULL,
+            end_tag_id    INT       NOT NULL,
+            updated_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (folder_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+    </update>
+
+    <!-- ── F/PROOF SAVE ── -->
+
+    <!-- 설비 목록 + 지정된 트리거(custom*) + 기본 트리거(default*). 최종 값 선택은 서비스에서 한다. -->
+    <select id="selectEquips" resultType="map">
+        SELECT f.folder_id   AS folderId,
+               f.folder_name AS folderName,
+               tr.start_tag_id AS customStartTagId,
+               tr.end_tag_id   AS customEndTagId,
+               (SELECT MIN(t.tag_id) FROM tb_alarm_tag t
+                 WHERE t.folder_id = f.folder_id AND t.alarm_msg = 'Fool Proof 시작') AS defaultStartTagId,
+               (SELECT MIN(t.tag_id) FROM tb_alarm_tag t
+                 WHERE t.folder_id = f.folder_id AND t.alarm_msg = 'Fool Proof 종료') AS defaultEndTagId
+        FROM tb_alarm_folder f
+        LEFT JOIN tb_fproof_trigger tr ON tr.folder_id = f.folder_id
+        ORDER BY CHAR_LENGTH(f.folder_name), f.folder_name
     </select>
 
-    <select id="selectCount" parameterType="map" resultType="long">
-        SELECT COUNT(*)
-        FROM quality_fproof
-        <where>
-            <if test="keyword != null and keyword != ''">
-                AND id LIKE CONCAT('%', #{keyword}, '%')
-            </if>
-        </where>
+    <!-- 설비별 알람 태그(사용 중인 것만) — 지정 목록과 트리거 선택지에 모두 쓴다. -->
+    <select id="selectEquipTags" resultType="map">
+        SELECT tag_id    AS tagId,
+               folder_id AS folderId,
+               tag_name  AS tagName,
+               address   AS address,
+               alarm_msg AS alarmMsg,
+               level     AS level
+        FROM tb_alarm_tag
+        WHERE enabled = 1
+        ORDER BY folder_id ASC, tag_id ASC
+    </select>
+
+    <select id="selectSelectedTagIds" parameterType="int" resultType="int">
+        SELECT DISTINCT fa.tag_id
+        FROM tb_fproof_alarm fa
+        JOIN tb_alarm_tag t ON t.tag_id = fa.tag_id
+        WHERE t.folder_id = #{value}
+        ORDER BY fa.tag_id ASC
+    </select>
+
+    <select id="selectTagFolderId" parameterType="int" resultType="java.lang.Integer">
+        SELECT folder_id FROM tb_alarm_tag WHERE tag_id = #{value}
+    </select>
+
+    <!-- 지정 추가 — 이미 지정된 태그면 아무것도 넣지 않는다(키 구성과 무관하게 중복 방지). -->
+    <insert id="insertSelected" parameterType="map">
+        INSERT INTO tb_fproof_alarm (tag_id, plc_id)
+        SELECT t.tag_id, t.plc_id
+        FROM tb_alarm_tag t
+        WHERE t.tag_id = #{tagId}
+          AND t.folder_id = #{folderId}
+          AND NOT EXISTS (SELECT 1 FROM tb_fproof_alarm fa WHERE fa.tag_id = t.tag_id)
+    </insert>
+
+    <delete id="deleteSelected" parameterType="int">
+        DELETE FROM tb_fproof_alarm WHERE tag_id = #{value}
+    </delete>
+
+    <insert id="upsertTrigger" parameterType="map">
+        INSERT INTO tb_fproof_trigger (folder_id, start_tag_id, end_tag_id)
+        VALUES (#{folderId}, #{startTagId}, #{endTagId})
+        ON DUPLICATE KEY UPDATE
+            start_tag_id = VALUES(start_tag_id),
+            end_tag_id   = VALUES(end_tag_id)
+    </insert>
+
+    <delete id="deleteTrigger" parameterType="int">
+        DELETE FROM tb_fproof_trigger WHERE folder_id = #{value}
+    </delete>
+
+    <!-- ── F/PROOF LIST ──
+         세션 계산(시작·종료 짝짓기, 알람 건수)은 서비스(자바)에서 한다. 한 SQL에 CTE와 상관 서브쿼리를 겹쳐 쓰면
+         이 DB(MariaDB 10.2)에서 응답이 끊기거나 서버가 재시작되는 문제가 있어서, 여기는 인덱스를 타는 단순 조회만 둔다. -->
+
+    <!-- 시작 트리거 알람이 발생한 이력(= 세션 시작 후보). to는 그날 끝까지 포함. -->
+    <select id="selectStartEvents" parameterType="map" resultType="map">
+        SELECT history_id AS historyId,
+               tag_id     AS tagId,
+               DATE_FORMAT(occur_time, '%Y-%m-%d %H:%i:%s') AS occurTime
+        FROM tb_alarm_history
+        WHERE tag_id IN
+            <foreach collection="tagIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+          AND occur_time >= #{from}
+          AND occur_time &lt; DATE_ADD(#{to}, INTERVAL 1 DAY)
+        ORDER BY occur_time ASC, history_id ASC
+    </select>
+
+    <!-- 종료 트리거 알람이 발생한 이력(= 세션 종료 후보). from 이후 전부 — 기간 끝에 시작한 세션의 종료는 to 뒤에 있을 수 있다. -->
+    <select id="selectEndEvents" parameterType="map" resultType="map">
+        SELECT tag_id AS tagId,
+               DATE_FORMAT(occur_time, '%Y-%m-%d %H:%i:%s') AS occurTime
+        FROM tb_alarm_history
+        WHERE tag_id IN
+            <foreach collection="tagIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+          AND occur_time >= #{from}
+        ORDER BY occur_time ASC, history_id ASC
+    </select>
+
+    <!-- F/PROOF 대상으로 지정된 알람의 발생 이력(from ~ to, 둘 다 시각 포함). 세션별 건수·엑셀에 쓴다. -->
+    <select id="selectDesignatedEvents" parameterType="map" resultType="map">
+        SELECT h.history_id AS historyId,
+               atag.folder_id AS folderId,
+               atag.tag_name  AS tagName,
+               atag.alarm_msg AS alarmMsg,
+               DATE_FORMAT(h.occur_time, '%Y-%m-%d %H:%i:%s') AS occurTime,
+               DATE_FORMAT(h.clear_time, '%Y-%m-%d %H:%i:%s') AS clearTime
+        FROM tb_alarm_history h
+        JOIN tb_alarm_tag atag ON atag.tag_id = h.tag_id
+        WHERE EXISTS (SELECT 1 FROM tb_fproof_alarm fa WHERE fa.tag_id = h.tag_id)
+          AND h.occur_time >= #{from}
+          AND h.occur_time &lt;= #{to}
+        ORDER BY h.occur_time ASC, h.history_id ASC
+    </select>
+
+    <!-- 세션 구간의 지정 알람 이력 -->
+    <select id="selectDetail" parameterType="map" resultType="map">
+        SELECT h.history_id AS historyId,
+               atag.tag_name  AS tagName,
+               atag.alarm_msg AS alarmMsg,
+               DATE_FORMAT(h.occur_time, '%Y-%m-%d %H:%i:%s') AS occurTime,
+               DATE_FORMAT(h.clear_time, '%Y-%m-%d %H:%i:%s') AS clearTime
+        FROM tb_alarm_history h
+        JOIN tb_alarm_tag atag ON atag.tag_id = h.tag_id
+        WHERE atag.folder_id = #{folderId}
+          AND EXISTS (SELECT 1 FROM tb_fproof_alarm fa WHERE fa.tag_id = h.tag_id)
+          AND h.occur_time >= #{start}
+          AND h.occur_time &lt;= #{end}
+        ORDER BY h.occur_time ASC, h.history_id ASC
     </select>
 
 </mapper>

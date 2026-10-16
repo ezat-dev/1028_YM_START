@@ -609,8 +609,9 @@
 
 /* ── 차트 카드 ── */
 .trend-chart-card {
-  background: var(--mes-surface);
-  border: 1px solid var(--mes-border);
+  /* 차트와 같은 남색으로 카드까지 칠해 흰 테두리 없이 하나의 어두운 패널로 보이게 */
+  background: #131b2c;
+  border: 1px solid #22304a;
   border-radius: var(--mes-radius-lg);
   box-shadow: var(--mes-shadow-sm);
   padding: 10px;
@@ -634,7 +635,7 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  color: var(--mes-text-faint);
+  color: #7f8fae;
   font-size: 13px;
   line-height: 1.8;
 }
@@ -645,6 +646,28 @@
   align-items: center;
   justify-content: center;
   text-align: center;
-  color: var(--mes-danger);
+  color: #f58a84;
   font-size: 13px;
+}
+
+/* 예시 데이터 보기 */
+.trend-demo-btn.is-on {
+  border-color: #a78bfa;
+  background: rgba(167, 139, 250, .14);
+  color: #6d4fd1;
+}
+
+.trend-demo-badge {
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: rgba(167, 139, 250, .16);
+  font-size: 11px;
+  font-weight: 700;
+  color: #6d4fd1;
+}
+
+.trend-btn:disabled {
+  opacity: .45;
+  cursor: not-allowed;
 }

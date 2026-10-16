@@ -442,9 +442,9 @@ public class MonitoringServiceImpl implements MonitoringService {
         List<Map<String, Object>> rows = monitoringDao.selectTempSnapshotRange(p);
 
         // CP 태그 컬럼은 원시값이 1000배로 찍히므로 ÷1000 보정(sample_pro TempController.snapshotRange와 동일).
-        // 단, scale이 설정된 태그(예: BCF1 계열)는 C# TempMonitorService가 적재 시점에 이미
+        // 단, scale이 설정된 태그(예: MBF1 계열)는 C# TempMonitorService가 적재 시점에 이미
         // scale로 보정해서 저장하므로 여기서 또 ÷1000을 걸면 이중보정이 된다 — scale이 없는
-        // 레거시 태그(BCF6~12 일부)에만 적용한다.
+        // 레거시 태그(MBF6~12 일부)에만 적용한다.
         List<TempTag> tags = monitoringDao.selectTempTagFullList();
         Set<String> cpCols = new HashSet<>();
         for (TempTag t : tags) {

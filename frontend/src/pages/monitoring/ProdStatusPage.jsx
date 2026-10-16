@@ -9,7 +9,7 @@ import './ProdStatusPage.css';
 
 /*
  * 모니터링 > 종합생산현황 — 화면 예시(목업).
- * 연속열처리로 6대(BCF1~6)의 벨트 위 트레이 위치, 존 온도, 현재 패턴을 보여준다.
+ * 연속열처리로 6대(MBF1~6)의 벨트 위 트레이 위치, 존 온도, 현재 패턴을 보여준다.
  * 패턴·제품은 기준정보 > 패턴관리의 실제 데이터를 쓰고(없으면 아래 예시값), 온도 변동·트레이 이동·패턴 교체·알람은
  * 화면 안에서 흉내 낸다. 현장 PLC 태그를 확인한 뒤 simulate()/initFurnaces()를 실데이터 조회로 바꾸면 된다.
  */
@@ -27,6 +27,21 @@ const N = STAGES.length;
 const TICK_MS = 2500;            // 온도 갱신 주기
 // 벨트는 로마다 따로, 틱마다 이 확률로 한 칸 전진 → 평균 약 12.5초에 한 칸, 장입~배출 약 3분
 const BELT_STEP_CHANCE = 0.2;
+// 투입은 4~5개씩 연달아, 묶음 사이는 3~4칸 비운다(LOT 트래킹과 같은 방식)
+const BATCH_MIN = 4;
+const BATCH_MAX = 5;
+const GAP_MIN = 3;
+const GAP_MAX = 4;
+const randInt = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+// 다음 칸에 트레이를 넣을지 정하는 투입기 — { left: 이번 묶음에 남은 개수, gap: 남은 빈 칸 }
+function feedStep(feed) {
+  if (feed.left > 0) {
+    const left = feed.left - 1;
+    return { put: true, feed: left > 0 ? { left, gap: 0 } : { left: 0, gap: randInt(GAP_MIN, GAP_MAX) } };
+  }
+  const gap = feed.gap - 1;
+  return { put: false, feed: gap > 0 ? { left: 0, gap } : { left: randInt(BATCH_MIN, BATCH_MAX), gap: 0 } };
+}
 // 패턴 교체는 18틱(약 45초)에 한 번, 가동 중인 로 하나만
 const PATTERN_CHANGE_EVERY = 18;
 
@@ -153,12 +168,19 @@ function initFurnaces(patterns) {
         wait: rand(4, 30),
       },
     };
+    // 투입기 — 설비마다 묶음 위치가 다르게 시작
+    let feed = Math.random() < 0.5
+      ? { left: randInt(1, BATCH_MAX), gap: 0 }
+      : { left: 0, gap: randInt(1, GAP_MAX) };
     if (def.status !== 'idle') {
-      // 벨트 위에 이미 트레이가 몇 개 올라가 있는 상태로 시작
-      for (let pos = 0; pos < N - 1; pos += 1) {
-        if (Math.random() < 0.55) f.lots.push(newLot(f.no, pattern, pos));
+      // 벨트 위에 이미 묶음 단위로 트레이가 올라가 있는 상태로 시작(출구 쪽부터 채운다)
+      for (let pos = N - 2; pos >= 0; pos -= 1) {
+        const r = feedStep(feed);
+        feed = r.feed;
+        if (r.put) f.lots.push(newLot(f.no, pattern, pos));
       }
     }
+    f.feed = feed;
     STAGES.forEach((s) => { f.pv[s.key] = zonePv(f, s); });
     return f;
   });
@@ -241,8 +263,8 @@ export default function ProdStatusPage() {
     if (!patterns) return;
     setFurnaces(initFurnaces(patterns));
     setEvents([
-      { id: 'e0', time: timeText(), code: 'BCF4', type: 'alarm', text: '퀜칭로 3존 온도 상한 초과' },
-      { id: 'e1', time: timeText(), code: 'BCF6', type: 'idle', text: '정기 점검으로 정지' },
+      { id: 'e0', time: timeText(), code: 'MBF4', type: 'alarm', text: '퀜칭로 3존 온도 상한 초과' },
+      { id: 'e1', time: timeText(), code: 'MBF6', type: 'idle', text: '정기 점검으로 정지' },
     ]);
   }, [patterns]);
 
@@ -277,7 +299,7 @@ export default function ProdStatusPage() {
         }
         let lots = f.lots.filter((l) => !l.leaving);
         let processed = f.processed;
-        let { doneLots } = f;
+        let { doneLots, feed } = f;
         if (Math.random() < BELT_STEP_CHANCE) {
           lots = lots.map((l) => {
             if (l.pos >= N - 1) {
@@ -287,7 +309,9 @@ export default function ProdStatusPage() {
             }
             return { ...l, pos: l.pos + 1 };
           });
-          if (!lots.some((l) => l.pos === 0) && Math.random() < 0.65) {
+          const r = feedStep(feed);
+          feed = r.feed;
+          if (r.put) {
             const lot = newLot(f.no, pattern, 0);
             lots.push(lot);
             // LOT 투입은 자주 일어나서 다 적으면 패턴 변경·알람이 묻힌다 — 일부만
@@ -295,7 +319,7 @@ export default function ProdStatusPage() {
           }
         }
         const powerKwh = f.powerKwh + (rand(185, 210) * TICK_MS) / 3600000;
-        const nf = { ...f, pattern, changedAt, lots, processed, doneLots, powerKwh, elapsedMin: f.elapsedMin + TICK_MS / 60000, pv: {} };
+        const nf = { ...f, pattern, changedAt, lots, processed, doneLots, feed, powerKwh, elapsedMin: f.elapsedMin + TICK_MS / 60000, pv: {} };
         STAGES.forEach((st) => { nf.pv[st.key] = zonePv(nf, st); });
         return nf;
       });
@@ -330,7 +354,7 @@ export default function ProdStatusPage() {
   }, [furnaces]);
 
   return (
-    <div className="mes-page itg-page mes-page-fill">
+    <div className="mes-page itg-page mes-page-fill mes-page-compact">
       {/* 상단 한 줄 — 제목 · 요약 수치 · 최근 이벤트 · 시계. 로 카드에 높이를 최대한 내주려고 한 줄로 압축 */}
       <div className="itg-header-card">
         <div className="itg-title">

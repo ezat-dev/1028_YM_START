@@ -12,7 +12,7 @@ import { getList as getEquipmentList } from '../../api/base/equipmentApi';
 import { getHistoryList, getHistory, createHistory, updateHistory, deleteHistories } from '../../api/equipment/historyApi';
 import {
   daysAgo, nextDay, toLocalInput, fmtDt, inputDt, who, QUICK,
-  AuditCell, FormAudit, AttachEditor, AttachList, ClipCount, applyAttachChanges,
+  FormAudit, AttachEditor, AttachList, ClipCount, applyAttachChanges,
 } from './equipHistShared';
 import '../../styles/downtime.css';
 import '../../styles/equipHist.css';
@@ -130,7 +130,7 @@ export default function HistoryPage() {
 
   const handleExportExcel = () => {
     const sheet = rows.map((r, i) => ({
-      No: i + 1, 이력번호: r.histNo, 발생일시: fmtDt(r.workDt), 설비코드: r.equipCode, 설비명: r.equipName,
+      No: i + 1, 이력번호: r.histNo, 발생일시: fmtDt(r.workDt), 설비명: r.equipName,
       이력유형: r.histType, 이력제목: r.title, 작업내용: r.content, 작업자: r.workerName,
       연결수리: r.repairNo ?? '', 첨부: r.attachCount ?? 0,
       등록자: r.regUserName, 등록자ID: r.regUserId, 등록일시: fmtDt(r.regDt),
@@ -143,24 +143,21 @@ export default function HistoryPage() {
 
   const columns = useMemo(() => [
     { key: 'no', title: 'No', width: 46, align: 'center', render: (r, idx) => idx + 1 },
-    { key: 'histNo', title: '이력번호', width: 124, align: 'center', sortValue: (r) => r.histNo, render: (r) => <span className="eqh-no">{r.histNo}</span> },
+    { key: 'histNo', title: '이력번호', width: 124, fixed: true, align: 'center', sortValue: (r) => r.histNo, render: (r) => <span className="eqh-no">{r.histNo}</span> },
     { key: 'workDt', title: '발생일시', width: 128, align: 'center', sortValue: (r) => r.workDt, render: (r) => <span className="dtm-num">{fmtDt(r.workDt)}</span> },
-    { key: 'equipCode', title: '설비코드', width: 76, align: 'center', sortValue: (r) => r.equipCode, render: (r) => <b className="eqh-code">{r.equipCode}</b> },
-    { key: 'equipName', title: '설비명', width: 130, sortValue: (r) => r.equipName, render: (r) => <span className="eqh-ellipsis" title={r.equipName}>{r.equipName}</span> },
-    { key: 'histType', title: '이력유형', width: 84, align: 'center', sortValue: (r) => r.histType, render: (r) => <HistType value={r.histType} /> },
+    { key: 'equipName', title: '설비명', width: 150, fixed: true, align: 'center', sortValue: (r) => r.equipName, render: (r) => <span className="eqh-ellipsis" title={r.equipName}>{r.equipName}</span> },
+    { key: 'histType', title: '이력유형', width: 120, fixed: true, align: 'center', sortValue: (r) => r.histType, render: (r) => <HistType value={r.histType} /> },
     {
-      key: 'title', title: '이력제목', width: 240, sortValue: (r) => r.title,
+      key: 'title', title: '이력제목', width: 200, sortValue: (r) => r.title,
       render: (r) => (
         <span className="eqh-title-cell">
-          {r.repairId && <span className="eqh-link-tag" title={`수리이력 ${r.repairNo}에서 자동 등록`}><IconHammer size={11} />수리</span>}
           <span className="eqh-ellipsis" title={r.title}>{r.title}</span>
           <ClipCount n={r.attachCount} />
         </span>
       ),
     },
-    { key: 'content', title: '작업내용', width: 220, render: (r) => (r.content ? <span className="eqh-ellipsis eqh-sub" title={r.content}>{r.content.replace(/\n/g, ' · ')}</span> : <span className="dtm-empty">-</span>) },
-    { key: 'workerName', title: '작업자', width: 96, align: 'center', sortValue: (r) => r.workerName, render: (r) => r.workerName || <span className="dtm-empty">-</span> },
-    { key: 'audit', title: '등록 / 수정', width: 180, sortValue: (r) => r.updDt ?? r.regDt, render: (r) => <AuditCell row={r} /> },
+    { key: 'content', title: '작업내용', width: 270, render: (r) => (r.content ? <span className="eqh-ellipsis eqh-sub" title={r.content}>{r.content.replace(/\n/g, ' · ')}</span> : <span className="dtm-empty">-</span>) },
+    { key: 'workerName', title: '작업자', width: 110, sortValue: (r) => r.workerName, render: (r) => r.workerName || <span className="dtm-empty">-</span> },
     {
       key: 'detail', title: '상세', width: 64, align: 'center', fixed: true,
       render: (r) => <button type="button" className="eqh-detail-btn" onClick={() => setDetailId(r.histId)} aria-label={`${r.histNo} 상세`}><IconListDetails size={15} /></button>,
@@ -200,7 +197,7 @@ export default function HistoryPage() {
           </div>
           <select className="mes-field-inline" value={equipSel} onChange={(e) => setEquipSel(e.target.value)} aria-label="설비">
             <option value="">전체 설비</option>
-            {equipments.map((e) => <option key={e.equipId} value={e.equipId}>{e.equipCode} {e.equipName}</option>)}
+            {equipments.map((e) => <option key={e.equipId} value={e.equipId}>{e.equipName}</option>)}
           </select>
           <input
             className="mes-field-inline dtm-keyword"
@@ -320,7 +317,7 @@ function HistoryDetail({ histId, permission, onClose, onEdit, onDeleted, showToa
             </div>
           )}
           <dl className="eqh-dl">
-            <div><dt>설비</dt><dd><b>{h.equipCode}</b> {h.equipName}</dd></div>
+            <div><dt>설비</dt><dd>{h.equipName}</dd></div>
             <div><dt>발생일시</dt><dd className="dtm-num">{fmtDt(h.workDt)}</dd></div>
             <div><dt>작업자</dt><dd>{h.workerName || '-'}</dd></div>
             <div><dt>등록</dt><dd>{who(h.regUserName, h.regUserId) || '-'} · {fmtDt(h.regDt)}</dd></div>
@@ -405,7 +402,7 @@ function HistoryForm({ editing, equipments, user, onClose, onSaved }) {
             <label className="dtm-form-label" htmlFor="eqh-equip">설비 *</label>
             <select id="eqh-equip" className="dtm-input" value={equipId} onChange={(e) => setEquipId(e.target.value)}>
               <option value="">설비를 선택하세요</option>
-              {equipOptions.map((e) => <option key={e.equipId} value={e.equipId}>{e.equipCode} · {e.equipName}</option>)}
+              {equipOptions.map((e) => <option key={e.equipId} value={e.equipId}>{e.equipName}</option>)}
             </select>
           </div>
           <div className="dtm-form-row">

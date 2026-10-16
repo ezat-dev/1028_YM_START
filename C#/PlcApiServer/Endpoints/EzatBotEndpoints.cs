@@ -231,9 +231,30 @@ public static class EzatBotEndpoints
             }
 
             string device = DeviceAliases.TryGetValue(prefix, out var alias) ? alias : prefix;
-            bool ok = HexDevices.Contains(device)
-                ? int.TryParse(numPart, System.Globalization.NumberStyles.HexNumber, null, out int addr)
-                : int.TryParse(numPart, out addr);
+            bool isOctalXy = device is "X" or "Y"
+                && numPart.Length > 0
+                && numPart.All(c => c is >= '0' and <= '7');
+            bool ok;
+            int addr;
+            if (isOctalXy)
+            {
+                try
+                {
+                    addr = Convert.ToInt32(numPart, 8);
+                    ok = true;
+                }
+                catch (OverflowException)
+                {
+                    addr = 0;
+                    ok = false;
+                }
+            }
+            else
+            {
+                ok = HexDevices.Contains(device)
+                    ? int.TryParse(numPart, System.Globalization.NumberStyles.HexNumber, null, out addr)
+                    : int.TryParse(numPart, out addr);
+            }
             if (!ok || addr < 0) continue;
 
             if (!PlcService.IsSupportedMitsubishiDevice(device))

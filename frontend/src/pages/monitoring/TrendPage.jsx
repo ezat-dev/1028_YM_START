@@ -7,7 +7,7 @@ import 'highcharts/esm/modules/export-data';
 import html2canvas from 'html2canvas';
 import {
   IconChartLine, IconPlus, IconCamera, IconFileSpreadsheet, IconRefresh,
-  IconCalendar, IconSearch, IconChevronDown, IconChevronUp, IconBuildingFactory2, IconSettings,
+  IconCalendar, IconSearch, IconChevronDown, IconChevronUp, IconBuildingFactory2, IconSettings, IconFlask,
 } from '@tabler/icons-react';
 import Toast from '../../components/ui/Toast';
 import Modal from '../../components/ui/Modal';
@@ -20,6 +20,7 @@ import {
   getEquipFromTag, isCpTag, isFlowTag, isSpTag,
   applyValueCorrection, buildTagColorMap, tagColor, getSnapshotValue, parseTs,
 } from '../../utils/trendScale';
+import { DEMO_TAGS, DEMO_RAMP_LEAD, makeDemoRows, makeDemoMemos } from '../../mocks/trendMock';
 import './TrendPage.css';
 
 const EMPTY_SETTINGS_FORM = {
@@ -34,7 +35,9 @@ const EMPTY_SETTINGS_FORM = {
 
 const PERIOD_LABEL = { '1h': '최근 1시간', '6h': '최근 6시간', '24h': '최근 24시간', '3d': '최근 3일', '7d': '최근 7일' };
 const PERIOD_MS = { '1h': 3600000, '6h': 21600000, '24h': 86400000, '3d': 259200000, '7d': 604800000 };
-const EQUIP_TABS = ['ALL', 'BCF1', 'BCF2', 'BCF3', 'BCF4', 'BCF5', 'BCF6'];
+const EQUIP_TABS = ['ALL', 'MBF1', 'MBF2', 'MBF3', 'MBF4', 'MBF5', 'MBF6'];
+// Highcharts는 기본이 UTC라 축·툴팁 시각이 9시간 어긋난다 — 브라우저 시간대로 맞춘다
+const LOCAL_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 function pad(n) { return String(n).padStart(2, '0'); }
 function toLocalInput(dt) {
@@ -55,9 +58,12 @@ function esc(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&
 
 export default function TrendPage() {
   const { user } = useAuth();
-  const [tags, setTags] = useState([]);
-  const [selectedCols, setSelectedCols] = useState({});
-  const [curEquip, setCurEquip] = useState('ALL');
+  // 실데이터가 아직 없어서 처음에는 예시 데이터를 켠 상태로 연다(툴바 버튼으로 끌 수 있음)
+  const [tags, setTags] = useState(DEMO_TAGS);
+  const [selectedCols, setSelectedCols] = useState(() => Object.fromEntries(
+    DEMO_TAGS.filter((t) => t.equipId === 'MBF1').map((t) => [t.colName, t.demoDefault]),
+  ));
+  const [curEquip, setCurEquip] = useState('MBF1');
   const [curPeriod, setCurPeriod] = useState('6h');
   const [isCustom, setIsCustom] = useState(false);
   const [fromTime, setFromTime] = useState('');
@@ -84,10 +90,17 @@ export default function TrendPage() {
   const [settingsForm, setSettingsForm] = useState(EMPTY_SETTINGS_FORM);
   const [settingsFormError, setSettingsFormError] = useState('');
   const [settingsSaving, setSettingsSaving] = useState(false);
+  // 예시 데이터 보기 — 켜면 실제 태그·스냅샷 대신 1~6호기 예시 태그와 값을 보여준다(DB에는 아무것도 쓰지 않음)
+  const [demo, setDemo] = useState(true);
+  const demoRef = useRef(true); // 비동기 태그 로드에서 현재 예시 여부를 보기 위해
+  demoRef.current = demo;
+  const realTagsRef = useRef(null); // 실제 태그·선택 상태(예시를 끄면 이걸로 돌아간다)
+  const demoAnchorRef = useRef(Date.now() - DEMO_RAMP_LEAD); // 예시 승온 시작 시각(켠 시각 기준으로 잡아 6시간 화면에 승온~안정이 보이게)
 
   const { toast, showToast } = useToast();
   const chartRef = useRef(null);
   const chartBoxRef = useRef(null);
+  const [chartBoxW, setChartBoxW] = useState(0); // 메모 라벨이 오른쪽에 들어갈지 판단용
   const dragRef = useRef({ active: false, x0: 0, x1: 0 });
   const curFromRef = useRef('');
   const curToRef = useRef('');
@@ -100,21 +113,23 @@ export default function TrendPage() {
 
     getTags().then((res) => {
       const list = (res.data ?? []).filter((t) => t.enabled === 1);
-      setTags(list);
-      if (!list.length) return;
       let firstEquip = null;
       list.forEach((t) => { const eq = getEquipFromTag(t); if (eq && !firstEquip) firstEquip = eq; });
-      const eq = firstEquip || 'ALL';
-      setCurEquip(eq);
+      const eq = list.length ? (firstEquip || 'ALL') : 'ALL';
+      const sel = {};
       if (eq !== 'ALL') {
-        const sel = {};
         list.forEach((t) => { if (getEquipFromTag(t) === eq) sel[t.colName] = isDefaultTag(t); });
         if (!Object.values(sel).some(Boolean)) {
           let cnt = 0;
           list.forEach((t) => { if (getEquipFromTag(t) === eq && cnt < 2) { sel[t.colName] = true; cnt += 1; } });
         }
-        setSelectedCols(sel);
       }
+      // 예시를 보고 있는 동안에는 실제 태그를 따로 보관만 하고, 예시를 끄면 그때 적용한다
+      realTagsRef.current = { tags: list, selectedCols: sel, curEquip: eq };
+      if (demoRef.current) return;
+      setTags(list);
+      setCurEquip(eq);
+      setSelectedCols(sel);
     }).catch(() => showToast('태그 목록을 불러오지 못했습니다.', 'error'));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -128,6 +143,18 @@ export default function TrendPage() {
     const to = toSqlDateTime(new Date(toTime));
     curFromRef.current = from;
     curToRef.current = to;
+    if (demo) {
+      setChartRows(makeDemoRows(from, to, demoAnchorRef.current));
+      setLoadError(false);
+      const memoList = makeDemoMemos(from, to, demoAnchorRef.current);
+      setMemos(memoList);
+      setMemoVisible((prev) => {
+        const next = { ...prev };
+        memoList.forEach((m) => { if (next[m.tcCnt] === undefined) next[m.tcCnt] = true; });
+        return next;
+      });
+      return;
+    }
     try {
       const [snapRes, memoRes] = await Promise.all([
         getSnapshotRange(from, to),
@@ -145,7 +172,7 @@ export default function TrendPage() {
     } catch (e) {
       setLoadError(true);
     }
-  }, [fromTime, toTime]);
+  }, [fromTime, toTime, demo]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -186,6 +213,7 @@ export default function TrendPage() {
       // reflow()는 옵션에 height가 명시되지 않으면 높이는 다시 측정하지 않고 폭만 반응하는
       // 경우가 있어(하이차트 특유 동작), 관찰된 실제 크기를 setSize로 직접 지정한다.
       chartRef.current?.chart?.setSize(rect.width, rect.height, false);
+      setChartBoxW(Math.round(rect.width));
     });
     ro.observe(el);
     return () => ro.disconnect();
@@ -230,7 +258,7 @@ export default function TrendPage() {
 
   const applyDefaultSelFor = (equipId, list) => {
     const sel = {};
-    list.forEach((t) => { if (getEquipFromTag(t) === equipId) sel[t.colName] = isDefaultTag(t); });
+    list.forEach((t) => { if (getEquipFromTag(t) === equipId) sel[t.colName] = t.demoDefault ?? isDefaultTag(t); });
     if (!Object.values(sel).some(Boolean)) {
       let cnt = 0;
       list.forEach((t) => { if (getEquipFromTag(t) === equipId && cnt < 2) { sel[t.colName] = true; cnt += 1; } });
@@ -270,7 +298,25 @@ export default function TrendPage() {
 
   const applyCustomRange = () => setIsCustom(true);
 
-  // ── KPI 카드 ──
+  const toggleDemo = () => {
+    if (!demo) {
+      realTagsRef.current = { tags, selectedCols, curEquip };
+      demoAnchorRef.current = Date.now() - DEMO_RAMP_LEAD;
+      setTags(DEMO_TAGS);
+      setCurEquip('MBF1');
+      setSelectedCols(applyDefaultSelFor('MBF1', DEMO_TAGS));
+      setDemo(true);
+    } else {
+      const saved = realTagsRef.current;
+      setTags(saved?.tags ?? []);
+      setSelectedCols(saved?.selectedCols ?? {});
+      setCurEquip(saved?.curEquip ?? 'ALL');
+      setMemos([]);
+      setDemo(false);
+    }
+  };
+
+  // ── 현재 값 카드(최근값·평균·최소·최대) ──
   const kpiData = useMemo(() => selList.map((t) => {
     const vals = chartRows
       .map((row) => applyValueCorrection(parseFloat(getSnapshotValue(row, t)), t))
@@ -310,20 +356,45 @@ export default function TrendPage() {
       };
     });
 
+    // 라벨 폭을 글자 수로 어림해 시간 폭으로 바꾼다 — 오른쪽에 안 들어가면 선 왼쪽으로 펼치고,
+    // 메모끼리 겹치면 아래 줄로 내린다
+    const firstTs = parseTs(chartRows[0]?.record_time || chartRows[0]?.recordTime);
+    const lastTs = parseTs(chartRows[chartRows.length - 1]?.record_time || chartRows[chartRows.length - 1]?.recordTime);
+    const span = firstTs && lastTs ? lastTs - firstTs : 0;
+    // 플롯 폭 — 이미 그려진 차트가 있으면 실제 값, 없으면 상자 폭에서 좌우 축 라벨 폭을 뺀 어림값
+    const plotPx = chartRef.current?.chart?.plotWidth || Math.max(600, (chartBoxW || 1200) - 130);
+    // 한글은 영문·숫자보다 넓다(제목 11px, 내용 10px 기준 어림)
+    const textPx = (str, size) => [...String(str || '')].reduce((w, ch) => w + (/[가-힣]/.test(ch) ? size : size * 0.6), 0);
+    const labelPx = (m) => Math.max(textPx(m.tcName, 11.5), textPx(m.tcDesc, 10)) + 22;
+    const labelSpan = (m) => (span * labelPx(m)) / plotPx;
+    const rowsUsed = []; // 줄마다 차지한 [시작, 끝] 목록
     const plotLines = memos
       .filter((m) => memoVisible[m.tcCnt] !== false)
+      .slice()
+      .sort((a, b) => (parseTs(a.tcRegtime) ?? 0) - (parseTs(b.tcRegtime) ?? 0))
       .map((m) => {
         const ts = parseTs(m.tcRegtime);
         if (!ts) return null;
+        const labelW = labelSpan(m);
+        const flip = Boolean(span) && ts + labelW > lastTs;
+        // 메모 색 — 기본 보라, 이상(tone: 'alert', 예: 통신 재연결)은 연빨강
+        const alert = m.tone === 'alert';
+        const lineColor = alert ? '#f19a9a' : '#805AD5';
+        const labelBg = alert ? 'rgba(229, 115, 115, .62)' : 'rgba(128,90,213,.55)';
+        const box = flip ? [ts - labelW, ts] : [ts, ts + labelW];
+        let row = 0;
+        while (span && (rowsUsed[row] ?? []).some(([a, b]) => box[0] < b && box[1] > a)) row += 1;
+        (rowsUsed[row] = rowsUsed[row] ?? []).push(box);
         return {
           id: `memo-${m.tcCnt}`,
-          value: ts, color: '#805AD5', width: 1.5, dashStyle: 'ShortDash', zIndex: 5,
+          value: ts, color: lineColor, width: 1.5, dashStyle: 'ShortDash', zIndex: 5,
           label: {
             useHTML: true,
             // span+<br/>로 두 줄을 쪼개면 인라인 요소 특성상 배경이 줄마다 따로 그려진다 —
             // div(블록)로 감싸야 배경 하나가 제목+내용 전체를 통째로 덮는다.
-            text: `<div style="background:rgba(128,90,213,.55);color:#fff;padding:3px 7px;border-radius:5px;font-size:11px;font-weight:600;white-space:nowrap;line-height:1.4">${esc(m.tcName || '')}${m.tcDesc ? `<div style="font-weight:400;font-size:8px;opacity:.92">${esc(m.tcDesc)}</div>` : ''}</div>`,
-            rotation: 0, align: 'left', x: 3, y: 14,
+            text: `<div style="background:${labelBg};color:#fff;padding:3px 7px;border-radius:5px;font-size:11px;font-weight:600;white-space:nowrap;line-height:1.4">${esc(m.tcName || '')}${m.tcDesc ? `<div style="font-weight:400;font-size:10px;opacity:.92">${esc(m.tcDesc)}</div>` : ''}</div>`,
+            // 플롯 맨 위에 붙지 않게 조금 내린다
+            rotation: 0, align: flip ? 'right' : 'left', textAlign: flip ? 'right' : 'left', x: flip ? -4 : 4, y: 34 + row * 40,
           },
         };
       })
@@ -332,11 +403,13 @@ export default function TrendPage() {
     return {
       chart: {
         type: 'spline', animation: false, zoomType: 'x',
-        backgroundColor: '#141c2e', plotBackgroundColor: '#0e1623',
+        // 배경은 카드(.trend-chart-card)가 칠한다 — 차트·플롯 영역을 투명하게 둬서 카드와 색 경계가 생기지 않게
+        backgroundColor: 'transparent', plotBackgroundColor: 'rgba(255, 255, 255, 0.015)',
         panning: { enabled: true, type: 'x' }, panKey: 'shift',
         style: { fontFamily: "'Segoe UI','Malgun Gothic',sans-serif" },
       },
       title: { text: null },
+      time: { timezone: LOCAL_TZ },
       xAxis: {
         type: 'datetime', lineColor: '#2d3d5a', tickColor: '#2d3d5a', gridLineColor: '#1a2840',
         labels: { format: '{value:%m/%d %H:%M}', style: { fontSize: '11px', color: '#8899bb' } },
@@ -352,7 +425,10 @@ export default function TrendPage() {
         shared: true, backgroundColor: '#0d1628', borderColor: '#2d3d5a', borderRadius: 8,
         style: { color: '#d0ddf0' },
         formatter() {
-          let s = `<span style="font-size:10px;color:#8899bb">${Highcharts.dateFormat('%Y-%m-%d %H:%M:%S', this.x)}</span><br/>`;
+          const d = new Date(this.x);
+          const p2 = (n) => String(n).padStart(2, '0');
+          const when = `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())} ${p2(d.getHours())}:${p2(d.getMinutes())}:${p2(d.getSeconds())}`;
+          let s = `<span style="font-size:10px;color:#8899bb">${when}</span><br/>`;
           this.points.forEach((p) => {
             const dec = p.series.userOptions.custom?.isCp ? 3 : (p.series.userOptions.custom?.isFlow ? 2 : 1);
             s += `<span style="color:${p.series.color}">●</span> ${p.series.name}: <b>${p.y.toFixed(dec)}</b><br/>`;
@@ -369,7 +445,7 @@ export default function TrendPage() {
       series,
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selList, chartRows, memos, memoVisible, tagColorMap, tags]);
+  }, [selList, chartRows, memos, memoVisible, tagColorMap, tags, chartBoxW]);
 
   // ── Alt+드래그 구간 평균 ──
   useEffect(() => {
@@ -447,6 +523,7 @@ export default function TrendPage() {
   };
   const toggleMemo = (tcCnt) => setMemoVisible((prev) => ({ ...prev, [tcCnt]: prev[tcCnt] === false }));
   const removeMemo = async (tcCnt) => {
+    if (demo) { showToast('예시 데이터의 메모는 삭제할 수 없습니다.', 'error'); return; }
     if (!window.confirm('메모를 삭제하시겠습니까?')) return;
     try {
       await deleteMemo(tcCnt);
@@ -459,7 +536,7 @@ export default function TrendPage() {
   // ── PNG / CSV·XLS 내보내기 ──
   const savePng = () => {
     if (!chartBoxRef.current) return;
-    html2canvas(chartBoxRef.current, { backgroundColor: '#0d1929', scale: 2, useCORS: true, logging: false }).then((canvas) => {
+    html2canvas(chartBoxRef.current, { backgroundColor: '#131b2c', scale: 2, useCORS: true, logging: false }).then((canvas) => {
       const a = document.createElement('a');
       const now = new Date();
       a.href = canvas.toDataURL('image/png');
@@ -614,6 +691,7 @@ export default function TrendPage() {
             <IconChartLine size={16} />
             <h2 className="trend-title">TREND</h2>
             <span className="trend-title-desc">설비 온도/유량 트렌드 — {periodLabel}</span>
+            {demo && <span className="trend-demo-badge">예시 데이터</span>}
           </div>
           {!isCustom && (
             <div className="trend-live-badge">
@@ -643,14 +721,23 @@ export default function TrendPage() {
             <input type="datetime-local" className="trend-input" value={toTime} onChange={(e) => setToTime(e.target.value)} />
             <button className="trend-btn" onClick={applyCustomRange}>적용</button>
             <button className="trend-btn-icon" title="새로고침" onClick={fetchData}><IconRefresh size={15} /></button>
+            <button
+              type="button"
+              className={`trend-btn trend-demo-btn${demo ? ' is-on' : ''}`}
+              aria-pressed={demo}
+              title={demo ? '실제 데이터로 돌아갑니다' : '1~6호기 예시 값으로 차트를 그려 봅니다(저장되지 않음)'}
+              onClick={toggleDemo}
+            >
+              <IconFlask size={14} /> {demo ? '예시 데이터 끄기' : '예시 데이터 보기'}
+            </button>
           </div>
 
           <div className="trend-actions">
             <button className="trend-btn" onClick={() => setKpiOpen((v) => !v)}>
-              {kpiOpen ? <IconChevronUp size={14} /> : <IconChevronDown size={14} />} KPI
+              {kpiOpen ? <IconChevronUp size={14} /> : <IconChevronDown size={14} />} 현재 값
             </button>
-            <button className="trend-btn" onClick={openSettings}><IconSettings size={15} /> 트렌드 설정</button>
-            <button className="trend-btn" onClick={openMemoModal}><IconPlus size={15} /> 메모</button>
+            <button className="trend-btn" onClick={openSettings} disabled={demo} title={demo ? '예시 데이터 보기 중에는 설정할 수 없습니다' : undefined}><IconSettings size={15} /> 트렌드 설정</button>
+            <button className="trend-btn" onClick={openMemoModal} disabled={demo} title={demo ? '예시 데이터 보기 중에는 메모를 남길 수 없습니다' : undefined}><IconPlus size={15} /> 메모</button>
             <button className="trend-btn" onClick={savePng}><IconCamera size={15} /> PNG</button>
             <button className="trend-btn" onClick={saveXls}><IconFileSpreadsheet size={15} /> XLS</button>
           </div>
@@ -672,7 +759,7 @@ export default function TrendPage() {
 
       {kpiOpen && (
         <div className="trend-kpi-card">
-          <div className="trend-kpi-header">KPI 요약{kpiData.length > 0 ? ` · ${kpiData.length}` : ''}</div>
+          <div className="trend-kpi-header">현재 값{kpiData.length > 0 ? ` · ${kpiData.length}` : ''}</div>
           <div className="trend-kpi-grid">
             {kpiData.length === 0 && <div className="trend-chart-empty" style={{ padding: '10px 0', gridColumn: '1 / -1' }}>선택된 태그가 없습니다.</div>}
             {kpiData.map((k) => (
@@ -857,7 +944,7 @@ export default function TrendPage() {
               </div>
               <div className="mes-field">
                 <label>설비</label>
-                <input value={settingsForm.equipId} onChange={(e) => setSettingsForm({ ...settingsForm, equipId: e.target.value })} placeholder="예) BCF1" />
+                <input value={settingsForm.equipId} onChange={(e) => setSettingsForm({ ...settingsForm, equipId: e.target.value })} placeholder="예) MBF1" />
               </div>
               <div className="mes-field">
                 <label>컬럼명 (비워두면 자동 생성)</label>

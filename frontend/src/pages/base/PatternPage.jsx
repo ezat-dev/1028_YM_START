@@ -106,6 +106,26 @@ export default function PatternPage() {
   const [history, setHistory] = useState(null);
 
   const tableRef = useRef(null);
+  const [tableWidth, setTableWidth] = useState(0);
+  // 콜백 ref — 표 영역이 나중에 그려져도(권한 확인 뒤 등) 그때 폭 감시를 붙인다
+  const wrapObserverRef = useRef(null);
+  const tableWrapRef = useCallback((el) => {
+    wrapObserverRef.current?.();
+    wrapObserverRef.current = null;
+    if (!el) return;
+    const measure = () => {
+      const w = Math.floor(el.getBoundingClientRect().width);
+      if (w) setTableWidth(w);
+    };
+    measure(); // 처음 그릴 때 바로 한 번
+    const observer = new ResizeObserver(measure); // 사이드바 접기 등 영역 변화
+    observer.observe(el);
+    window.addEventListener('resize', measure);
+    wrapObserverRef.current = () => {
+      observer.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, []);
   const openEditRef = useRef(null);
 
   const { toast, showToast } = useToast();
@@ -266,13 +286,24 @@ export default function PatternPage() {
     XLSX.writeFile(wb, `패턴목록_${todayStr()}.xlsx`);
   };
 
+  // 화면이 넓어지면 남는 폭을 퀜칭로·템퍼링로 존·속도 칸이 나눠 갖게 직접 계산한다
+  // (Tabulator fitColumns는 frozen 칸과 섞이면 남는 폭을 안 채워서 이 방식으로 — 일상점검일지와 같은 방법).
+  // 고정 칸: 체크 40 + No 48 + 패턴 116 + 거래처 104 + 품번 116 + 품명 132 + 장입량 84 + CP 64 + 사용 78 + 수정일 96
+  const fixedW = (permission.canDelete ? 40 : 0) + 48 + 116 + 104 + 116 + 132 + 84 + 64 + 78 + 96;
+  const ZONE_MIN = 54;
+  const SPEED_RATIO = 78 / ZONE_MIN; // 속도 칸은 존 칸보다 이만큼 넓게
+  const growUnits = ZONES.length * 2 + SPEED_RATIO * 2;
+  const unit = tableWidth ? Math.max(ZONE_MIN, Math.floor((tableWidth - fixedW - 2) / growUnits)) : ZONE_MIN;
+  const zoneW = unit;
+  const speedW = Math.max(78, Math.floor(unit * SPEED_RATIO));
+
   const zoneCols = (prefix, groupClass) => [
     ...ZONES.map((z, i) => ({
-      title: `${z}존`, field: `${prefix}${z}Zone`, width: 54, minWidth: 54, hozAlign: 'center', headerSort: false,
+      title: `${z}존`, field: `${prefix}${z}Zone`, width: zoneW, minWidth: 54, hozAlign: 'center', headerSort: false,
       formatter: fmtTemp, cssClass: `pat-z ${groupClass}${i === 0 ? ' pat-sep' : ''}`,
     })),
     {
-      title: '속도', field: prefix === 'q' ? 'quenchSpeed' : 'temperSpeed', width: 78, minWidth: 78, hozAlign: 'center',
+      title: '속도', field: prefix === 'q' ? 'quenchSpeed' : 'temperSpeed', width: speedW, minWidth: 78, hozAlign: 'center',
       headerSort: false, formatter: fmtSpeed, cssClass: `pat-z ${groupClass}`,
     },
   ];
@@ -312,7 +343,7 @@ export default function PatternPage() {
       },
       { title: '템퍼링로 (℃)', cssClass: 'pat-grp pat-grp-t', columns: zoneCols('t', 'pat-t') },
       {
-        title: '사용', field: 'useYn', width: 64, minWidth: 64, hozAlign: 'center', cssClass: 'pat-sep',
+        title: '사용', field: 'useYn', width: 78, minWidth: 78, hozAlign: 'center', cssClass: 'pat-sep',
         formatter: (c) => (c.getValue() === 'Y'
           ? '<span class="mes-badge mes-badge-success">사용</span>'
           : '<span class="mes-badge pat-badge-off">미사용</span>'),
@@ -324,7 +355,7 @@ export default function PatternPage() {
     );
     return cols;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [permission.canDelete]);
+  }, [permission.canDelete, zoneW, speedW]);
 
   const tableOptions = useMemo(() => ({
     layout: 'fitDataStretch',
@@ -399,7 +430,7 @@ export default function PatternPage() {
       </div>
 
       <div className="mes-card mes-card-fill pat-table-card">
-        <div className="pat-table-wrap">
+        <div className="pat-table-wrap" ref={tableWrapRef}>
           <DataTable data={rows} columns={columns} options={tableOptions} height="100%" onTableReady={handleTableReady} />
         </div>
       </div>

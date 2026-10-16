@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import * as XLSX from 'xlsx';
-import { IconBox, IconPlus, IconTrash, IconFileSpreadsheet, IconArrowsExchange } from '@tabler/icons-react';
+import {
+  IconBox, IconPlus, IconTrash, IconFileSpreadsheet, IconArrowsExchange, IconPackageImport, IconPackageExport,
+} from '@tabler/icons-react';
 import SimpleTable from '../../components/ui/SimpleTable';
 import Modal from '../../components/ui/Modal';
 import Toast from '../../components/ui/Toast';
@@ -210,11 +212,23 @@ export default function SparePartPage() {
     setHistoryFormOpen(true);
   };
 
+  // 재고 현황 행의 '입고'/'사용' 버튼 — 그 부품과 구분을 미리 골라 둔 채로 연다
+  const openRowHistoryForm = useCallback((row, kind) => {
+    setHistoryForm({ ...EMPTY_HISTORY_FORM, sparePartId: row.id, type: kind });
+    setHistoryFormError('');
+    setHistoryFormOpen(true);
+  }, []);
+
   const handleSubmitHistory = async (e) => {
     e.preventDefault();
     setHistoryFormError('');
     if (!historyForm.sparePartId) { setHistoryFormError('부품을 선택하세요.'); return; }
     if (!historyForm.qty || Number(historyForm.qty) <= 0) { setHistoryFormError('수량은 1 이상이어야 합니다.'); return; }
+    const target = parts.find((p) => String(p.id) === String(historyForm.sparePartId));
+    if (historyForm.type === 'OUT' && target && Number(historyForm.qty) > Number(target.currentStock)) {
+      setHistoryFormError(`현재고(${target.currentStock}${target.unit ?? ''})보다 많이 사용할 수 없습니다.`);
+      return;
+    }
 
     setHistorySaving(true);
     try {
@@ -277,15 +291,37 @@ export default function SparePartPage() {
   const partColumns = useMemo(() => [
     { key: 'no', title: 'No', width: 46, align: 'center', render: (r, idx) => idx + 1 },
     { key: 'partName', title: '품명', width: 150, sortValue: (r) => r.partName, render: (r) => <span className="spr-part-name">{r.partName}</span> },
-    { key: 'equipName', title: '적용설비', width: 130, sortValue: (r) => r.equipName, render: (r) => <MetaText value={r.equipName} /> },
+    { key: 'equipName', title: '적용설비', width: 100, sortValue: (r) => r.equipName, render: (r) => <MetaText value={r.equipName} /> },
     { key: 'standard', title: '규격', width: 120, render: (r) => <MetaText value={r.standard} /> },
     { key: 'currentStock', title: '현재고', width: 90, align: 'right', render: (r) => <StockValue value={r.currentStock} unit={r.unit} status={r.stockStatus} /> },
-    { key: 'safeStock', title: '안전재고', width: 90, align: 'right', render: (r) => <span className="spr-num">{r.safeStock}{r.unit}</span> },
-    { key: 'stockStatus', title: '재고상태', width: 100, align: 'center', render: (r) => <StatusTag value={r.stockStatus} /> },
-    { key: 'storageLocation', title: '보관위치', width: 110, render: (r) => <MetaText value={r.storageLocation} /> },
+    { key: 'safeStock', title: '안전재고', width: 108, align: 'right', render: (r) => <span className="spr-num">{r.safeStock}{r.unit}</span> },
+    // 왼쪽의 안전재고(오른쪽 정렬 숫자)와 붙어 보이지 않게 제목·값을 같이 들여 쓴다
+    { key: 'stockStatus', title: <span className="spr-status-indent">재고상태</span>, width: 108, render: (r) => <span className="spr-status-indent"><StatusTag value={r.stockStatus} /></span> },
+    { key: 'storageLocation', title: '보관위치', width: 92, render: (r) => <MetaText value={r.storageLocation} /> },
     { key: 'regUserName', title: '등록자', width: 90, align: 'center', render: (r) => <MetaText value={r.regUserName} /> },
     { key: 'remark', title: '비고', width: 200, render: (r) => <MetaText value={r.remark} /> },
-  ], []);
+    {
+      key: 'inout', title: '입고 / 사용', width: 136, align: 'center', fixed: true,
+      render: (r) => (permission.canCreate ? (
+        // 더블클릭(부품 수정)이 같이 열리지 않게 막는다
+        <span className="spr-row-btns" onDoubleClick={(e) => e.stopPropagation()}>
+          <button type="button" className="spr-row-btn is-in" onClick={() => openRowHistoryForm(r, 'IN')} aria-label={`${r.partName} 입고 등록`}>
+            <IconPackageImport size={13} />입고
+          </button>
+          <button
+            type="button"
+            className="spr-row-btn is-out"
+            onClick={() => openRowHistoryForm(r, 'OUT')}
+            disabled={Number(r.currentStock) <= 0}
+            title={Number(r.currentStock) <= 0 ? '재고가 없습니다' : undefined}
+            aria-label={`${r.partName} 사용 등록`}
+          >
+            <IconPackageExport size={13} />사용
+          </button>
+        </span>
+      ) : <span className="spr-empty">-</span>),
+    },
+  ], [permission.canCreate, openRowHistoryForm]);
 
   const historyColumns = useMemo(() => [
     { key: 'no', title: 'No', width: 46, align: 'center', render: (r, idx) => idx + 1 },
@@ -482,7 +518,7 @@ export default function SparePartPage() {
       )}
 
       {historyFormOpen && (
-        <Modal title="입고/사용 등록" onClose={() => setHistoryFormOpen(false)}>
+        <Modal title={historyForm.type === 'OUT' ? '사용 등록' : '입고 등록'} onClose={() => setHistoryFormOpen(false)}>
           <form onSubmit={handleSubmitHistory}>
             <div className="mes-form-grid">
               <div className="mes-field mes-field-full">

@@ -27,7 +27,8 @@ import DailyCheckPage from '../pages/condition/DailyCheckPage';
 import StandardPage from '../pages/condition/StandardPage';
 import CpkPage from '../pages/quality/CpkPage';
 import PpkPage from '../pages/quality/PpkPage';
-import FproofPage from '../pages/quality/FproofPage';
+import FproofSavePage from '../pages/quality/FproofSavePage';
+import FproofListPage from '../pages/quality/FproofListPage';
 import TempUniformPage from '../pages/quality/TempUniformPage';
 import HardnessPage from '../pages/quality/HardnessPage';
 import NonconformPage from '../pages/quality/NonconformPage';
@@ -70,7 +71,8 @@ const menuRoutes = [
   { path: 'condition/standard', element: StandardPage },
   { path: 'quality/cpk', element: CpkPage },
   { path: 'quality/ppk', element: PpkPage },
-  { path: 'quality/fproof', element: FproofPage },
+  { path: 'quality/fproofSave', element: FproofSavePage },
+  { path: 'quality/fproofList', element: FproofListPage },
   { path: 'quality/tempUniform', element: TempUniformPage },
   { path: 'quality/hardness', element: HardnessPage },
   { path: 'quality/nonconform', element: NonconformPage },

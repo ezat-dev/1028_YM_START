@@ -6,7 +6,7 @@
 // {
 //   polledAt: 1760241609000,               // C# 캐시가 PLC를 마지막으로 읽은 시각(ms)
 //   furnaces: [{
-//     code: 'BCF1', status: 'run' | 'alarm' | 'idle', idleReason?, alarm?: { zone: 'q3', message },
+//     code: 'MBF1', status: 'run' | 'alarm' | 'idle', idleReason?, alarm?: { zone: 'q3', message },
 //     moveCount: 1234,                     // 이송 카운터(PLC) — 값이 바뀌면 벨트가 한 피치 이동한 것
 //     lastMoveAt: 1760241590000,           // 마지막 이송 시각
 //     pitchSec: 45,                        // 평균 이송 주기(초)

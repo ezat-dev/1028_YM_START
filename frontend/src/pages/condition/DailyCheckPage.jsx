@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as XLSX from 'xlsx';
 import {
   IconClipboardCheck, IconSearch, IconPlus, IconTrash, IconFileSpreadsheet, IconLock,
-  IconDeviceTablet, IconChevronLeft, IconChevronRight,
+  IconDeviceTablet, IconChevronLeft, IconChevronRight, IconEdit, IconCheck,
 } from '@tabler/icons-react';
 import DataTable from '../../components/ui/DataTable';
 import Modal from '../../components/ui/Modal';
@@ -86,12 +86,16 @@ export default function DailyCheckPage() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(false);
   const [tabletMode, setTabletMode] = useState(false);
+  // 편집 모드 — 켜야 항목(행) 추가·삭제와 항목명·항목설명·타입 수정이 된다.
+  // 평소에는 날짜 칸 값 입력만 되게 해서 항목명을 실수로 고치는 일을 막는다.
+  const [editMode, setEditMode] = useState(false);
   const [tabletCenterDay, setTabletCenterDay] = useState(() => new Date().getDate());
   const [insertModalOpen, setInsertModalOpen] = useState(false);
   const [insertYm, setInsertYm] = useState(currentYm());
   const [viewerFile, setViewerFile] = useState(null);
   const { toast, showToast } = useToast();
   const permission = usePermission('/condition/dailyCheck');
+  const canEditItems = permission.canCreate || permission.canUpdate || permission.canDelete;
   const { setCollapsed: setSidebarCollapsed } = useSidebar();
   const tableRef = useRef(null);
   const uploadCntRef = useRef(null);
@@ -249,9 +253,11 @@ export default function DailyCheckPage() {
 
   const columns = useMemo(() => {
     const canEdit = permission.canUpdate;
+    // 항목 자체(항목명·설명·타입)는 편집 모드에서만 고친다
+    const canEditItem = canEdit && editMode;
     const todayCol = ym === currentYm() ? new Date().getDate() : null;
     // 태블릿 모드: 고정 컬럼들 너비를 뺀 나머지를 날짜 수만큼 나눠 화면을 꽉 채운다.
-    const FROZEN_WIDTH = (permission.canDelete ? 40 : 0) + 56 + 260 + 76 + 80 + 60 + 16;
+    const FROZEN_WIDTH = (permission.canDelete && editMode ? 52 : 0) + 56 + 260 + 76 + (editMode ? 80 : 0) + 60 + 16;
     const tabletDayWidth = gridWidth
       ? Math.max(90, Math.floor((gridWidth - FROZEN_WIDTH) / dayWindow.length))
       : 90;
@@ -284,13 +290,14 @@ export default function DailyCheckPage() {
       },
     }));
     const cols = [];
-    if (permission.canDelete) {
-      cols.push({ formatter: 'rowSelection', titleFormatter: 'rowSelection', hozAlign: 'center', headerSort: false, width: 40, frozen: true });
+    if (permission.canDelete && editMode) {
+      // 40px면 체크박스 옆에 말줄임(…)이 생겨서 조금 넓힌다
+      cols.push({ formatter: 'rowSelection', titleFormatter: 'rowSelection', hozAlign: 'center', headerSort: false, width: 52, frozen: true });
     }
     cols.push(
       { title: '순번', formatter: 'rownum', width: 56, frozen: true, headerSort: false, hozAlign: 'center' },
-      { title: '항목명', field: 'dTitle', width: 260, resizable: true, frozen: true, headerSort: false, editable: () => canEdit, editor: canEdit ? 'input' : false },
-      { title: '항목설명', field: 'dDesc', width: 180, resizable: true, frozen: true, headerSort: false, editable: () => canEdit, editor: canEdit ? 'input' : false, visible: !tabletMode },
+      { title: '항목명', field: 'dTitle', width: 260, resizable: true, frozen: true, headerSort: false, editable: () => canEditItem, editor: canEditItem ? 'input' : false, cssClass: canEditItem ? 'dc-item-editable' : undefined },
+      { title: '항목설명', field: 'dDesc', width: 180, resizable: true, frozen: true, headerSort: false, editable: () => canEditItem, editor: canEditItem ? 'input' : false, cssClass: canEditItem ? 'dc-item-editable' : undefined, visible: !tabletMode },
     );
     return [
       ...cols,
@@ -301,9 +308,10 @@ export default function DailyCheckPage() {
         frozen: true,
         hozAlign: 'center',
         headerSort: false,
-        editable: () => canEdit,
-        editor: canEdit ? 'list' : false,
+        editable: () => canEditItem,
+        editor: canEditItem ? 'list' : false,
         editorParams: { values: VALUE_TYPE_LABEL },
+        cssClass: canEditItem ? 'dc-item-editable' : undefined,
         formatter: (cell) => {
           const v = cell.getValue() || 'text';
           return `<span class="dc-type-badge dc-type-${v}">${VALUE_TYPE_LABEL[v] ?? '문자'}</span>`;
@@ -315,6 +323,8 @@ export default function DailyCheckPage() {
         width: 80,
         hozAlign: 'center',
         headerSort: false,
+        // 파일 올리기는 편집 모드에서만 — 보기('파일' 칸)는 항상
+        visible: editMode,
         formatter: () => '<button type="button" class="dc-upload-btn" title="파일 첨부">첨부</button>',
         cellClick: (e, cell) => {
           if (!canEdit) return;
@@ -340,7 +350,7 @@ export default function DailyCheckPage() {
       { title: '비고', field: 'dBigo', width: 160, editable: () => canEdit, editor: canEdit ? 'input' : false, visible: !tabletMode },
     ];
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dayWindow, tabletMode, permission.canUpdate, permission.canDelete, openUploadPicker, gridWidth]);
+  }, [dayWindow, tabletMode, editMode, permission.canUpdate, permission.canDelete, openUploadPicker, gridWidth]);
 
   // 수정 권한이 없을 때의 이중 안전장치 — Tabulator가 생성하는 에디터 DOM을 즉시 제거한다.
   // (1차 방어는 위 컬럼의 editable 콜백 — 이건 만일을 대비한 보조 장치)
@@ -456,19 +466,36 @@ export default function DailyCheckPage() {
               </button>
             </div>
           )}
-          <button
-            className="mes-btn mes-btn-primary"
-            disabled={!permission.canCreate}
-            onClick={() => {
-              setInsertYm(ym);
-              setInsertModalOpen(true);
-            }}
-          >
-            <IconPlus size={15} /> 행추가
-          </button>
-          <button className="mes-btn mes-btn-secondary" disabled={!permission.canDelete} onClick={handleDeleteSelected}>
-            <IconTrash size={15} /> 행삭제
-          </button>
+          {canEditItems && (
+            <button
+              type="button"
+              className={editMode ? 'mes-btn mes-btn-primary' : 'mes-btn mes-btn-secondary'}
+              aria-pressed={editMode}
+              title={editMode ? '편집을 마치고 일반 입력으로 돌아갑니다' : '항목 추가·삭제와 항목명 수정'}
+              onClick={() => setEditMode((v) => !v)}
+            >
+              {editMode ? <><IconCheck size={15} /> 편집 완료</> : <><IconEdit size={15} /> 편집</>}
+            </button>
+          )}
+          {editMode && (
+            <>
+              <button
+                type="button"
+                className="mes-btn mes-btn-secondary"
+                disabled={!permission.canCreate}
+                onClick={() => {
+                  setInsertYm(ym);
+                  setInsertModalOpen(true);
+                }}
+              >
+                <IconPlus size={15} /> 행추가
+              </button>
+              <button type="button" className="mes-btn mes-btn-secondary" disabled={!permission.canDelete} onClick={handleDeleteSelected}>
+                <IconTrash size={15} /> 행삭제
+              </button>
+              <span className="dc-edit-hint">항목명·항목설명·타입 클릭해 수정 · 첨부로 파일 올리기</span>
+            </>
+          )}
           <button className="mes-btn mes-btn-secondary" onClick={handleExportExcel}>
             <IconFileSpreadsheet size={15} /> 엑셀다운로드
           </button>

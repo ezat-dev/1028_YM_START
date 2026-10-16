@@ -1,0 +1,544 @@
+/* 품질관리 > F/PROOF SAVE · F/PROOF LIST (두 화면이 같이 쓴다) */
+
+/* ── 상단 헤더 카드 ── */
+
+.fp-header-card {
+  background: var(--mes-surface);
+  border: 1px solid var(--mes-border);
+  border-radius: var(--mes-radius-lg);
+  box-shadow: var(--mes-shadow-sm);
+  padding: 18px 22px;
+  margin-bottom: 14px;
+  flex-shrink: 0;
+}
+
+.fp-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.fp-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.fp-control-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--mes-text-sub);
+}
+
+.fp-equip-select {
+  min-width: 150px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.fp-range-sep {
+  color: var(--mes-text-faint);
+  font-size: 12px;
+}
+
+.fp-icon-btn {
+  width: 34px;
+  padding: 0;
+}
+
+.fp-notice {
+  margin-top: 14px;
+  padding: 9px 12px;
+  border-radius: var(--mes-radius);
+  background: var(--mes-warning-soft);
+  color: var(--mes-warning);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+/* ── 좌우 패널 ── */
+
+.fp-panels {
+  display: flex;
+  gap: 14px;
+  flex: 1;
+  min-height: 0;
+}
+
+.fp-panel {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--mes-surface);
+  border: 1px solid var(--mes-border);
+  border-radius: var(--mes-radius-lg);
+  box-shadow: var(--mes-shadow-sm);
+  overflow: hidden;
+}
+
+.fp-panel-hd {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--mes-border);
+  flex-shrink: 0;
+}
+
+.fp-panel-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--mes-text);
+}
+
+.fp-badge {
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 20px;
+  padding: 2px 10px;
+  background: var(--mes-surface-sub);
+  color: var(--mes-text-sub);
+  white-space: nowrap;
+}
+
+.fp-badge.is-sel {
+  background: var(--mes-success-soft);
+  color: var(--mes-success);
+}
+
+.fp-badge.is-alarm {
+  background: var(--mes-danger-soft);
+  color: var(--mes-danger);
+}
+
+.fp-list {
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+/* 가운데 화살표 */
+.fp-mid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-shrink: 0;
+  width: 28px;
+  color: var(--mes-border-strong);
+  font-size: 20px;
+  line-height: 1;
+  user-select: none;
+}
+
+/* 빈 상태 / 로딩 */
+.fp-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 40px 0;
+  color: var(--mes-text-faint);
+  font-size: 12.5px;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+/* ── F/PROOF SAVE: 알람 태그 항목 ── */
+
+.fp-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border: 1.5px solid var(--mes-border);
+  border-radius: 9px;
+  background: var(--mes-surface-sub);
+  cursor: pointer;
+  user-select: none;
+  transition: border-color .12s, background .12s;
+}
+
+.fp-item:hover {
+  border-color: var(--mes-accent);
+  background: var(--mes-accent-soft);
+}
+
+.fp-item.is-readonly {
+  cursor: default;
+}
+
+.fp-item.is-readonly:hover {
+  border-color: var(--mes-border);
+  background: var(--mes-surface-sub);
+}
+
+.fp-item.is-busy {
+  opacity: .55;
+  pointer-events: none;
+}
+
+.fp-item.is-new {
+  background: var(--mes-accent-soft);
+  border-color: var(--mes-accent-border);
+}
+
+.fp-seq {
+  flex-shrink: 0;
+  min-width: 40px;
+  height: 34px;
+  padding: 0 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--mes-surface);
+  border: 1px solid var(--mes-line);
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--mes-text-sub);
+  font-variant-numeric: tabular-nums;
+}
+
+.fp-item-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.fp-item-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* 폭이 좁으면 태그명·주소가 먼저 말줄임으로 줄고, 레벨/START/END/SAVE 칩은 그대로 보이게 한다 */
+.fp-item-name {
+  min-width: 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--mes-text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fp-item-addr {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--mes-text-faint);
+  white-space: nowrap;
+}
+
+.fp-item-msg {
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--mes-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fp-lv {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 800;
+  border-radius: 5px;
+  padding: 1px 7px;
+}
+
+.fp-lv.lv-1 { background: rgba(47, 91, 181, .1); color: #2b5aa8; }
+.fp-lv.lv-2 { background: var(--mes-warning-soft); color: var(--mes-warning); }
+.fp-lv.lv-3 { background: var(--mes-danger-soft); color: var(--mes-danger); }
+
+.fp-chip {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 800;
+  border-radius: 4px;
+  padding: 1px 7px;
+}
+
+.fp-chip.is-save {
+  background: rgba(47, 91, 181, .16);
+  color: var(--mes-accent-dark);
+}
+
+.fp-chip.is-start {
+  background: var(--mes-success-soft);
+  color: var(--mes-success);
+}
+
+.fp-chip.is-end {
+  background: var(--mes-danger-soft);
+  color: var(--mes-danger);
+}
+
+.fp-arrow {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.fp-arrow.to-sel { background: var(--mes-accent-soft); color: var(--mes-accent); }
+.fp-arrow.to-avail { background: var(--mes-danger-soft); color: var(--mes-danger); }
+
+/* 옮겨진 항목이 반대편 목록에 들어올 때 */
+@keyframes fp-in-from-left {
+  from { transform: translateX(-16px); opacity: 0; }
+  to   { transform: translateX(0);     opacity: 1; }
+}
+
+@keyframes fp-in-from-right {
+  from { transform: translateX(16px); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+.fp-item.anim-in-sel   { animation: fp-in-from-left .2s ease both; }
+.fp-item.anim-in-avail { animation: fp-in-from-right .2s ease both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .fp-item.anim-in-sel,
+  .fp-item.anim-in-avail { animation: none; }
+}
+
+/* ── 트리거 설정 모달 ── */
+
+.fp-trig-hint {
+  margin: 0 0 12px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--mes-text-sub);
+}
+
+.fp-trig-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.fp-trig-table th {
+  text-align: left;
+  padding: 8px 10px;
+  background: var(--mes-surface-sub);
+  border-bottom: 1px solid var(--mes-border);
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--mes-text-sub);
+  white-space: nowrap;
+}
+
+.fp-trig-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--mes-line);
+  vertical-align: middle;
+}
+
+.fp-trig-equip {
+  font-weight: 800;
+  color: var(--mes-text);
+  white-space: nowrap;
+}
+
+.fp-trig-select {
+  width: 100%;
+  min-width: 140px;
+}
+
+/* 저장 / 기본값 두 버튼이 좁은 화면에서도 표 밖으로 넘치지 않도록 줄바꿈을 허용한다 */
+.fp-trig-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.fp-trig-state {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 800;
+  border-radius: 10px;
+  padding: 2px 10px;
+  white-space: nowrap;
+}
+
+.fp-trig-state.is-custom { background: var(--mes-success-soft); color: var(--mes-success); }
+.fp-trig-state.is-default { background: var(--mes-surface-sub); color: var(--mes-text-sub); }
+.fp-trig-state.is-none { background: var(--mes-warning-soft); color: var(--mes-warning); }
+
+/* ── F/PROOF LIST: 세션 카드 ── */
+
+.fp-session {
+  padding: 10px 14px;
+  border: 1.5px solid var(--mes-border);
+  border-radius: 9px;
+  background: var(--mes-surface-sub);
+  cursor: pointer;
+  user-select: none;
+  transition: border-color .12s, background .12s;
+}
+
+/* 날짜가 바뀔 때마다 배경을 번갈아 칠한다 */
+.fp-session.date-c0 { background: #f4f4f4; border-color: #dcdcdc; }
+.fp-session.date-c1 { background: var(--mes-surface); }
+
+.fp-session:hover,
+.fp-session.is-active {
+  border-color: var(--mes-accent);
+  background: var(--mes-accent-soft);
+}
+
+.fp-session-row1 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.fp-equip-badge {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 900;
+  color: #fff;
+  background: var(--mes-accent);
+  border-radius: 6px;
+  padding: 2px 10px;
+}
+
+.fp-alarm-cnt {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--mes-danger);
+  background: var(--mes-danger-soft);
+  border-radius: 10px;
+  padding: 1px 8px;
+}
+
+.fp-alarm-cnt.is-zero {
+  color: var(--mes-text-faint);
+  background: var(--mes-surface-sub);
+}
+
+.fp-session-row2 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.fp-time-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--mes-text-faint);
+}
+
+.fp-time-val {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--mes-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.fp-time-arrow {
+  font-size: 12px;
+  color: var(--mes-border-strong);
+}
+
+.fp-time-open {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--mes-danger);
+}
+
+/* ── F/PROOF LIST: 알람 상세 표 ── */
+
+.fp-detail-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.fp-detail-table {
+  width: 100%;
+  flex-shrink: 0;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.fp-detail-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 9px 12px;
+  text-align: left;
+  background: var(--mes-surface-sub);
+  border-bottom: 1px solid var(--mes-border);
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--mes-text-sub);
+  white-space: nowrap;
+}
+
+.fp-detail-table td {
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--mes-line);
+  vertical-align: middle;
+}
+
+.fp-detail-table tbody tr:hover td {
+  background: var(--mes-surface-sub);
+}
+
+.fp-tag-name {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--mes-accent);
+}
+
+.fp-alarm-msg {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--mes-text);
+}
+
+.fp-time-cell {
+  font-size: 11px;
+  color: var(--mes-text-sub);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.fp-no-clear {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--mes-danger);
+}

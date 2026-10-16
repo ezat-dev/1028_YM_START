@@ -37,7 +37,8 @@ const MENU_DATA = [
   { category: '품질관리', path: '/quality', menus: [
     { name: 'CPK 분석', path: '/quality/cpk' },
     { name: 'PPK 분석', path: '/quality/ppk' },
-    { name: 'F/PROOF', path: '/quality/fproof' },
+    { name: 'F/PROOF SAVE', path: '/quality/fproofSave' },
+    { name: 'F/PROOF LIST', path: '/quality/fproofList' },
     { name: '온도균일성보고서', path: '/quality/tempUniform' },
     { name: '경도관리', path: '/quality/hardness' },
     { name: '부적합품관리', path: '/quality/nonconform' },

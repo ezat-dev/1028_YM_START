@@ -20,12 +20,12 @@ export const STOP_CAUSES = {
 
 // 설비별 성향(목업) — 정지 횟수 범위와 고장 비율
 const PROFILE = {
-  BCF1: { stops: [0, 2], failBias: 0.2 },
-  BCF2: { stops: [1, 3], failBias: 0.3 },
-  BCF3: { stops: [0, 2], failBias: 0.25 },
-  BCF4: { stops: [1, 4], failBias: 0.55 }, // 고장이 잦은 예시
-  BCF5: { stops: [0, 1], failBias: 0.15 },
-  BCF6: { stops: [1, 3], failBias: 0.3 },
+  MBF1: { stops: [0, 2], failBias: 0.2 },
+  MBF2: { stops: [1, 3], failBias: 0.3 },
+  MBF3: { stops: [0, 2], failBias: 0.25 },
+  MBF4: { stops: [1, 4], failBias: 0.55 }, // 고장이 잦은 예시
+  MBF5: { stops: [0, 1], failBias: 0.15 },
+  MBF6: { stops: [1, 3], failBias: 0.3 },
 };
 const DURATION = { plan: [30, 140], fail: [12, 95], wait: [10, 55] };
 
@@ -48,7 +48,7 @@ function buildDay(def, dayStart, now) {
     stops.push({ type, cause: STOP_CAUSES[type][Math.floor(rnd() * STOP_CAUSES[type].length)], s: start, e: start + dur });
   }
 
-  // 오늘: 정지 설비(BCF6)는 6시간 전부터 정기 점검, 알람 설비(BCF4)는 25분 전부터 고장 정지 진행 중
+  // 오늘: 정지 설비(MBF6)는 6시간 전부터 정기 점검, 알람 설비(MBF4)는 25분 전부터 고장 정지 진행 중
   const isToday = now - dayStart < DAY_MIN * MIN;
   if (isToday) {
     const nowMin = span;

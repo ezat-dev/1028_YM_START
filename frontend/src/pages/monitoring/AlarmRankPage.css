@@ -354,3 +354,143 @@
     max-height: 180px;
   }
 }
+
+/* ── 가장 많이 발생한 메시지: 링 도넛 + 목록 ── */
+.rank2-msg {
+  /* 사이드바가 좁아(330px) 링을 위, 목록을 아래로 — 메시지 글자가 잘리지 않게 */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 6px 0 2px;
+}
+
+.rank2-msg .rank2-msg-list {
+  width: 100%;
+}
+
+.rank2-ring {
+  position: relative;
+  width: 128px;
+  height: 128px;
+}
+
+.rank2-ring svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.rank2-ring-seg {
+  cursor: pointer;
+  transition: stroke-width .15s, opacity .15s;
+}
+
+.rank2-ring-seg.is-dim {
+  opacity: .35;
+}
+
+.rank2-ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.rank2-ring-center b {
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--mes-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.rank2-ring-center b small {
+  margin-left: 1px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--mes-text-sub);
+}
+
+.rank2-ring-center span {
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--mes-text-faint);
+}
+
+.rank2-msg-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-width: 0;
+}
+
+.rank2-msg-row {
+  display: grid;
+  grid-template-columns: 8px minmax(0, 1fr) auto 34px;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  cursor: default;
+  transition: background .15s, opacity .15s;
+}
+
+.rank2-msg-row.is-on {
+  background: var(--mes-surface-sub);
+}
+
+.rank2-msg-row.is-dim {
+  opacity: .55;
+}
+
+.rank2-msg-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}
+
+.rank2-msg-label {
+  overflow: hidden;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--mes-text);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.rank2-msg-cnt {
+  font-size: 12px;
+  color: var(--mes-text-sub);
+  font-variant-numeric: tabular-nums;
+}
+
+.rank2-msg-pct {
+  font-size: 12px;
+  font-weight: 700;
+  text-align: right;
+  color: var(--mes-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* 알람 이력 표 — 첫 칸(설비)·끝 칸(발생값)이 카드 끝에 붙어 보이지 않게 양 끝 여백을 넉넉히 */
+.rank2-main .mes-plain-table th:first-child,
+.rank2-main .mes-plain-table td:first-child {
+  min-width: 72px;
+  padding-left: 20px;
+}
+
+.rank2-main .mes-plain-table th:last-child,
+.rank2-main .mes-plain-table td:last-child {
+  min-width: 72px;
+  padding-right: 20px;
+}

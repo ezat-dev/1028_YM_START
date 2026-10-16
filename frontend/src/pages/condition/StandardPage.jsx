@@ -280,7 +280,7 @@ export default function StandardPage() {
               </div>
               <div className="mes-field">
                 <label>관련 설비</label>
-                <input value={form.equipName} onChange={(e) => setForm({ ...form, equipName: e.target.value })} placeholder="예) BCF1" />
+                <input value={form.equipName} onChange={(e) => setForm({ ...form, equipName: e.target.value })} placeholder="예) MBF1" />
               </div>
               <div className="mes-field">
                 <label>개정번호</label>

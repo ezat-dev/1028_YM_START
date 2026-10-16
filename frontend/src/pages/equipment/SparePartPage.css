@@ -209,6 +209,56 @@
   text-decoration: underline;
 }
 
+/* 재고상태 컬럼 들여쓰기 — 안전재고 숫자와 간격 */
+.spr-status-indent {
+  padding-left: 20px;
+}
+
+/* 재고 현황 행의 입고/사용 버튼 — 색은 이력의 구분 점(입고 초록, 사용 파랑)과 같게 */
+.spr-row-btns {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.spr-row-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid var(--mes-border-strong);
+  border-radius: var(--mes-radius);
+  background: var(--mes-surface);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mes-text-sub);
+  cursor: pointer;
+  transition: border-color .15s, background .15s, color .15s;
+}
+
+.spr-row-btn.is-in:hover:not(:disabled) {
+  border-color: var(--mes-success);
+  background: var(--mes-success-soft);
+  color: var(--mes-success);
+}
+
+.spr-row-btn.is-out:hover:not(:disabled) {
+  border-color: var(--mes-accent);
+  background: var(--mes-accent-soft);
+  color: var(--mes-accent);
+}
+
+.spr-row-btn:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+
+.spr-row-btn:focus-visible {
+  outline: 2px solid var(--mes-accent);
+  outline-offset: 1px;
+}
+
 /* ── 표 영역: 헤더 카드 아래 남는 공간을 전부 채우고, 페이지네이션 대신 내부 스크롤 ── */
 
 .spr-table-card {

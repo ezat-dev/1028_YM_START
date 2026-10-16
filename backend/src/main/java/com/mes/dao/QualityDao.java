@@ -1,10 +1,10 @@
 package com.mes.dao;
 
 import java.util.List;
+import java.util.Map;
 
 import com.mes.domain.quality.Cpk;
 import com.mes.domain.quality.Ppk;
-import com.mes.domain.quality.Fproof;
 import com.mes.domain.quality.TempUniform;
 import com.mes.domain.quality.Hardness;
 import com.mes.domain.quality.Nonconform;
@@ -22,9 +22,34 @@ public interface QualityDao {
 
     long selectPpkCount(String keyword);
 
-    List<Fproof> selectFproofList(int offset, int size, String keyword);
+    // ── F/PROOF (ez_scada) ──
 
-    long selectFproofCount(String keyword);
+    List<Map<String, Object>> selectFproofEquips();
+
+    List<Map<String, Object>> selectFproofEquipTags();
+
+    List<Integer> selectFproofSelectedTagIds(int folderId);
+
+    Integer selectFproofTagFolderId(int tagId);
+
+    void insertFproofSelected(int tagId, int folderId);
+
+    void deleteFproofSelected(int tagId);
+
+    void upsertFproofTrigger(int folderId, int startTagId, int endTagId);
+
+    void deleteFproofTrigger(int folderId);
+
+    /** 시작 트리거 태그들의 발생 이력(기간 내). */
+    List<Map<String, Object>> selectFproofStartEvents(List<Integer> tagIds, String from, String to);
+
+    /** 종료 트리거 태그들의 발생 이력(from 이후 전부). */
+    List<Map<String, Object>> selectFproofEndEvents(List<Integer> tagIds, String from);
+
+    /** F/PROOF 대상으로 지정된 알람의 발생 이력(from ~ to). */
+    List<Map<String, Object>> selectFproofDesignatedEvents(String from, String to);
+
+    List<Map<String, Object>> selectFproofDetail(int folderId, String start, String end);
 
     List<TempUniform> selectTempUniformList(String equipName, String judgment, String from, String to);
 

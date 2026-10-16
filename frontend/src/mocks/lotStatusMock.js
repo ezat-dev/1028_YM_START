@@ -3,7 +3,7 @@
 //
 // LOT 한 건 형식(현황·이력 공통):
 // {
-//   code: 'BCF1', lotNo: '261012-1043', company, partNo, productName, patternCode, patternName,
+//   code: 'MBF1', lotNo: '261012-1043', company, partNo, productName, patternCode, patternName,
 //   trayCount: 4, qty: 1200, weightKg: 2400,
 //   startAt: ms(첫 트레이 장입), endAt: ms(마지막 트레이 배출) | null(진행 중), expectedEndAt: ms,
 //   progress: 0~1,
@@ -31,7 +31,7 @@ const PAST_NOTES = ['CP 하한 이탈', '오일조 온도 하한', '벨트 속�
 //  빈칸 5~6 → 장입 간격 9~10피치 → 로 안에 최대 2건 (예시는 설비당 최대 2건)
 //  (화면은 3건까지 보여줄 수 있다 — 빈칸을 1~2로 주면 3건 예시가 된다)
 // 나머지는 앞 LOT가 다 빠진 뒤 다음 LOT를 넣는다(1건씩).
-const CONCURRENT = { BCF3: [5, 6], BCF5: [5, 6] };
+const CONCURRENT = { MBF3: [5, 6], MBF5: [5, 6] };
 
 const pad = (n, l = 2) => String(n).padStart(l, '0');
 const dateTag = (ms) => {

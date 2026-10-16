@@ -854,6 +854,14 @@ button, input, select, textarea {
   height: 100%;
 }
 
+/* 대시보드형 화면(종합생산현황·LOT 현황) — FHD(1920×1080) 이하 화면에서는 전체를 90%로 줄여 본다(브라우저 90% 배율과 같은 효과).
+   그보다 큰 화면(QHD 등)은 100% 그대로. zoom 안의 % 높이·폭은 부모 기준으로 다시 계산돼서 따로 보정하지 않아도 화면을 꽉 채운다 */
+@media (max-width: 1940px) {
+  .mes-page-compact {
+    zoom: 0.9;
+  }
+}
+
 .mes-card-fill {
   flex: 1;
   min-height: 0;

@@ -140,7 +140,7 @@ export default function RepairHistPage() {
 
   const handleExportExcel = () => {
     const sheet = rows.map((r, i) => ({
-      No: i + 1, 수리번호: r.repairNo, 고장발생일시: fmtDt(r.failDt), 설비코드: r.equipCode, 설비명: r.equipName,
+      No: i + 1, 수리번호: r.repairNo, 고장발생일시: fmtDt(r.failDt), 설비명: r.equipName,
       고장유형: r.failType, 알람코드: r.alarmCode, 고장증상: r.symptom, 원인: r.cause, 조치: r.action,
       수리담당자: r.repairerName, 수리구분: r.repairKind, 외주업체: r.vendorName,
       수리시작: fmtDt(r.startDt), 수리완료: fmtDt(r.endDt), 복구일시: fmtDt(r.recoverDt), 시운전: r.testResult,
@@ -157,8 +157,7 @@ export default function RepairHistPage() {
     { key: 'no', title: 'No', width: 46, align: 'center', render: (r, idx) => idx + 1 },
     { key: 'repairNo', title: '수리번호', width: 124, align: 'center', sortValue: (r) => r.repairNo, render: (r) => <span className="eqh-no">{r.repairNo}</span> },
     { key: 'failDt', title: '고장 발생일시', width: 128, align: 'center', sortValue: (r) => r.failDt, render: (r) => <span className="dtm-num">{fmtDt(r.failDt)}</span> },
-    { key: 'equipCode', title: '설비코드', width: 76, align: 'center', sortValue: (r) => r.equipCode, render: (r) => <b className="eqh-code">{r.equipCode}</b> },
-    { key: 'equipName', title: '설비명', width: 120, sortValue: (r) => r.equipName, render: (r) => <span className="eqh-ellipsis" title={r.equipName}>{r.equipName}</span> },
+    { key: 'equipName', title: '설비명', width: 150, sortValue: (r) => r.equipName, render: (r) => <span className="eqh-ellipsis" title={r.equipName}>{r.equipName}</span> },
     { key: 'failType', title: '고장 유형', width: 118, sortValue: (r) => r.failType, render: (r) => <span className="eqh-ellipsis" title={r.failType}><b>{r.failType}</b></span> },
     {
       key: 'symptom', title: '고장 내용', width: 210,
@@ -179,7 +178,7 @@ export default function RepairHistPage() {
         </span>
       ),
     },
-    { key: 'status', title: '수리 상태', width: 100, align: 'center', sortValue: (r) => r.status, render: (r) => <Status value={r.status} /> },
+    { key: 'status', title: '수리 상태', width: 100, sortValue: (r) => r.status, render: (r) => <Status value={r.status} /> },
     {
       key: 'recoverDt', title: '복구일시', width: 128, align: 'center', sortValue: (r) => r.recoverDt ?? '9999',
       render: (r) => (r.recoverDt ? <span className="dtm-num" title={r.downMin != null ? `고장~복구 ${fmtDur(r.downMin)}` : undefined}>{fmtDt(r.recoverDt)}</span> : <span className="dtm-empty">-</span>),
@@ -224,7 +223,7 @@ export default function RepairHistPage() {
           </div>
           <select className="mes-field-inline" value={equipSel} onChange={(e) => setEquipSel(e.target.value)} aria-label="설비">
             <option value="">전체 설비</option>
-            {equipments.map((e) => <option key={e.equipId} value={e.equipId}>{e.equipCode} {e.equipName}</option>)}
+            {equipments.map((e) => <option key={e.equipId} value={e.equipId}>{e.equipName}</option>)}
           </select>
           <select className="mes-field-inline" value={kindSel} onChange={(e) => setKindSel(e.target.value)} aria-label="수리 구분">
             <option value="">자체 + 외주</option>
@@ -350,7 +349,7 @@ function RepairDetail({ repairId, permission, onClose, onEdit, onDeleted, showTo
           )}
 
           <dl className="eqh-dl is-3">
-            <div><dt>설비</dt><dd><b>{r.equipCode}</b> {r.equipName}</dd></div>
+            <div><dt>설비</dt><dd>{r.equipName}</dd></div>
             <div><dt>고장 유형</dt><dd>{r.failType}</dd></div>
             <div><dt>알람 코드</dt><dd>{r.alarmCode || '-'}</dd></div>
             <div><dt>수리 담당자</dt><dd>{r.repairerName || '-'}</dd></div>
@@ -534,7 +533,7 @@ function RepairForm({ editing, equipments, user, onClose, onSaved }) {
               <label className="dtm-form-label" htmlFor="rp-equip">설비 *</label>
               <select id="rp-equip" className="dtm-input" value={f.equipId} onChange={set('equipId')}>
                 <option value="">설비를 선택하세요</option>
-                {equipOptions.map((e) => <option key={e.equipId} value={e.equipId}>{e.equipCode} · {e.equipName}</option>)}
+                {equipOptions.map((e) => <option key={e.equipId} value={e.equipId}>{e.equipName}</option>)}
               </select>
             </div>
             <div className="dtm-form-row">

@@ -9,7 +9,7 @@ import {
   IconClipboardCheck, IconGauge, IconNotebook, IconFileReport,
   IconTemperature, IconAdjustmentsHorizontal, IconDroplet, IconChecklist, IconFileText,
   IconChartHistogram, IconChartDots, IconShieldCheck, IconFlame, IconDiamond, IconAlertOctagon,
-  IconPlayerPause, IconChartPie, IconBolt, IconTool, IconHammer, IconComponents,
+  IconPlayerPause, IconChartPie, IconBolt, IconTool, IconHammer, IconComponents, IconListSearch,
 } from '@tabler/icons-react';
 import MENU_DATA from '../constants/menuData';
 import { useAuth } from '../context/AuthContext';
@@ -56,7 +56,8 @@ const MENU_ICONS = {
   '/condition/standard': IconFileText,
   '/quality/cpk': IconChartHistogram,
   '/quality/ppk': IconChartDots,
-  '/quality/fproof': IconShieldCheck,
+  '/quality/fproofSave': IconShieldCheck,
+  '/quality/fproofList': IconListSearch,
   '/quality/tempUniform': IconFlame,
   '/quality/hardness': IconDiamond,
   '/quality/nonconform': IconAlertOctagon,

@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.core.io.Resource;
 import org.springframework.http.ContentDisposition;
@@ -27,7 +28,6 @@ import com.mes.common.response.ApiResponse;
 import com.mes.common.response.PageResponse;
 import com.mes.domain.quality.Cpk;
 import com.mes.domain.quality.Ppk;
-import com.mes.domain.quality.Fproof;
 import com.mes.domain.quality.TempUniform;
 import com.mes.domain.quality.Hardness;
 import com.mes.domain.quality.Nonconform;
@@ -36,8 +36,9 @@ import com.mes.service.QualityService;
 /**
  * 품질관리(quality) 중분류 REST 엔드포인트.
  *
- * <p>CPK분석/PPK분석/F-PROOF/경도관리/부적합품관리 5개 메뉴는 여전히 1단계 골격(목록 조회 API만 존재)이다.
+ * <p>CPK분석/PPK분석/경도관리/부적합품관리 4개 메뉴는 여전히 1단계 골격(목록 조회 API만 존재)이다.
  * 온도균일성보고서(quality_temp_uniform)는 실제 구현됨 — 편차/판정은 서버가 계산해서 저장한다.
+ * F/PROOF SAVE·LIST는 ez_scada 알람 데이터를 쓰는 실제 구현이다(설비 = 알람 폴더).
  */
 @RestController
 @RequestMapping("/api/quality")
@@ -65,12 +66,70 @@ public class QualityController {
         return ApiResponse.success(qualityService.getPpkList(page, size, keyword));
     }
 
-    @GetMapping("/fproof")
-    public ApiResponse<PageResponse<Fproof>> getFproofList(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String keyword) {
-        return ApiResponse.success(qualityService.getFproofList(page, size, keyword));
+    // ── F/PROOF SAVE (대상 알람 지정 + 설비별 시작/종료 트리거) ──
+
+    /** 설비(알람 폴더) 목록. 각 설비에 최종 트리거(startTagId/endTagId, custom 여부)와 알람 태그 목록(tags)이 붙는다. */
+    @GetMapping("/fproof/equips")
+    public ApiResponse<List<Map<String, Object>>> getFproofEquips() {
+        return ApiResponse.success(qualityService.getFproofEquips());
+    }
+
+    @GetMapping("/fproof/selected")
+    public ApiResponse<List<Integer>> getFproofSelected(@RequestParam Integer folderId) {
+        return ApiResponse.success(qualityService.getFproofSelected(folderId));
+    }
+
+    @PostMapping("/fproof/select")
+    public ApiResponse<Void> selectFproofTag(@RequestParam Integer tagId, @RequestParam Integer folderId) {
+        qualityService.selectFproofTag(tagId, folderId);
+        return ApiResponse.success();
+    }
+
+    @PostMapping("/fproof/deselect")
+    public ApiResponse<Void> deselectFproofTag(@RequestParam Integer tagId, @RequestParam Integer folderId) {
+        qualityService.deselectFproofTag(tagId, folderId);
+        return ApiResponse.success();
+    }
+
+    @PutMapping("/fproof/trigger")
+    public ApiResponse<Void> saveFproofTrigger(
+            @RequestParam Integer folderId,
+            @RequestParam Integer startTagId,
+            @RequestParam Integer endTagId) {
+        qualityService.saveFproofTrigger(folderId, startTagId, endTagId);
+        return ApiResponse.success();
+    }
+
+    /** 설비의 트리거 지정을 지워 기본값('Fool Proof 시작/종료' 문구)으로 되돌린다. */
+    @DeleteMapping("/fproof/trigger")
+    public ApiResponse<Void> resetFproofTrigger(@RequestParam Integer folderId) {
+        qualityService.resetFproofTrigger(folderId);
+        return ApiResponse.success();
+    }
+
+    // ── F/PROOF LIST (세션별 지정 알람 이력) ──
+
+    @GetMapping("/fproofList/sessions")
+    public ApiResponse<List<Map<String, Object>>> getFproofSessions(
+            @RequestParam String from,
+            @RequestParam String to) {
+        return ApiResponse.success(qualityService.getFproofSessions(from, to));
+    }
+
+    @GetMapping("/fproofList/detail")
+    public ApiResponse<List<Map<String, Object>>> getFproofDetail(
+            @RequestParam Integer folderId,
+            @RequestParam String start,
+            @RequestParam(required = false) String end) {
+        return ApiResponse.success(qualityService.getFproofDetail(folderId, start, end));
+    }
+
+    /** 엑셀 출력용 — 기간 내 모든 세션과 그 세션의 지정 알람을 한 번에(세션 수만큼 detail을 반복 호출하지 않도록). */
+    @GetMapping("/fproofList/export")
+    public ApiResponse<List<Map<String, Object>>> getFproofExport(
+            @RequestParam String from,
+            @RequestParam String to) {
+        return ApiResponse.success(qualityService.getFproofExport(from, to));
     }
 
     @GetMapping("/tempUniform")

@@ -232,7 +232,8 @@
 
 .lst-card.is-alarm {
   border-color: rgba(207, 59, 50, .35);
-  box-shadow: inset 3px 0 0 var(--mes-danger);
+  /* 알람 카드 표시는 위쪽 띠 — 왼쪽은 진행 중 LOT 색 띠가 쓰고 있어 겹치지 않게 */
+  box-shadow: inset 0 2px 0 rgba(207, 59, 50, .6);
 }
 
 .lst-card.is-idle {
@@ -477,26 +478,36 @@
 
 .lst-run-row {
   display: grid;
-  grid-template-columns: 10px auto auto minmax(0, 1fr) auto;
+  grid-template-columns: 3px auto auto minmax(0, 1fr) auto;
   grid-template-areas:
     "dot lot note prod pct"
-    ".   info info info info"
-    ".   meta meta meta meta";
+    "dot info info info info"
+    "dot meta meta meta meta";
   align-items: center;
-  column-gap: 8px;
+  column-gap: 9px;
   row-gap: 2px;
   padding: 5px 0;
 }
 
 .lst-run-row + .lst-run-row {
-  border-top: 1px dashed var(--mes-line);
+  margin-top: 4px; /* 구분선 대신 띠 사이 간격으로 나눈다 */
 }
 
+/* 진행 중 LOT 행 — 아주 연한 회색 바탕으로 직전 LOT 목록과 구분한다.
+   위아래 여백은 화면 높이별 규칙을 따르고, 좌우 여백만 여기서(선택자를 한 단계 더 구체적으로) */
+.lst-lot .lst-run-list > .lst-run-row {
+  padding-left: 8px;
+  padding-right: 10px;
+  border-radius: 6px;
+  background: #f6f7f9;
+}
+
+/* LOT 색 세로 띠 — 막대의 LOT 색과 같아 어느 구간이 어느 LOT인지 이어 준다 */
 .lst-run-dot {
   grid-area: dot;
-  width: 10px;
-  height: 10px;
-  border-radius: 3px;
+  align-self: stretch;
+  width: 3px;
+  border-radius: 2px;
   background: var(--lot);
 }
 
@@ -824,11 +835,11 @@
   .lst-card-name { display: none; }
 
   .lst-run-row {
-    grid-template-columns: 10px auto minmax(0, 1fr) auto;
+    grid-template-columns: 3px auto minmax(0, 1fr) auto;
     grid-template-areas:
       "dot lot note pct"
-      ".   prod prod prod"
-      ".   info info info";
+      "dot prod prod prod"
+      "dot info info info";
     row-gap: 1px;
   }
 
@@ -839,10 +850,10 @@
 
   /* 진행 중 LOT 3건 — 두 줄로 압축: [LOT번호 · 품명 … %] / [구간 · 장입 · 남은 시간] */
   .lst-run-list.is-n3 .lst-run-row {
-    grid-template-columns: 10px auto auto minmax(0, 1fr) auto;
+    grid-template-columns: 3px auto auto minmax(0, 1fr) auto;
     grid-template-areas:
       "dot lot note prod pct"
-      ".   info info info info";
+      "dot info info info info";
     padding: 3px 0;
   }
 

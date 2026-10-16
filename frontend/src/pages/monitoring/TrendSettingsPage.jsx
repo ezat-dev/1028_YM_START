@@ -313,7 +313,7 @@ export default function TrendSettingsPage() {
               </div>
               <div className="mes-field">
                 <label>설비</label>
-                <input value={form.equipId} onChange={(e) => setForm({ ...form, equipId: e.target.value })} placeholder="예) BCF1" />
+                <input value={form.equipId} onChange={(e) => setForm({ ...form, equipId: e.target.value })} placeholder="예) MBF1" />
               </div>
               <div className="mes-field">
                 <label>컬럼명 (비워두면 자동 생성)</label>

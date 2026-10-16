@@ -14,17 +14,17 @@ const HOUR = 3600000;
 
 // 설비별 부하 특성(목업) — 평균 유효전력(kW)과 역률
 const PROFILE = {
-  BCF1: { kw: 214, pf: 0.93 },
-  BCF2: { kw: 198, pf: 0.855 }, // 역률이 낮은 예시
-  BCF3: { kw: 226, pf: 0.92 },
-  BCF4: { kw: 205, pf: 0.9 },
-  BCF5: { kw: 188, pf: 0.94 },
-  BCF6: { kw: 176, pf: 0.91 },
+  MBF1: { kw: 214, pf: 0.93 },
+  MBF2: { kw: 198, pf: 0.855 }, // 역률이 낮은 예시
+  MBF3: { kw: 226, pf: 0.92 },
+  MBF4: { kw: 205, pf: 0.9 },
+  MBF5: { kw: 188, pf: 0.94 },
+  MBF6: { kw: 176, pf: 0.91 },
 };
 const IDLE_KW = 58;          // 정지(보온) 중 전력
-const IDLE_HOURS = 6;        // BCF6는 6시간 전부터 정기 점검
-const START_WH = { BCF1: 1284503122, BCF2: 1190744018, BCF3: 1342019877, BCF4: 1218830450, BCF5: 1102397412, BCF6: 1167720903 };
-const START_VARH = { BCF1: 498120334, BCF2: 612004871, BCF3: 541227903, BCF4: 560118277, BCF5: 380992114, BCF6: 470551208 };
+const IDLE_HOURS = 6;        // MBF6는 6시간 전부터 정기 점검
+const START_WH = { MBF1: 1284503122, MBF2: 1190744018, MBF3: 1342019877, MBF4: 1218830450, MBF5: 1102397412, MBF6: 1167720903 };
+const START_VARH = { MBF1: 498120334, MBF2: 612004871, MBF3: 541227903, MBF4: 560118277, MBF5: 380992114, MBF6: 470551208 };
 const ORIGIN = Date.UTC(2026, 0, 1) - 9 * HOUR; // 누적값 기준 시각(2026-01-01 00:00 KST)
 
 const floorHour = (ms) => Math.floor(ms / HOUR) * HOUR;
@@ -105,8 +105,8 @@ export function createPowerMock() {
           whTotal: Math.round(wh),
           varhTotal: Math.round(varh),
           // 6호기 계량기는 통신이 잠깐 끊긴 예시(마지막 수신 4분 전)
-          readAt: def.code === 'BCF6' ? now - 4 * 60000 : now - Math.round(seededRandom(`${def.code}-${Math.floor(now / 60000)}`)() * 20000),
-          status: def.code === 'BCF6' ? 'stale' : 'ok',
+          readAt: def.code === 'MBF6' ? now - 4 * 60000 : now - Math.round(seededRandom(`${def.code}-${Math.floor(now / 60000)}`)() * 20000),
+          status: def.code === 'MBF6' ? 'stale' : 'ok',
         };
       }));
     },

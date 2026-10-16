@@ -2,19 +2,19 @@
 // 원본은 이 로직이 buildKpiCards/buildMainChart/ExcelExportService 3곳에 중복돼 있었는데
 // 여기서는 하나로 모았다.
 //
-// 이중보정 방지: tb_temp_tag.scale이 설정된 태그(예: BCF1 계열 — "+50"/"-100"/"*0.01"/"/2")는
+// 이중보정 방지: tb_temp_tag.scale이 설정된 태그(예: MBF1 계열 — "+50"/"-100"/"*0.01"/"/2")는
 // C# TempMonitorService가 tb_temp_snapshot에 적재하는 시점에 이미 그 보정을 적용해 저장한다
-// (schema 주석: "스냅샷 저장 전 원시값에 적용할 보정식"). trend.jsp의 BCF별 하드코딩 보정
-// (아래 규칙들)은 scale 컬럼이 없던 시절/없는 태그(BCF6~12 일부)를 위한 별도 경로였고,
-// 실제로 BCF1 태그는 이 하드코딩 규칙 어디에도 안 걸린다 — 즉 원래도 "같은 태그에 두 메커니즘이
+// (schema 주석: "스냅샷 저장 전 원시값에 적용할 보정식"). trend.jsp의 MBF별 하드코딩 보정
+// (아래 규칙들)은 scale 컬럼이 없던 시절/없는 태그(MBF6~12 일부)를 위한 별도 경로였고,
+// 실제로 MBF1 태그는 이 하드코딩 규칙 어디에도 안 걸린다 — 즉 원래도 "같은 태그에 두 메커니즘이
 // 같이 걸리는" 설계가 아니었다. scale이 설정된 태그에 아래 하드코딩 규칙까지 적용하면 이미
 // 보정된 값을 또 보정하게 되므로, scale이 있으면 원시값을 그대로 쓰고 하드코딩 규칙은 건너뛴다.
 
 export const EQUT_MAP = {
-  BCF1: '2420M001', BCF2: '2420M002', BCF3: '2420M003',
-  BCF4: '2420M004', BCF5: '2420M005', BCF6: '2420M011',
-  BCF7: '2420M006', BCF8: '2420M007', BCF9: '2420M008',
-  BCF10: '2420M009', BCF11: '2420M010', BCF12: '2421M002',
+  MBF1: '2420M001', MBF2: '2420M002', MBF3: '2420M003',
+  MBF4: '2420M004', MBF5: '2420M005', MBF6: '2420M011',
+  MBF7: '2420M006', MBF8: '2420M007', MBF9: '2420M008',
+  MBF10: '2420M009', MBF11: '2420M010', MBF12: '2421M002',
 };
 
 export const COLORS = [
@@ -38,9 +38,9 @@ function nameOf(t) {
 export function getEquipFromTag(t) {
   if (t.equipId) return t.equipId;
   const name = (t.tagName || '').toUpperCase();
-  let m = name.match(/BCF[_-](\d+)/);
-  if (!m) m = name.match(/BCF(\d+)/);
-  return m ? 'BCF' + m[1] : null;
+  let m = name.match(/MBF[_-](\d+)/);
+  if (!m) m = name.match(/MBF(\d+)/);
+  return m ? 'MBF' + m[1] : null;
 }
 
 export function isCpTag(t) {
@@ -59,7 +59,7 @@ export function isSpTag(t) {
 /**
  * rawValue: tb_temp_snapshot에 저장된 원시값(서버는 더 이상 어떤 보정도 하지 않는다).
  * t.scale이 설정된 태그는 적재 시점에 이미 보정이 끝난 값이므로 그대로 반환하고,
- * scale이 없는 레거시 태그만 trend.jsp의 BCF별 하드코딩 보정을 적용한다.
+ * scale이 없는 레거시 태그만 trend.jsp의 MBF별 하드코딩 보정을 적용한다.
  */
 export function applyValueCorrection(rawValue, t) {
   if (t && t.scale != null && String(t.scale).trim() !== '') return rawValue;
@@ -67,22 +67,22 @@ export function applyValueCorrection(rawValue, t) {
   const name = nameOf(t);
   if (isFlowTag(t) && !isNaN(v)) {
     if (v > 30000) return NaN;
-    const bcf5 = /[_-]5([_-]|$)/.test(name);
-    const bcf7 = /[_-]7([_-]|$)/.test(name);
-    const bcf8 = /[_-]8([_-]|$)/.test(name);
-    const bcf9 = /[_-]9([_-]|$)/.test(name);
-    const bcf10 = /[_-]10([_-]|$)/.test(name);
-    const bcf11 = /[_-]11([_-]|$)/.test(name);
-    const bcf2 = /[_-]2([_-]|$)/.test(name);
-    const bcf6 = /[_-]6([_-]|$)/.test(name);
-    const bcf12 = /[_-]12([_-]|$)/.test(name);
+    const mbf5 = /[_-]5([_-]|$)/.test(name);
+    const mbf7 = /[_-]7([_-]|$)/.test(name);
+    const mbf8 = /[_-]8([_-]|$)/.test(name);
+    const mbf9 = /[_-]9([_-]|$)/.test(name);
+    const mbf10 = /[_-]10([_-]|$)/.test(name);
+    const mbf11 = /[_-]11([_-]|$)/.test(name);
+    const mbf2 = /[_-]2([_-]|$)/.test(name);
+    const mbf6 = /[_-]6([_-]|$)/.test(name);
+    const mbf12 = /[_-]12([_-]|$)/.test(name);
     if (/c3h8/.test(name)) {
-      v = bcf7 ? v / 200
-        : (bcf5 || bcf8 || bcf10 || bcf11) ? v * 0.00125
-        : bcf9 ? v * 0.0049
-        : bcf12 ? v * 0.1
-        : bcf2 ? v * 0.00152
-        : bcf6 ? v * 0.01
+      v = mbf7 ? v / 200
+        : (mbf5 || mbf8 || mbf10 || mbf11) ? v * 0.00125
+        : mbf9 ? v * 0.0049
+        : mbf12 ? v * 0.1
+        : mbf2 ? v * 0.00152
+        : mbf6 ? v * 0.01
         : (v / 1000) * 3.1;
     } else {
       v = v >= 1000 ? v / 1000 : v / 100;
@@ -106,7 +106,7 @@ export function buildTagColorMap(tags) {
   let otherIdx = 0;
   tags.forEach((t) => {
     const equip = getEquipFromTag(t);
-    if (equip === 'BCF6' || equip === 'BCF11') return; // 6/11호기는 tagColor()에서 개별 처리
+    if (equip === 'MBF6' || equip === 'MBF11') return; // 6/11호기는 tagColor()에서 개별 처리
     const name = nameOf(t);
     let group = null;
     if (/침탄.*pv|pv.*침탄/.test(name)) group = 'ct_pv';
@@ -132,7 +132,7 @@ export function tagColor(t, tagColorMap, allTags) {
     const i = allTags.indexOf(t);
     return i >= 0 ? i : 0;
   };
-  if (equip === 'BCF11') {
+  if (equip === 'MBF11') {
     const n = nameOf(t);
     if (/1실.*온도.*pv|room1.*temp.*pv/.test(n)) return '#FF1744';
     if (/2실.*온도.*pv|room2.*temp.*pv/.test(n)) return '#FF6D00';
@@ -148,7 +148,7 @@ export function tagColor(t, tagColorMap, allTags) {
     if (/2실.*c3h8|room2.*c3h8/.test(n)) return '#AA00FF';
     return COLORS[idxOf() % COLORS.length];
   }
-  if (equip === 'BCF6') {
+  if (equip === 'MBF6') {
     const n = nameOf(t);
     if (/침탄2.*pv|pv.*침탄2/.test(n)) return '#00FF7F';
     if (/침탄.*pv|pv.*침탄/.test(n)) return '#FF1744';

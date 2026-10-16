@@ -4,12 +4,12 @@
 import { getList as getPatternList } from '../api/base/patternApi';
 
 export const FURNACES = [
-  { code: 'BCF1', name: '연속열처리로 1호기', status: 'run' },
-  { code: 'BCF2', name: '연속열처리로 2호기', status: 'run' },
-  { code: 'BCF3', name: '연속열처리로 3호기', status: 'run' },
-  { code: 'BCF4', name: '연속열처리로 4호기', status: 'alarm', alarm: { zone: 'q3', message: '퀜칭로 3존 온도 상한 초과' } },
-  { code: 'BCF5', name: '연속열처리로 5호기', status: 'run' },
-  { code: 'BCF6', name: '연속열처리로 6호기', status: 'idle', idleReason: '정기 점검' },
+  { code: 'MBF1', name: '연속열처리로 1호기', status: 'run' },
+  { code: 'MBF2', name: '연속열처리로 2호기', status: 'run' },
+  { code: 'MBF3', name: '연속열처리로 3호기', status: 'run' },
+  { code: 'MBF4', name: '연속열처리로 4호기', status: 'alarm', alarm: { zone: 'q3', message: '퀜칭로 3존 온도 상한 초과' } },
+  { code: 'MBF5', name: '연속열처리로 5호기', status: 'run' },
+  { code: 'MBF6', name: '연속열처리로 6호기', status: 'idle', idleReason: '정기 점검' },
 ];
 
 export const STATUS_LABEL = { run: '가동', alarm: '알람', idle: '정지' };

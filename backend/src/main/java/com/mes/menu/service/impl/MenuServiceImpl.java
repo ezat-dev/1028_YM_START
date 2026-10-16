@@ -51,7 +51,8 @@ public class MenuServiceImpl implements MenuService {
                 new MenuGroup("품질관리", "/quality", List.of(
                         new MenuItem("CPK 분석", "/quality/cpk"),
                         new MenuItem("PPK 분석", "/quality/ppk"),
-                        new MenuItem("F/PROOF", "/quality/fproof"),
+                        new MenuItem("F/PROOF SAVE", "/quality/fproofSave"),
+                        new MenuItem("F/PROOF LIST", "/quality/fproofList"),
                         new MenuItem("온도균일성보고서", "/quality/tempUniform"),
                         new MenuItem("경도관리", "/quality/hardness"),
                         new MenuItem("부적합품관리", "/quality/nonconform"))),
