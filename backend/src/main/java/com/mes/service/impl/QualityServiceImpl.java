@@ -28,11 +28,7 @@ import com.mes.common.exception.ErrorCode;
 import com.mes.common.response.PageResponse;
 import com.mes.common.util.Paging;
 import com.mes.dao.QualityDao;
-import com.mes.domain.quality.Cpk;
-import com.mes.domain.quality.Ppk;
 import com.mes.domain.quality.TempUniform;
-import com.mes.domain.quality.Hardness;
-import com.mes.domain.quality.Nonconform;
 import com.mes.service.QualityService;
 
 @Service
@@ -46,24 +42,6 @@ public class QualityServiceImpl implements QualityService {
 
     public QualityServiceImpl(QualityDao qualityDao) {
         this.qualityDao = qualityDao;
-    }
-
-    @Override
-    public PageResponse<Cpk> getCpkList(int page, int size, String keyword) {
-        int pageNum = Paging.normalizePage(page);
-        int pageSize = Paging.normalizeSize(size);
-        List<Cpk> content = qualityDao.selectCpkList(Paging.offset(pageNum, pageSize), pageSize, keyword);
-        long totalElements = qualityDao.selectCpkCount(keyword);
-        return PageResponse.of(content, pageNum, pageSize, totalElements);
-    }
-
-    @Override
-    public PageResponse<Ppk> getPpkList(int page, int size, String keyword) {
-        int pageNum = Paging.normalizePage(page);
-        int pageSize = Paging.normalizeSize(size);
-        List<Ppk> content = qualityDao.selectPpkList(Paging.offset(pageNum, pageSize), pageSize, keyword);
-        long totalElements = qualityDao.selectPpkCount(keyword);
-        return PageResponse.of(content, pageNum, pageSize, totalElements);
     }
 
     // ── F/PROOF SAVE / LIST ──
@@ -461,24 +439,6 @@ public class QualityServiceImpl implements QualityService {
             throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR, "파일 저장에 실패했습니다.");
         }
         qualityDao.updateTempUniformFile(id, newFileName, original, file.getSize());
-    }
-
-    @Override
-    public PageResponse<Hardness> getHardnessList(int page, int size, String keyword) {
-        int pageNum = Paging.normalizePage(page);
-        int pageSize = Paging.normalizeSize(size);
-        List<Hardness> content = qualityDao.selectHardnessList(Paging.offset(pageNum, pageSize), pageSize, keyword);
-        long totalElements = qualityDao.selectHardnessCount(keyword);
-        return PageResponse.of(content, pageNum, pageSize, totalElements);
-    }
-
-    @Override
-    public PageResponse<Nonconform> getNonconformList(int page, int size, String keyword) {
-        int pageNum = Paging.normalizePage(page);
-        int pageSize = Paging.normalizeSize(size);
-        List<Nonconform> content = qualityDao.selectNonconformList(Paging.offset(pageNum, pageSize), pageSize, keyword);
-        long totalElements = qualityDao.selectNonconformCount(keyword);
-        return PageResponse.of(content, pageNum, pageSize, totalElements);
     }
 
 }

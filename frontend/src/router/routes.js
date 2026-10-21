@@ -5,6 +5,7 @@ import ProductPage from '../pages/base/ProductPage';
 import PatternPage from '../pages/base/PatternPage';
 import EquipmentPage from '../pages/base/EquipmentPage';
 import DowntimePage from '../pages/base/DowntimePage';
+import HardnessSpecPage from '../pages/base/HardnessSpecPage';
 import AuthPage from '../pages/base/AuthPage';
 import LoginHistPage from '../pages/base/LoginHistPage';
 import ProdStatusPage from '../pages/monitoring/ProdStatusPage';
@@ -19,11 +20,13 @@ import WorkOrderPage from '../pages/production/WorkOrderPage';
 import ByItemPage from '../pages/production/ByItemPage';
 import EquipEffPage from '../pages/production/EquipEffPage';
 import DailyReportPage from '../pages/production/DailyReportPage';
+import CheckSheetPage from '../pages/production/CheckSheetPage';
 import LotReportPage from '../pages/production/LotReportPage';
 import SensorPage from '../pages/condition/SensorPage';
 import ControllerPage from '../pages/condition/ControllerPage';
 import OilAnalysisPage from '../pages/condition/OilAnalysisPage';
 import DailyCheckPage from '../pages/condition/DailyCheckPage';
+import EquipCheckPage from '../pages/condition/EquipCheckPage';
 import StandardPage from '../pages/condition/StandardPage';
 import CpkPage from '../pages/quality/CpkPage';
 import PpkPage from '../pages/quality/PpkPage';
@@ -49,6 +52,7 @@ const menuRoutes = [
   { path: 'base/pattern', element: PatternPage },
   { path: 'base/equipment', element: EquipmentPage },
   { path: 'base/downtime', element: DowntimePage },
+  { path: 'base/hardnessSpec', element: HardnessSpecPage },
   { path: 'base/auth', element: AuthPage },
   { path: 'base/loginHist', element: LoginHistPage },
   { path: 'monitoring/prodStatus', element: ProdStatusPage },
@@ -63,11 +67,13 @@ const menuRoutes = [
   { path: 'production/byItem', element: ByItemPage },
   { path: 'production/equipEff', element: EquipEffPage },
   { path: 'production/dailyReport', element: DailyReportPage },
+  { path: 'production/checkSheet', element: CheckSheetPage },
   { path: 'production/lotReport', element: LotReportPage },
   { path: 'condition/sensor', element: SensorPage },
   { path: 'condition/controller', element: ControllerPage },
   { path: 'condition/oilAnalysis', element: OilAnalysisPage },
   { path: 'condition/dailyCheck', element: DailyCheckPage },
+  { path: 'condition/equipCheck', element: EquipCheckPage },
   { path: 'condition/standard', element: StandardPage },
   { path: 'quality/cpk', element: CpkPage },
   { path: 'quality/ppk', element: PpkPage },

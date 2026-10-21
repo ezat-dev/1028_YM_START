@@ -2,28 +2,195 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="HardnessMapper">
 
-    <!-- 품질관리 > 경도관리 (quality_hardness) -->
+    <!-- 기준정보 > 경도관리(base_hardness_spec), 품질관리 > 경도측정(quality_hardness_meas/set/value) -->
 
-    <select id="selectList" parameterType="map" resultType="com.mes.domain.quality.Hardness">
-        SELECT id, use_yn, reg_dt, upd_dt
-        FROM quality_hardness
+    <!-- ===================== 규격 ===================== -->
+
+    <select id="selectSpecList" parameterType="map" resultType="com.mes.domain.quality.HardnessSpec">
+        SELECT IFNULL(p.product_name, s.product_name) AS product_name, s.*, e.equip_name, v.vendor_name, p.material,
+               (SELECT COUNT(*) FROM quality_hardness_meas m WHERE m.spec_id = s.spec_id) AS meas_count,
+               (SELECT MAX(m.meas_dt) FROM quality_hardness_meas m WHERE m.spec_id = s.spec_id) AS last_meas_dt
+        FROM base_hardness_spec s
+        LEFT JOIN base_equipment e ON e.equip_code = s.equip_code
+        LEFT JOIN base_product p ON p.product_id = s.product_id
+        LEFT JOIN base_vendor v ON v.vendor_id = p.vendor_id
         <where>
+            <if test="useYn != null and useYn != ''">AND s.use_yn = #{useYn}</if>
+            <if test="equipCode != null and equipCode != ''">AND s.equip_code = #{equipCode}</if>
             <if test="keyword != null and keyword != ''">
-                AND id LIKE CONCAT('%', #{keyword}, '%')
+                AND (s.part_no LIKE CONCAT('%', #{keyword}, '%') OR s.product_name LIKE CONCAT('%', #{keyword}, '%')
+                     OR s.item_name LIKE CONCAT('%', #{keyword}, '%'))
             </if>
         </where>
-        ORDER BY id DESC
-        LIMIT #{size} OFFSET #{offset}
+        ORDER BY s.equip_code, s.part_no, s.item_name
     </select>
 
-    <select id="selectCount" parameterType="map" resultType="long">
-        SELECT COUNT(*)
-        FROM quality_hardness
+    <select id="selectSpecById" parameterType="long" resultType="com.mes.domain.quality.HardnessSpec">
+        SELECT IFNULL(p.product_name, s.product_name) AS product_name, s.*, e.equip_name, v.vendor_name, p.material
+        FROM base_hardness_spec s
+        LEFT JOIN base_equipment e ON e.equip_code = s.equip_code
+        LEFT JOIN base_product p ON p.product_id = s.product_id
+        LEFT JOIN base_vendor v ON v.vendor_id = p.vendor_id
+        WHERE s.spec_id = #{specId}
+    </select>
+
+    <select id="selectSpecByPartItem" parameterType="map" resultType="com.mes.domain.quality.HardnessSpec">
+        SELECT * FROM base_hardness_spec WHERE equip_code = #{equipCode} AND part_no = #{partNo} AND item_name = #{itemName}
+    </select>
+
+    <insert id="insertSpec" parameterType="com.mes.domain.quality.HardnessSpec" useGeneratedKeys="true" keyProperty="specId">
+        INSERT INTO base_hardness_spec (equip_code, product_id, part_no, product_name, item_name, unit, lsl, usl, target, decimals, sample_size,
+                                        use_yn, remark, reg_user_id, reg_user_name)
+        VALUES (#{equipCode}, #{productId}, #{partNo}, #{productName}, #{itemName}, #{unit}, #{lsl}, #{usl}, #{target}, #{decimals}, #{sampleSize},
+                #{useYn}, #{remark}, #{regUserId}, #{regUserName})
+    </insert>
+
+    <update id="updateSpec" parameterType="com.mes.domain.quality.HardnessSpec">
+        UPDATE base_hardness_spec SET
+            equip_code = #{equipCode}, product_id = #{productId}, part_no = #{partNo}, product_name = #{productName}, item_name = #{itemName}, unit = #{unit},
+            lsl = #{lsl}, usl = #{usl}, target = #{target}, decimals = #{decimals}, sample_size = #{sampleSize},
+            use_yn = #{useYn}, remark = #{remark}, upd_user_id = #{updUserId}, upd_user_name = #{updUserName}
+        WHERE spec_id = #{specId}
+    </update>
+
+    <delete id="deleteSpec" parameterType="long">
+        DELETE FROM base_hardness_spec WHERE spec_id = #{specId}
+    </delete>
+
+    <!-- ===================== 측정 ===================== -->
+
+    <sql id="measCols">
+        m.*, s.decimals,
+        (SELECT COUNT(*) FROM quality_hardness_set x WHERE x.meas_id = m.meas_id) AS set_count,
+        (SELECT COUNT(*) FROM quality_hardness_value v JOIN quality_hardness_set x ON x.set_id = v.set_id
+          WHERE x.meas_id = m.meas_id) AS value_count,
+        (SELECT COUNT(*) FROM quality_hardness_value v JOIN quality_hardness_set x ON x.set_id = v.set_id
+          WHERE x.meas_id = m.meas_id
+            AND ((m.lsl IS NOT NULL AND v.value &lt; m.lsl) OR (m.usl IS NOT NULL AND v.value &gt; m.usl))) AS ng_count
+    </sql>
+
+    <select id="selectMeasList" parameterType="map" resultType="com.mes.domain.quality.HardnessMeas">
+        SELECT <include refid="measCols"/>
+        FROM quality_hardness_meas m
+        JOIN base_hardness_spec s ON s.spec_id = m.spec_id
         <where>
+            <if test="from != null">AND m.meas_dt &gt;= #{from}</if>
+            <if test="to != null">AND m.meas_dt &lt; #{to}</if>
+            <if test="specId != null">AND m.spec_id = #{specId}</if>
+            <if test="status != null and status != ''">AND m.status = #{status}</if>
             <if test="keyword != null and keyword != ''">
-                AND id LIKE CONCAT('%', #{keyword}, '%')
+                AND (m.meas_no LIKE CONCAT('%', #{keyword}, '%') OR m.part_no LIKE CONCAT('%', #{keyword}, '%')
+                     OR m.lot_no LIKE CONCAT('%', #{keyword}, '%') OR m.worker_name LIKE CONCAT('%', #{keyword}, '%'))
             </if>
         </where>
+        ORDER BY m.meas_dt DESC, m.meas_id DESC
+    </select>
+
+    <select id="selectMeasById" parameterType="long" resultType="com.mes.domain.quality.HardnessMeas">
+        SELECT <include refid="measCols"/>
+        FROM quality_hardness_meas m
+        JOIN base_hardness_spec s ON s.spec_id = m.spec_id
+        WHERE m.meas_id = #{measId}
+    </select>
+
+    <select id="selectReceivingMeas" resultType="com.mes.domain.quality.HardnessMeas">
+        SELECT * FROM quality_hardness_meas WHERE receiving = 'Y' AND status = '측정중' ORDER BY upd_dt DESC LIMIT 1
+    </select>
+
+    <select id="selectMeasMaxNo" parameterType="string" resultType="int">
+        SELECT IFNULL(MAX(CAST(SUBSTRING(meas_no, LENGTH(#{prefix}) + 1) AS UNSIGNED)), 0)
+        FROM quality_hardness_meas WHERE meas_no LIKE CONCAT(#{prefix}, '%')
+    </select>
+
+    <insert id="insertMeas" parameterType="com.mes.domain.quality.HardnessMeas" useGeneratedKeys="true" keyProperty="measId">
+        INSERT INTO quality_hardness_meas (meas_no, spec_id, part_no, product_name, item_name, unit, lsl, usl, sample_size,
+                                           lot_no, equip_code, meas_dt, status, worker_name, remark, reg_user_id, reg_user_name)
+        VALUES (#{measNo}, #{specId}, #{partNo}, #{productName}, #{itemName}, #{unit}, #{lsl}, #{usl}, #{sampleSize},
+                #{lotNo}, #{equipCode}, #{measDt}, '측정중', #{workerName}, #{remark}, #{regUserId}, #{regUserName})
+    </insert>
+
+    <update id="updateMeasInfo" parameterType="com.mes.domain.quality.HardnessMeas">
+        UPDATE quality_hardness_meas SET
+            lot_no = #{lotNo}, equip_code = #{equipCode}, worker_name = #{workerName}, remark = #{remark},
+            upd_user_id = #{updUserId}, upd_user_name = #{updUserName}
+        WHERE meas_id = #{measId}
+    </update>
+
+    <update id="updateMeasStatus" parameterType="map">
+        UPDATE quality_hardness_meas SET
+            status = #{status}, judgement = #{judgement}, completed_dt = #{completedDt},
+            receiving = CASE WHEN #{status} = '완료' THEN 'N' ELSE receiving END
+        WHERE meas_id = #{measId}
+    </update>
+
+    <update id="clearReceiving">
+        UPDATE quality_hardness_meas SET receiving = 'N' WHERE receiving = 'Y'
+    </update>
+
+    <update id="updateReceiving" parameterType="map">
+        UPDATE quality_hardness_meas SET receiving = #{receiving} WHERE meas_id = #{measId}
+    </update>
+
+    <update id="touchMeas" parameterType="long">
+        UPDATE quality_hardness_meas SET upd_dt = NOW() WHERE meas_id = #{measId}
+    </update>
+
+    <delete id="deleteMeas" parameterType="long">
+        DELETE FROM quality_hardness_meas WHERE meas_id = #{measId}
+    </delete>
+
+    <!-- ===================== 세트·값 ===================== -->
+
+    <select id="selectSets" parameterType="long" resultType="com.mes.domain.quality.HardnessSet">
+        SELECT * FROM quality_hardness_set WHERE meas_id = #{measId} ORDER BY seq, set_id
+    </select>
+
+    <select id="selectSetById" parameterType="long" resultType="com.mes.domain.quality.HardnessSet">
+        SELECT * FROM quality_hardness_set WHERE set_id = #{setId}
+    </select>
+
+    <select id="selectValuesByMeas" parameterType="long" resultType="com.mes.domain.quality.HardnessValue">
+        SELECT v.* FROM quality_hardness_value v JOIN quality_hardness_set s ON s.set_id = v.set_id
+        WHERE s.meas_id = #{measId} ORDER BY s.seq, v.idx
+    </select>
+
+    <select id="selectMaxSeq" parameterType="long" resultType="int">
+        SELECT IFNULL(MAX(seq), 0) FROM quality_hardness_set WHERE meas_id = #{measId}
+    </select>
+
+    <insert id="insertSet" parameterType="com.mes.domain.quality.HardnessSet" useGeneratedKeys="true" keyProperty="setId">
+        INSERT INTO quality_hardness_set (meas_id, set_type, seq) VALUES (#{measId}, #{setType}, #{seq})
+    </insert>
+
+    <delete id="deleteSet" parameterType="long">
+        DELETE FROM quality_hardness_set WHERE set_id = #{setId}
+    </delete>
+
+    <insert id="upsertValue" parameterType="com.mes.domain.quality.HardnessValue">
+        INSERT INTO quality_hardness_value (set_id, idx, value, source, device_id, measured_at)
+        VALUES (#{setId}, #{idx}, #{value}, #{source}, #{deviceId}, NOW())
+        ON DUPLICATE KEY UPDATE value = VALUES(value), source = VALUES(source), device_id = VALUES(device_id),
+                                measured_at = NOW()
+    </insert>
+
+    <delete id="deleteValue" parameterType="map">
+        DELETE FROM quality_hardness_value WHERE set_id = #{setId} AND idx = #{idx}
+    </delete>
+
+    <!-- ===================== 공정능력 ===================== -->
+
+    <!-- 완료된 측정의 세트·값을 한 번에(분석은 서비스에서) — 단순한 조인만 쓴다 -->
+    <select id="selectCapabilityRows" parameterType="map" resultType="map">
+        SELECT m.meas_id AS measId, m.meas_no AS measNo, m.lot_no AS lotNo, m.equip_code AS equipCode,
+               m.meas_dt AS measDt, s.set_id AS setId, s.set_type AS setType, s.seq AS seq,
+               v.idx AS idx, v.value AS value
+        FROM quality_hardness_meas m
+        JOIN quality_hardness_set s ON s.meas_id = m.meas_id
+        JOIN quality_hardness_value v ON v.set_id = s.set_id
+        WHERE m.spec_id = #{specId} AND m.status = '완료'
+        <if test="from != null">AND m.meas_dt &gt;= #{from}</if>
+        <if test="to != null">AND m.meas_dt &lt; #{to}</if>
+        ORDER BY m.meas_dt, m.meas_id, s.seq, s.set_id, v.idx
     </select>
 
 </mapper>

@@ -569,3 +569,402 @@ CREATE TABLE IF NOT EXISTS equipment_attach (
     reg_dt          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     INDEX idx_equipment_attach_ref (ref_type, ref_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 기준정보 > 경도관리 — 품번·검사항목별 경도 규격. 지금은 품번을 직접 입력하고, 나중에 제품(base_product)을 골라 product_id로 잇는다.
+CREATE TABLE IF NOT EXISTS base_hardness_spec (
+    spec_id         BIGINT AUTO_INCREMENT PRIMARY KEY,
+    product_id      BIGINT NULL,                          -- 나중에 제품관리와 연결(지금은 비워 둠)
+    part_no         VARCHAR(50)  NOT NULL,                -- 품번(직접 입력)
+    product_name    VARCHAR(100) NOT NULL DEFAULT '',     -- 품명(선택)
+    item_name       VARCHAR(30)  NOT NULL,                -- 검사 항목: 표면 경도 / 심부 경도 / 유효경화깊이 ...
+    unit            VARCHAR(10)  NOT NULL DEFAULT 'HV',   -- HV / HRC / HRA / HRB / HB / mm
+    lsl             DECIMAL(10,3) NULL,                   -- 하한(없으면 NULL)
+    usl             DECIMAL(10,3) NULL,                   -- 상한(없으면 NULL)
+    target          DECIMAL(10,3) NULL,                   -- 목표(중심)값
+    decimals        TINYINT NOT NULL DEFAULT 1,           -- 표시 소수 자리
+    sample_size     TINYINT NOT NULL DEFAULT 5,           -- 한 세트(초·중·종물)에 재는 개수 = 경도1~n
+    use_yn          CHAR(1) NOT NULL DEFAULT 'Y',
+    remark          VARCHAR(300) NOT NULL DEFAULT '',
+    reg_user_id     VARCHAR(50) NOT NULL DEFAULT '',
+    reg_user_name   VARCHAR(50) NOT NULL DEFAULT '',
+    upd_user_id     VARCHAR(50) NOT NULL DEFAULT '',
+    upd_user_name   VARCHAR(50) NOT NULL DEFAULT '',
+    reg_dt          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    upd_dt          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_base_hardness_spec_part_item (part_no, item_name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 품질관리 > 경도측정 — 측정 1건(한 LOT·한 검사항목). 규격 값은 측정 당시 값을 그대로 복사해 둔다(규격이 바뀌어도 판정 유지).
+-- status: 측정중 | 완료, receiving='Y'인 측정 1건이 경도계(C# 연동) 값을 자동으로 받는다.
+CREATE TABLE IF NOT EXISTS quality_hardness_meas (
+    meas_id         BIGINT AUTO_INCREMENT PRIMARY KEY,
+    meas_no         VARCHAR(20)  NOT NULL,                -- 측정번호 HDM-YYYYMM-NNN
+    spec_id         BIGINT NOT NULL,
+    part_no         VARCHAR(50)  NOT NULL,
+    product_name    VARCHAR(100) NOT NULL DEFAULT '',
+    item_name       VARCHAR(30)  NOT NULL,
+    unit            VARCHAR(10)  NOT NULL,
+    lsl             DECIMAL(10,3) NULL,
+    usl             DECIMAL(10,3) NULL,
+    sample_size     TINYINT NOT NULL DEFAULT 5,
+    lot_no          VARCHAR(30)  NOT NULL DEFAULT '',     -- LOT번호(지금은 직접 입력)
+    equip_code      VARCHAR(20)  NOT NULL DEFAULT '',     -- 설비(선택)
+    meas_dt         DATETIME NOT NULL,                    -- 측정 시작 일시
+    status          VARCHAR(10)  NOT NULL DEFAULT '측정중',
+    judgement       VARCHAR(10)  NOT NULL DEFAULT '',     -- 합격 | 불합격 | ''(측정중)
+    receiving       CHAR(1) NOT NULL DEFAULT 'N',
+    worker_name     VARCHAR(50)  NOT NULL DEFAULT '',
+    remark          VARCHAR(300) NOT NULL DEFAULT '',
+    completed_dt    DATETIME NULL,
+    reg_user_id     VARCHAR(50) NOT NULL DEFAULT '',
+    reg_user_name   VARCHAR(50) NOT NULL DEFAULT '',
+    upd_user_id     VARCHAR(50) NOT NULL DEFAULT '',
+    upd_user_name   VARCHAR(50) NOT NULL DEFAULT '',
+    reg_dt          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    upd_dt          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_quality_hardness_meas_no (meas_no),
+    INDEX idx_quality_hardness_meas_spec_dt (spec_id, meas_dt),
+    INDEX idx_quality_hardness_meas_dt (meas_dt),
+    CONSTRAINT fk_quality_hardness_meas_spec FOREIGN KEY (spec_id) REFERENCES base_hardness_spec(spec_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 측정 세트 — 초물 / 중물 / 종물(필요하면 더 추가). 세트 하나가 CPK의 부분군 하나.
+CREATE TABLE IF NOT EXISTS quality_hardness_set (
+    set_id          BIGINT AUTO_INCREMENT PRIMARY KEY,
+    meas_id         BIGINT NOT NULL,
+    set_type        VARCHAR(10) NOT NULL,                 -- 초물 | 중물 | 종물
+    seq             INT NOT NULL DEFAULT 0,               -- 화면·자동 입력 순서
+    INDEX idx_quality_hardness_set_meas (meas_id, seq),
+    CONSTRAINT fk_quality_hardness_set_meas FOREIGN KEY (meas_id) REFERENCES quality_hardness_meas(meas_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 측정값 — 세트 안 경도1~n. 값 하나 = 시료 1개(여러 점을 쟀으면 평균 1개 값).
+-- source: AUTO(경도계 자동 수신) | MANUAL(수동 입력)
+CREATE TABLE IF NOT EXISTS quality_hardness_value (
+    value_id        BIGINT AUTO_INCREMENT PRIMARY KEY,
+    set_id          BIGINT NOT NULL,
+    idx             TINYINT NOT NULL,                     -- 1~n (경도1~경도n)
+    value           DECIMAL(10,3) NOT NULL,
+    source          VARCHAR(10) NOT NULL DEFAULT 'MANUAL',
+    device_id       VARCHAR(50) NOT NULL DEFAULT '',
+    measured_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_quality_hardness_value_slot (set_id, idx),
+    CONSTRAINT fk_quality_hardness_value_set FOREIGN KEY (set_id) REFERENCES quality_hardness_set(set_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- =====================================================================
+-- 조건관리 > 설비점검표 (현장 종이 '설비점검표' 양식을 그대로 옮긴 것)
+--   점검표(양식) 1장 = 설비 1대. 항목은 사용자가 설정. 기록은 월(ym) 단위로 쌓인다.
+-- =====================================================================
+
+-- 점검표(양식) — 머리 영역(제목/설비명/모델NO), 범례·주기 범례·결재란·하단 문구를 편집 모드에서 고친다
+CREATE TABLE IF NOT EXISTS condition_equip_check_sheet (
+    sheet_id      BIGINT       NOT NULL AUTO_INCREMENT,
+    title         VARCHAR(50)  NOT NULL DEFAULT '설비점검표',
+    equip_name    VARCHAR(100) NOT NULL,
+    model_no      VARCHAR(100) NULL,
+    legend_json   VARCHAR(1000) NULL COMMENT '범례 [{"mark":"○","label":"양호"},…] — 첫 번째가 양호(전체 양호에 쓰임)',
+    cycle_json    VARCHAR(1000) NULL COMMENT '주기 범례 [{"code":"D","label":"매일"},…]',
+    sign_json     VARCHAR(300)  NULL COMMENT '결재란 이름 ["담당","검토","확인"]',
+    footer_note   VARCHAR(300)  NULL COMMENT '하단 안내 문구',
+    sort_order    INT          NOT NULL DEFAULT 0,
+    use_yn        CHAR(1)      NOT NULL DEFAULT 'Y',
+    reg_user_id   VARCHAR(50)  NULL,
+    reg_user_name VARCHAR(50)  NULL,
+    reg_dt        DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    upd_user_id   VARCHAR(50)  NULL,
+    upd_user_name VARCHAR(50)  NULL,
+    upd_dt        DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (sheet_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='설비점검표 양식';
+
+-- 점검 항목 — 점검개소 / 점검항목 / 주기 / 사진(1장)
+-- 기록이 있는 항목을 지우면 use_yn='N'으로만 숨겨서 지난 달 기록은 그대로 보이게 한다
+CREATE TABLE IF NOT EXISTS condition_equip_check_item (
+    item_id     BIGINT       NOT NULL AUTO_INCREMENT,
+    sheet_id    BIGINT       NOT NULL,
+    location    VARCHAR(100) NULL COMMENT '점검개소',
+    item_name   VARCHAR(200) NOT NULL COMMENT '점검항목(기준 포함, 예: 180 ± 10 °C)',
+    cycle       VARCHAR(10)  NOT NULL DEFAULT 'D' COMMENT '주기 코드(주기 범례의 code)',
+    photo_path  VARCHAR(300) NULL,
+    photo_name  VARCHAR(255) NULL,
+    photo_type  VARCHAR(100) NULL,
+    seq         INT          NOT NULL DEFAULT 0,
+    use_yn      CHAR(1)      NOT NULL DEFAULT 'Y',
+    reg_dt      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    upd_dt      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (item_id),
+    KEY idx_equip_check_item_sheet (sheet_id, seq),
+    CONSTRAINT fk_equip_check_item_sheet FOREIGN KEY (sheet_id)
+        REFERENCES condition_equip_check_sheet (sheet_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='설비점검표 항목';
+
+-- 월 점검표 — 점검 년월마다 1행: 머리의 점검자, 특기사항, 결재(담당/검토/확인)
+CREATE TABLE IF NOT EXISTS condition_equip_check_month (
+    month_id        BIGINT      NOT NULL AUTO_INCREMENT,
+    sheet_id        BIGINT      NOT NULL,
+    ym              CHAR(7)     NOT NULL COMMENT 'YYYY-MM',
+    inspector_name  VARCHAR(50) NULL COMMENT '머리의 점검자',
+    remark          TEXT        NULL COMMENT '특기사항',
+    -- 결재: 결재한 사용자(취소 권한 확인용) + 서명 이름 + 마우스/터치 서명 이미지(PNG data URL, 없으면 이름만)
+    sign1_user_id   VARCHAR(50) NULL, sign1_name VARCHAR(50) NULL, sign1_dt DATETIME NULL, sign1_img MEDIUMTEXT NULL,
+    sign2_user_id   VARCHAR(50) NULL, sign2_name VARCHAR(50) NULL, sign2_dt DATETIME NULL, sign2_img MEDIUMTEXT NULL,
+    sign3_user_id   VARCHAR(50) NULL, sign3_name VARCHAR(50) NULL, sign3_dt DATETIME NULL, sign3_img MEDIUMTEXT NULL,
+    reg_dt          DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    upd_dt          DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (month_id),
+    UNIQUE KEY uk_equip_check_month (sheet_id, ym),
+    CONSTRAINT fk_equip_check_month_sheet FOREIGN KEY (sheet_id)
+        REFERENCES condition_equip_check_sheet (sheet_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='설비점검표 월 기록(머리·특기사항·결재)';
+
+-- 일별 점검 결과 — 항목 × 날짜 1칸. 점검자(하단 점검자 줄)도 여기서 나온다
+CREATE TABLE IF NOT EXISTS condition_equip_check_result (
+    result_id   BIGINT      NOT NULL AUTO_INCREMENT,
+    item_id     BIGINT      NOT NULL,
+    ym          CHAR(7)     NOT NULL,
+    day         TINYINT     NOT NULL,
+    mark        VARCHAR(5)  NOT NULL COMMENT '범례 기호(○ △ □ X …)',
+    user_id     VARCHAR(50) NULL,
+    user_name   VARCHAR(50) NULL,
+    checked_dt  DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (result_id),
+    UNIQUE KEY uk_equip_check_result (item_id, ym, day),
+    KEY idx_equip_check_result_ym (ym, day),
+    CONSTRAINT fk_equip_check_result_item FOREIGN KEY (item_id)
+        REFERENCES condition_equip_check_item (item_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='설비점검표 일별 결과';
+
+-- 항목별 '정기 점검' 칸(월마다 메모 한 줄)
+CREATE TABLE IF NOT EXISTS condition_equip_check_note (
+    item_id  BIGINT       NOT NULL,
+    ym       CHAR(7)      NOT NULL,
+    note     VARCHAR(200) NULL,
+    upd_dt   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (item_id, ym),
+    CONSTRAINT fk_equip_check_note_item FOREIGN KEY (item_id)
+        REFERENCES condition_equip_check_item (item_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='설비점검표 정기 점검 메모';
+
+-- 관리책임자 확인란 — 주(1~7, 8~14, 15~21, 22~28, 29~말일)마다 확인
+CREATE TABLE IF NOT EXISTS condition_equip_check_confirm (
+    sheet_id    BIGINT      NOT NULL,
+    ym          CHAR(7)     NOT NULL,
+    week_no     TINYINT     NOT NULL COMMENT '1~5',
+    user_id     VARCHAR(50) NULL,
+    user_name   VARCHAR(50) NULL COMMENT '서명 이름',
+    sign_img    MEDIUMTEXT  NULL COMMENT '서명 이미지(PNG data URL) — 없으면 이름만',
+    confirm_dt  DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (sheet_id, ym, week_no),
+    CONSTRAINT fk_equip_check_confirm_sheet FOREIGN KEY (sheet_id)
+        REFERENCES condition_equip_check_sheet (sheet_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='설비점검표 관리책임자 주간 확인';
+
+-- =====================================================================
+-- 생산관리 > 열처리 CHECK SHEET + 경도 규격 호기별 + 비가동·부적합 연동
+-- =====================================================================
+
+-- 경도 규격: 같은 품번도 호기마다 규격이 다르다 → (호기, 품번, 검사항목)
+ALTER TABLE base_hardness_spec
+    ADD COLUMN equip_code VARCHAR(20) NOT NULL COMMENT '호기(설비코드) — 같은 품번도 호기마다 규격이 다르다' AFTER spec_id,
+    DROP INDEX uq_base_hardness_spec_part_item,
+    ADD UNIQUE KEY uq_base_hardness_spec_equip_part_item (equip_code, part_no, item_name);
+
+-- 경도 측정: CHECK SHEET 행에서 입력된 측정이면 그 행(값은 경도측정 테이블 한 곳에만 저장)
+ALTER TABLE quality_hardness_meas
+    ADD COLUMN check_row_id BIGINT NULL COMMENT 'CHECK SHEET 행에서 입력된 측정이면 그 행' AFTER spec_id,
+    ADD KEY idx_hardness_meas_check_row (check_row_id);
+
+-- 비가동 사유: CHECK SHEET 코드표 그룹(설비문제(기계) 등)
+ALTER TABLE base_downtime_reason
+    ADD COLUMN reason_group VARCHAR(30) NULL COMMENT '그룹(설비문제(기계)·설비문제(전기)·생산·생산관리·영업부문·공통문제)' AFTER reason_type;
+
+-- 비가동: CHECK SHEET 행에서 생긴 기록이면 그 행
+ALTER TABLE base_downtime
+    ADD COLUMN check_row_id BIGINT NULL COMMENT 'CHECK SHEET 행에서 생긴 비가동이면 그 행(source=SHEET)' AFTER source,
+    ADD KEY idx_downtime_check_row (check_row_id);
+
+-- 불량 구분 (CHECK SHEET 불량구분표 · 부적합품관리)
+CREATE TABLE IF NOT EXISTS quality_defect_type (
+    defect_id   BIGINT       NOT NULL AUTO_INCREMENT,
+    defect_code VARCHAR(10)  NOT NULL,
+    defect_name VARCHAR(50)  NOT NULL,
+    sort_order  INT          NOT NULL DEFAULT 0,
+    use_yn      CHAR(1)      NOT NULL DEFAULT 'Y',
+    reg_dt      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    upd_dt      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (defect_id),
+    UNIQUE KEY uk_quality_defect_code (defect_code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='불량 구분';
+
+-- 부적합품
+CREATE TABLE IF NOT EXISTS quality_nonconform (
+    nc_id         BIGINT        NOT NULL AUTO_INCREMENT,
+    nc_no         VARCHAR(20)   NOT NULL COMMENT 'NC-YYYYMM-NNN',
+    occur_date    DATE          NOT NULL,
+    equip_code    VARCHAR(20)   NULL,
+    part_no       VARCHAR(50)   NULL,
+    product_name  VARCHAR(100)  NULL,
+    lot_no        VARCHAR(30)   NULL,
+    defect_code   VARCHAR(10)   NULL,
+    defect_name   VARCHAR(50)   NULL COMMENT '등록 당시 불량 구분 이름',
+    qty           DECIMAL(12,2) NOT NULL DEFAULT 0,
+    unit          VARCHAR(10)   NOT NULL DEFAULT 'EA',
+    status        VARCHAR(10)   NOT NULL DEFAULT '대기' COMMENT '대기 / 처리중 / 완료',
+    disposition   VARCHAR(20)   NULL COMMENT '폐기 / 재작업 / 선별 / 특채 / 반품',
+    action_note   VARCHAR(500)  NULL,
+    source        VARCHAR(10)   NOT NULL DEFAULT 'MANUAL' COMMENT 'MANUAL / SHEET',
+    check_row_id  BIGINT        NULL COMMENT 'CHECK SHEET 행에서 생긴 부적합이면 그 행',
+    remark        VARCHAR(300)  NULL,
+    reg_user_id   VARCHAR(50)   NULL,
+    reg_user_name VARCHAR(50)   NULL,
+    reg_dt        DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    upd_user_id   VARCHAR(50)   NULL,
+    upd_user_name VARCHAR(50)   NULL,
+    upd_dt        DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (nc_id),
+    UNIQUE KEY uk_quality_nonconform_no (nc_no),
+    KEY idx_quality_nonconform_date (occur_date),
+    KEY idx_quality_nonconform_row (check_row_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='부적합품';
+
+-- 열처리 CHECK SHEET — 호기 × 생산일자 한 장(행은 통 단위로 계속 늘어난다)
+CREATE TABLE IF NOT EXISTS prod_check_sheet (
+    sheet_id      BIGINT       NOT NULL AUTO_INCREMENT,
+    equip_code    VARCHAR(20)  NOT NULL COMMENT '호기',
+    prod_date     DATE         NOT NULL COMMENT '생산일자',
+    worker_day    VARCHAR(50)  NULL COMMENT '작업자(주간)',
+    worker_night  VARCHAR(50)  NULL COMMENT '작업자(야간)',
+    qc_name       VARCHAR(50)  NULL COMMENT '공정QC 담당자',
+    reg_user_id   VARCHAR(50)  NULL,
+    reg_user_name VARCHAR(50)  NULL,
+    reg_dt        DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    upd_dt        DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (sheet_id),
+    UNIQUE KEY uk_prod_check_sheet (equip_code, prod_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='열처리 CHECK SHEET';
+
+-- 행 = 통 하나
+CREATE TABLE IF NOT EXISTS prod_check_row (
+    row_id        BIGINT        NOT NULL AUTO_INCREMENT,
+    sheet_id      BIGINT        NOT NULL,
+    row_no        INT           NOT NULL,
+    out_time      VARCHAR(5)    NULL COMMENT '출로시간 HH:MM',
+    vendor        VARCHAR(50)   NULL COMMENT '업체',
+    part_no       VARCHAR(50)   NULL COMMENT '제품 품번',
+    product_name  VARCHAR(100)  NULL COMMENT '품명',
+    spec_text     VARCHAR(100)  NULL COMMENT '규격(치수)',
+    lot_no        VARCHAR(30)   NULL COMMENT '작지 No(LOT)',
+    qty_kg        DECIMAL(10,1) NULL COMMENT '생산량(Kg)',
+    defect_qty    DECIMAL(10,1) NULL COMMENT '불량 수량',
+    defect_code   VARCHAR(10)   NULL COMMENT '불량 구분',
+    down_code     VARCHAR(20)   NULL COMMENT '비가동 표기(코드)',
+    down_start    VARCHAR(5)    NULL COMMENT '비가동 시작 HH:MM',
+    down_end      VARCHAR(5)    NULL COMMENT '비가동 끝 HH:MM',
+    material      VARCHAR(50)   NULL COMMENT '재질',
+    heat_lot_no   VARCHAR(20)   NULL COMMENT '열처리 LOT NO',
+    worker        VARCHAR(50)   NULL,
+    leader        VARCHAR(50)   NULL COMMENT '조장',
+    qc            VARCHAR(50)   NULL COMMENT '공정QC',
+    downtime_id   BIGINT        NULL COMMENT '연동된 설비비가동 기록',
+    nc_id         BIGINT        NULL COMMENT '연동된 부적합품',
+    reg_dt        DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    upd_dt        DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (row_id),
+    KEY idx_prod_check_row_sheet (sheet_id, row_no),
+    CONSTRAINT fk_prod_check_row_sheet FOREIGN KEY (sheet_id) REFERENCES prod_check_sheet (sheet_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='열처리 CHECK SHEET 행(통)';
+
+-- 결재·확인·협조 서명 (담당/검토/승인/확인/설비관리/품질관리/품질보증/생산관리)
+CREATE TABLE IF NOT EXISTS prod_check_sign (
+    sheet_id   BIGINT       NOT NULL,
+    slot       VARCHAR(20)  NOT NULL,
+    user_id    VARCHAR(50)  NULL,
+    sign_name  VARCHAR(50)  NOT NULL,
+    sign_img   MEDIUMTEXT   NULL COMMENT '서명 이미지(PNG data URL) — 없으면 이름만',
+    sign_dt    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (sheet_id, slot),
+    CONSTRAINT fk_prod_check_sign_sheet FOREIGN KEY (sheet_id) REFERENCES prod_check_sheet (sheet_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='열처리 CHECK SHEET 서명';
+
+-- 양식 설정(특기사항, 제목 아래 문구)
+CREATE TABLE IF NOT EXISTS prod_check_setting (
+    setting_key   VARCHAR(50) NOT NULL,
+    setting_value TEXT        NULL,
+    upd_dt        DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (setting_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='열처리 CHECK SHEET 양식 설정';
+
+-- 비가동 코드(현장 CHECK SHEET 코드표 그대로) — 이미 있는 코드는 그룹만 채운다
+INSERT INTO base_downtime_reason (reason_code, reason_name, reason_type, reason_group, sort_order, use_yn, remark, reg_user_name, upd_user_name) VALUES
+('AF', '설비변성로', '고장정지', '설비문제(기계)', 101, 'Y', '', 'CHECK SHEET', 'CHECK SHEET'),
+('AG', '설비공급장치', '고장정지', '설비문제(기계)', 102, 'Y', '', 'CHECK SHEET', 'CHECK SHEET'),
+('AH', '설비전세정기', '고장정지', '설비문제(기계)', 103, 'Y', '', 'CHECK SHEET', 'CHECK SHEET'),
+('AI', '설비가열로', '고장정지', '설비문제(기계)', 104, 'Y', '', 'CHECK SHEET', 'CHECK SHEET'),
+('AJ', '설비유조', '고장정지', '설비문제(기계)', 105, 'Y', '', 'CHECK SHEET', 'CHECK SHEET'),
+('AK', '설비후세정기', '고장정지', '설비문제(기계)', 106, 'Y', '', 'CHECK SHEET', 'CHECK SHEET'),
+('AL', '설비소려로', '고장정지', '설비문제(기계)', 107, 'Y', '', 'CHECK SHEET', 'CHECK SHEET'),
+('A4', '기계기타', '고장정지', '설비문제(기계)', 108, 'Y', '', 'CHECK SHEET', 'CHECK SHEET'),
+('BD', '전기변형로', '고장정지', '설비문제(전기)', 201, 'Y', '', 'CHECK SHEET', 'CHECK SHEET'),
+('BE', '전기공급장치', '고장정지', '설비문제(전기)', 202, 'Y', '', 'CHECK SHEET', 'CHECK SHEET'),
+('BF', '전기전세정기', '고장정지', '설비문제(전기)', 203, 'Y', '', 'CHECK SHEET', 'CHECK SHEET'),
+('BG', '전기가열로', '고장정지', '설비문제(전기)', 204, 'Y', '', 'CHECK SHEET', 'CHECK SHEET'),
+('BH', '전기유조', '고장정지', '설비문제(전기)', 205, 'Y', '', 'CHECK SHEET', 'CHECK SHEET'),
+('BI', '전기후세정기', '고장정지', '설비문제(전기)', 206, 'Y', '', 'CHECK SHEET', 'CHECK SHEET'),
+('BJ', '전기소려로', '고장정지', '설비문제(전기)', 207, 'Y', '', 'CHECK SHEET', 'CHECK SHEET'),
+('BK', '전기판넬', '고장정지', '설비문제(전기)', 208, 'Y', '', 'CHECK SHEET', 'CHECK SHEET'),
+('BN', '전기기타', '고장정지', '설비문제(전기)', 209, 'Y', '', 'CHECK SHEET', 'CHECK SHEET'),
+('FO', '설비정지(우발)', '고장정지', '설비문제(전기)', 210, 'Y', '', 'CHECK SHEET', 'CHECK SHEET'),
+('FF', '설비정지(보전)', '계획정지', '설비문제(전기)', 211, 'Y', '', 'CHECK SHEET', 'CHECK SHEET'),
+('FK', '사이띄기', '기타', '생산', 301, 'Y', '', 'CHECK SHEET', 'CHECK SHEET'),
+('FB', '기계청소', '계획정지', '생산', 302, 'Y', '', 'CHECK SHEET', 'CHECK SHEET'),
+('FI', '작업변경', '계획정지', '생산', 303, 'Y', '', 'CHECK SHEET', 'CHECK SHEET'),
+('FN', '인원대기(근태)', '대기', '생산', 304, 'Y', '', 'CHECK SHEET', 'CHECK SHEET'),
+('DF', '소재대기', '대기', '생산관리', 401, 'Y', '', 'CHECK SHEET', 'CHECK SHEET'),
+('FQ', '계획정지(오더)', '계획정지', '영업부문', 501, 'Y', '', 'CHECK SHEET', 'CHECK SHEET'),
+('FH', '인원대기(미증원)', '대기', '공통문제', 601, 'Y', '', 'CHECK SHEET', 'CHECK SHEET'),
+('EC', '개발품', '기타', '공통문제', 602, 'Y', '', 'CHECK SHEET', 'CHECK SHEET'),
+('FG', '조회', '계획정지', '공통문제', 603, 'Y', '', 'CHECK SHEET', 'CHECK SHEET'),
+('FJ', '품질이상', '기타', '공통문제', 604, 'Y', '', 'CHECK SHEET', 'CHECK SHEET'),
+('FP', '교육', '계획정지', '공통문제', 605, 'Y', '', 'CHECK SHEET', 'CHECK SHEET'),
+('FL', '기타', '기타', '공통문제', 606, 'Y', '', 'CHECK SHEET', 'CHECK SHEET'),
+('ZZ', '타부서지원중(생산)', '대기', '공통문제', 607, 'Y', '', 'CHECK SHEET', 'CHECK SHEET'),
+('ZY', '타부서지원중(보전)', '대기', '공통문제', 608, 'Y', '', 'CHECK SHEET', 'CHECK SHEET'),
+('ZQ', '타부서지원중(품질)', '대기', '공통문제', 609, 'Y', '', 'CHECK SHEET', 'CHECK SHEET')
+ON DUPLICATE KEY UPDATE reason_group = VALUES(reason_group);
+
+-- 불량 구분
+INSERT IGNORE INTO quality_defect_type (defect_code, defect_name, sort_order) VALUES
+('A', '경도불량', 1), ('B', '혼입', 2), ('C', '낙하품', 3), ('D', '상이품', 4), ('E', '찍힘', 5),
+('F', '휨', 6), ('G', '잔존품', 7), ('H', '드릴 TEST', 8), ('J', '토오크', 9), ('K', '녹', 10);
+
+-- 양식 설정
+INSERT IGNORE INTO prod_check_setting (setting_key, setting_value) VALUES
+('subtitle', 'BOLT / SCREW'),
+('note', '※ 소입경도 검사기준 → SWCH45F: HRC 55이상, SCM435: HRC 50이상, 보론강: HRC 40이상, SUS660: HRC 50이상\n※ 소입경도 검사주기 → 각 설비별 1회/4hr\n※ LOT NO 부여방법: 동일제품 작업시 1LOT 단위로 부여한다.\n※ 소려경도가 내부관리 상한으로 벗어날시 재Tempering 실시하고, 하한으로 벗어날시 시험검사실에 검사를 의뢰한다.');
+
+-- CHECK SHEET 작성·수정 기록 — 누가(계정·IP) 언제 어느 호기·통의 무엇을 바꿨는지. 시트·행이 지워져도 남도록 FK 없음
+CREATE TABLE IF NOT EXISTS prod_check_audit (
+    audit_id    BIGINT       NOT NULL AUTO_INCREMENT,
+    sheet_id    BIGINT       NULL,
+    equip_code  VARCHAR(20)  NOT NULL,
+    prod_date   DATE         NOT NULL,
+    row_id      BIGINT       NULL     COMMENT '행(통) — 머리·서명은 NULL',
+    row_no      INT          NULL,
+    part_no     VARCHAR(50)  NULL,
+    target      VARCHAR(20)  NOT NULL COMMENT '통 / 경도 / 머리 / 서명',
+    action      VARCHAR(20)  NOT NULL COMMENT '추가 / 입력 / 수정 / 삭제 / 서명 / 서명취소',
+    changes     TEXT         NULL     COMMENT 'JSON [{"f":항목,"b":전,"a":후}]',
+    user_id     VARCHAR(50)  NULL     COMMENT '로그인 계정',
+    user_name   VARCHAR(50)  NULL,
+    client_ip   VARCHAR(45)  NULL,
+    reg_dt      DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (audit_id),
+    KEY idx_pca_date (prod_date, equip_code),
+    KEY idx_pca_sheet (sheet_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='CHECK SHEET 작성·수정 기록';
+
+-- 설비점검표 항목 범위 — 수치로 기록하면 범위 밖일 때 빨간색(하한·상한 중 하나만 있어도 됨)
+ALTER TABLE condition_equip_check_item
+    ADD COLUMN range_min DECIMAL(10,3) NULL COMMENT '범위 하한(수치 기록용)' AFTER cycle,
+    ADD COLUMN range_max DECIMAL(10,3) NULL COMMENT '범위 상한(수치 기록용)' AFTER range_min;

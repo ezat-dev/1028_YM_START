@@ -21,7 +21,9 @@ const REASON_TYPES = [
   { value: '기타', tone: 'etc' },
 ];
 const TONE = Object.fromEntries(REASON_TYPES.map((t) => [t.value, t.tone]));
-const EMPTY_REASON = { reasonCode: '', reasonName: '', reasonType: '계획정지', sortOrder: 0, useYn: 'Y', remark: '' };
+const EMPTY_REASON = { reasonCode: '', reasonName: '', reasonType: '계획정지', reasonGroup: '', sortOrder: 0, useYn: 'Y', remark: '' };
+// CHECK SHEET 코드표 그룹
+const REASON_GROUPS = ['설비문제(기계)', '설비문제(전기)', '생산', '생산관리', '영업부문', '공통문제'];
 
 const fmtDt = (v) => (v ? String(v).replace('T', ' ').slice(0, 16) : '');
 
@@ -157,6 +159,7 @@ function ReasonList({ reasons, loading, permission, user, showToast, onChanged }
     { key: 'reasonCode', title: '사유코드', width: 90, align: 'center', sortValue: (r) => r.reasonCode, render: (r) => <span className="dtm-num">{r.reasonCode}</span> },
     { key: 'reasonName', title: '사유명', width: 170, sortValue: (r) => r.reasonName, render: (r) => <span className="dtm-reason">{r.reasonName}</span> },
     { key: 'reasonType', title: '구분', width: 100, align: 'center', sortValue: (r) => r.reasonType, render: (r) => <TypeBadge value={r.reasonType} /> },
+    { key: 'reasonGroup', title: '그룹(CHECK SHEET)', width: 130, sortValue: (r) => r.reasonGroup ?? '', render: (r) => (r.reasonGroup ? <span>{r.reasonGroup}</span> : <span className="dtm-empty">-</span>) },
     { key: 'sortOrder', title: '정렬', width: 64, align: 'center', sortValue: (r) => r.sortOrder, render: (r) => <span className="dtm-num">{r.sortOrder}</span> },
     { key: 'useCount', title: '사용 건수', width: 84, align: 'right', sortValue: (r) => r.useCount, render: (r) => <span className="dtm-num">{(r.useCount ?? 0).toLocaleString()}건</span> },
     {
@@ -236,6 +239,11 @@ function ReasonList({ reasons, loading, permission, user, showToast, onChanged }
                     </button>
                   ))}
                 </div>
+              </div>
+              <div className="mes-field">
+                <label>그룹 <small>CHECK SHEET 코드표</small></label>
+                <input list="dtm-reason-groups" value={form.reasonGroup ?? ''} onChange={(e) => setField('reasonGroup', e.target.value)} maxLength={30} placeholder="없으면 비움" />
+                <datalist id="dtm-reason-groups">{REASON_GROUPS.map((g) => <option key={g} value={g} />)}</datalist>
               </div>
               <div className="mes-field">
                 <label>정렬 순서</label>

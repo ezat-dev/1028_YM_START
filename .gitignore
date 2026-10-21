@@ -31,3 +31,9 @@ C#/PlcApiServer/obj/
 C#/PlcApiServer/publish/
 C#/PlcApiServer/appsettings.json
 C#/PlcApiServer/appsettings.Development.json
+
+# 백엔드 IDE(Eclipse/VS Code Java) 빌드 산출물 — 매번 재생성
+backend/bin/
+
+# Vite가 설정 파일을 읽을 때 잠깐 만드는 임시 파일
+frontend/vite.config.js.timestamp-*.mjs

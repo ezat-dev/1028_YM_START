@@ -35,14 +35,15 @@
     </select>
 
     <insert id="insertReason" parameterType="com.mes.domain.base.DowntimeReason" useGeneratedKeys="true" keyProperty="reasonId">
-        INSERT INTO base_downtime_reason (reason_code, reason_name, reason_type, sort_order, remark, use_yn, reg_user_id, reg_user_name)
-        VALUES (#{reasonCode}, #{reasonName}, #{reasonType}, #{sortOrder}, #{remark}, #{useYn}, #{regUserId}, #{regUserName})
+        INSERT INTO base_downtime_reason (reason_code, reason_name, reason_type, reason_group, sort_order, remark, use_yn, reg_user_id, reg_user_name)
+        VALUES (#{reasonCode}, #{reasonName}, #{reasonType}, #{reasonGroup}, #{sortOrder}, #{remark}, #{useYn}, #{regUserId}, #{regUserName})
     </insert>
 
     <update id="updateReason" parameterType="com.mes.domain.base.DowntimeReason">
         UPDATE base_downtime_reason SET
             reason_name = #{reasonName},
             reason_type = #{reasonType},
+            reason_group = #{reasonGroup},
             sort_order = #{sortOrder},
             remark = #{remark},
             use_yn = #{useYn},
@@ -125,8 +126,8 @@
     </select>
 
     <insert id="insert" parameterType="com.mes.domain.base.Downtime" useGeneratedKeys="true" keyProperty="downtimeId">
-        INSERT INTO base_downtime (equip_id, reason_id, start_dt, end_dt, source, memo, reg_user_id, reg_user_name)
-        VALUES (#{equipId}, #{reasonId}, #{startDt}, #{endDt}, #{source}, #{memo}, #{regUserId}, #{regUserName})
+        INSERT INTO base_downtime (equip_id, reason_id, start_dt, end_dt, source, check_row_id, memo, reg_user_id, reg_user_name)
+        VALUES (#{equipId}, #{reasonId}, #{startDt}, #{endDt}, #{source}, #{checkRowId}, #{memo}, #{regUserId}, #{regUserName})
     </insert>
 
     <update id="update" parameterType="com.mes.domain.base.Downtime">

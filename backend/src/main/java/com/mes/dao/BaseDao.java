@@ -93,6 +93,8 @@ public interface BaseDao {
 
     long countPatternsByProductIds(List<Long> productIds);
 
+    long countHardnessSpecsByProductIds(List<Long> productIds);
+
     void insertPattern(Pattern pattern);
 
     void updatePattern(Pattern pattern);

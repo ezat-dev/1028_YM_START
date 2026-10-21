@@ -13,6 +13,7 @@ public class DowntimeReason {
     private String reasonCode; // 사유코드 (비워서 등록하면 DR001 형식으로 채번)
     private String reasonName; // 사유명
     private String reasonType; // 계획정지 | 고장정지 | 대기 | 기타
+    private String reasonGroup; // CHECK SHEET 코드표 그룹(설비문제(기계) 등)
     private Integer sortOrder; // 선택 목록 순서
     private String remark; // 비고
     private String useYn; // 사용여부 Y/N
@@ -134,5 +135,13 @@ public class DowntimeReason {
 
     public void setUpdUserName(String updUserName) {
         this.updUserName = updUserName;
+    }
+
+    public String getReasonGroup() {
+        return reasonGroup;
+    }
+
+    public void setReasonGroup(String reasonGroup) {
+        this.reasonGroup = reasonGroup;
     }
 }

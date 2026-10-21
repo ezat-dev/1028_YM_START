@@ -233,6 +233,12 @@ public class BaseDaoImpl implements BaseDao {
     }
 
     @Override
+    public long countHardnessSpecsByProductIds(List<Long> productIds) {
+        Long count = sqlSession.selectOne("PatternMapper.countSpecsByProductIds", productIds);
+        return count == null ? 0L : count;
+    }
+
+    @Override
     public long countPatternsByProductIds(List<Long> productIds) {
         Long count = sqlSession.selectOne("PatternMapper.countByProductIds", productIds);
         return count == null ? 0L : count;

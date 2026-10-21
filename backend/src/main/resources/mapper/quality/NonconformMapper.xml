@@ -2,28 +2,96 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="NonconformMapper">
 
-    <!-- 품질관리 > 부적합품관리 (quality_nonconform) -->
+    <!-- 품질관리 > 부적합품관리 (quality_nonconform) · 불량 구분 (quality_defect_type) -->
+
+    <sql id="ncCols">
+        n.*, e.equip_name,
+        (SELECT r.row_no FROM prod_check_row r WHERE r.row_id = n.check_row_id) AS sheet_row_no
+    </sql>
 
     <select id="selectList" parameterType="map" resultType="com.mes.domain.quality.Nonconform">
-        SELECT id, use_yn, reg_dt, upd_dt
-        FROM quality_nonconform
+        SELECT <include refid="ncCols"/>
+        FROM quality_nonconform n
+        LEFT JOIN base_equipment e ON e.equip_code = n.equip_code
         <where>
+            <if test="from != null">AND n.occur_date &gt;= #{from}</if>
+            <if test="to != null">AND n.occur_date &lt;= #{to}</if>
+            <if test="equipCode != null and equipCode != ''">AND n.equip_code = #{equipCode}</if>
+            <if test="status != null and status != ''">AND n.status = #{status}</if>
+            <if test="defectCode != null and defectCode != ''">AND n.defect_code = #{defectCode}</if>
             <if test="keyword != null and keyword != ''">
-                AND id LIKE CONCAT('%', #{keyword}, '%')
+                AND (n.nc_no LIKE CONCAT('%', #{keyword}, '%') OR n.part_no LIKE CONCAT('%', #{keyword}, '%')
+                     OR n.lot_no LIKE CONCAT('%', #{keyword}, '%') OR n.product_name LIKE CONCAT('%', #{keyword}, '%'))
             </if>
         </where>
-        ORDER BY id DESC
-        LIMIT #{size} OFFSET #{offset}
+        ORDER BY n.occur_date DESC, n.nc_id DESC
     </select>
 
-    <select id="selectCount" parameterType="map" resultType="long">
-        SELECT COUNT(*)
-        FROM quality_nonconform
+    <select id="selectById" parameterType="long" resultType="com.mes.domain.quality.Nonconform">
+        SELECT <include refid="ncCols"/>
+        FROM quality_nonconform n
+        LEFT JOIN base_equipment e ON e.equip_code = n.equip_code
+        WHERE n.nc_id = #{ncId}
+    </select>
+
+    <select id="selectMaxNo" parameterType="string" resultType="int">
+        SELECT IFNULL(MAX(CAST(SUBSTRING(nc_no, LENGTH(#{prefix}) + 1) AS UNSIGNED)), 0)
+        FROM quality_nonconform WHERE nc_no LIKE CONCAT(#{prefix}, '%')
+    </select>
+
+    <insert id="insert" parameterType="com.mes.domain.quality.Nonconform" useGeneratedKeys="true" keyProperty="ncId" keyColumn="nc_id">
+        INSERT INTO quality_nonconform (nc_no, occur_date, equip_code, part_no, product_name, lot_no, defect_code, defect_name,
+                                        qty, unit, status, disposition, action_note, source, check_row_id, remark,
+                                        reg_user_id, reg_user_name, upd_user_id, upd_user_name)
+        VALUES (#{ncNo}, #{occurDate}, #{equipCode}, #{partNo}, #{productName}, #{lotNo}, #{defectCode}, #{defectName},
+                #{qty}, #{unit}, #{status}, #{disposition}, #{actionNote}, #{source}, #{checkRowId}, #{remark},
+                #{regUserId}, #{regUserName}, #{regUserId}, #{regUserName})
+    </insert>
+
+    <!-- 내용(CHECK SHEET에서 온 건은 서비스에서 처리 내용만 바꾼다) -->
+    <update id="update" parameterType="com.mes.domain.quality.Nonconform">
+        UPDATE quality_nonconform SET
+            occur_date = #{occurDate}, equip_code = #{equipCode}, part_no = #{partNo}, product_name = #{productName},
+            lot_no = #{lotNo}, defect_code = #{defectCode}, defect_name = #{defectName}, qty = #{qty}, unit = #{unit},
+            status = #{status}, disposition = #{disposition}, action_note = #{actionNote}, remark = #{remark},
+            upd_user_id = #{updUserId}, upd_user_name = #{updUserName}
+        WHERE nc_id = #{ncId}
+    </update>
+
+    <delete id="delete" parameterType="long">
+        DELETE FROM quality_nonconform WHERE nc_id = #{ncId}
+    </delete>
+
+    <!-- ===================== 불량 구분 ===================== -->
+
+    <select id="selectDefectTypes" parameterType="map" resultType="com.mes.domain.quality.DefectType">
+        SELECT t.*, (SELECT COUNT(*) FROM quality_nonconform n WHERE n.defect_code = t.defect_code) AS use_count
+        FROM quality_defect_type t
         <where>
-            <if test="keyword != null and keyword != ''">
-                AND id LIKE CONCAT('%', #{keyword}, '%')
-            </if>
+            <if test="useYn != null and useYn != ''">AND t.use_yn = #{useYn}</if>
         </where>
+        ORDER BY t.sort_order, t.defect_code
     </select>
 
+    <select id="selectDefectType" parameterType="long" resultType="com.mes.domain.quality.DefectType">
+        SELECT * FROM quality_defect_type WHERE defect_id = #{defectId}
+    </select>
+
+    <select id="selectDefectTypeByCode" parameterType="string" resultType="com.mes.domain.quality.DefectType">
+        SELECT * FROM quality_defect_type WHERE defect_code = #{defectCode}
+    </select>
+
+    <insert id="insertDefectType" parameterType="com.mes.domain.quality.DefectType" useGeneratedKeys="true" keyProperty="defectId" keyColumn="defect_id">
+        INSERT INTO quality_defect_type (defect_code, defect_name, sort_order, use_yn)
+        VALUES (#{defectCode}, #{defectName}, #{sortOrder}, #{useYn})
+    </insert>
+
+    <update id="updateDefectType" parameterType="com.mes.domain.quality.DefectType">
+        UPDATE quality_defect_type SET defect_name = #{defectName}, sort_order = #{sortOrder}, use_yn = #{useYn}
+        WHERE defect_id = #{defectId}
+    </update>
+
+    <delete id="deleteDefectType" parameterType="long">
+        DELETE FROM quality_defect_type WHERE defect_id = #{defectId}
+    </delete>
 </mapper>

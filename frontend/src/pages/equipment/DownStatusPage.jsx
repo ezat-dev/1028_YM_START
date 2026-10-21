@@ -197,9 +197,13 @@ function DowntimeList({ equipments, reasons, permission, user, showToast, autoSt
   const openCreate = () => { setEditing(null); setFormOpen(true); };
   const openEdit = useCallback((row) => {
     if (!permission.canUpdate) return;
+    if (row.source === 'SHEET') {
+      showToast('CHECK SHEET에서 입력한 비가동입니다. CHECK SHEET 행에서 고쳐주세요.', 'error');
+      return;
+    }
     setEditing(row);
     setFormOpen(true);
-  }, [permission.canUpdate]);
+  }, [permission.canUpdate, showToast]);
 
   const handleDeleteSelected = async () => {
     if (selectedKeys.size === 0) { showToast('삭제할 비가동 내역을 선택해주세요.', 'error'); return; }
@@ -218,7 +222,7 @@ function DowntimeList({ equipments, reasons, permission, user, showToast, autoSt
     const sheet = rows.map((r, i) => ({
       No: i + 1, 설비코드: r.equipCode, 설비명: r.equipName, 구분: r.reasonType, 사유: r.reasonName,
       시작: fmtDt(r.startDt), 종료: r.endDt ? fmtDt(r.endDt) : '진행 중', '시간(분)': r.durationMin,
-      메모: r.memo, 입력: r.source === 'PLC' ? 'PLC' : '수동',
+      메모: r.memo, 입력: r.source === 'PLC' ? 'PLC' : r.source === 'SHEET' ? 'CHECK SHEET' : '수동',
       등록자: r.regUserName, 등록자ID: r.regUserId, 등록일시: fmtDt(r.regDt),
       수정자: r.updUserName, 수정자ID: r.updUserId, 수정일시: r.updUserName || r.updUserId ? fmtDt(r.updDt) : '',
     }));
@@ -246,8 +250,10 @@ function DowntimeList({ equipments, reasons, permission, user, showToast, autoSt
     { key: 'durationMin', title: '시간', width: 100, align: 'right', sortValue: (r) => r.durationMin, render: (r) => <span className="dtm-dur">{fmtDur(r.durationMin)}</span> },
     { key: 'memo', title: '메모', width: 200, render: (r) => (r.memo ? <span className="dtm-memo" title={r.memo}>{r.memo}</span> : <span className="dtm-empty">-</span>) },
     {
-      key: 'source', title: '입력', width: 60, align: 'center', sortValue: (r) => r.source,
-      render: (r) => <span className={`dtm-src is-${r.source === 'PLC' ? 'plc' : 'manual'}`}>{r.source === 'PLC' ? 'PLC' : '수동'}</span>,
+      key: 'source', title: '입력', width: 84, align: 'center', sortValue: (r) => r.source,
+      render: (r) => (r.source === 'SHEET'
+        ? <span className="dtm-src is-plc" title="CHECK SHEET에서 입력 — 거기서 고칩니다">CHECK SHEET</span>
+        : <span className={`dtm-src is-${r.source === 'PLC' ? 'plc' : 'manual'}`}>{r.source === 'PLC' ? 'PLC' : '수동'}</span>),
     },
     { key: 'audit', title: '등록 / 수정', width: 190, sortValue: (r) => r.updDt ?? r.regDt, render: (r) => <AuditCell row={r} /> },
   ], []);

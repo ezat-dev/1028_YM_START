@@ -26,17 +26,14 @@ import com.mes.common.exception.BusinessException;
 import com.mes.common.exception.ErrorCode;
 import com.mes.common.response.ApiResponse;
 import com.mes.common.response.PageResponse;
-import com.mes.domain.quality.Cpk;
-import com.mes.domain.quality.Ppk;
 import com.mes.domain.quality.TempUniform;
-import com.mes.domain.quality.Hardness;
-import com.mes.domain.quality.Nonconform;
 import com.mes.service.QualityService;
 
 /**
  * 품질관리(quality) 중분류 REST 엔드포인트.
  *
- * <p>CPK분석/PPK분석/경도관리/부적합품관리 4개 메뉴는 여전히 1단계 골격(목록 조회 API만 존재)이다.
+ * <p>부적합품관리는 여전히 1단계 골격(목록 조회 API만 존재)이다.
+ * 경도측정·CPK 분석·PPK 분석은 {@link HardnessController}(/api/quality/hardness)에 있다.
  * 온도균일성보고서(quality_temp_uniform)는 실제 구현됨 — 편차/판정은 서버가 계산해서 저장한다.
  * F/PROOF SAVE·LIST는 ez_scada 알람 데이터를 쓰는 실제 구현이다(설비 = 알람 폴더).
  */
@@ -48,22 +45,6 @@ public class QualityController {
 
     public QualityController(QualityService qualityService) {
         this.qualityService = qualityService;
-    }
-
-    @GetMapping("/cpk")
-    public ApiResponse<PageResponse<Cpk>> getCpkList(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String keyword) {
-        return ApiResponse.success(qualityService.getCpkList(page, size, keyword));
-    }
-
-    @GetMapping("/ppk")
-    public ApiResponse<PageResponse<Ppk>> getPpkList(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String keyword) {
-        return ApiResponse.success(qualityService.getPpkList(page, size, keyword));
     }
 
     // ── F/PROOF SAVE (대상 알람 지정 + 설비별 시작/종료 트리거) ──
@@ -226,22 +207,6 @@ public class QualityController {
                 .contentType(mediaType)
                 .header(HttpHeaders.CONTENT_DISPOSITION, disposition.toString())
                 .body(resource);
-    }
-
-    @GetMapping("/hardness")
-    public ApiResponse<PageResponse<Hardness>> getHardnessList(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String keyword) {
-        return ApiResponse.success(qualityService.getHardnessList(page, size, keyword));
-    }
-
-    @GetMapping("/nonconform")
-    public ApiResponse<PageResponse<Nonconform>> getNonconformList(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String keyword) {
-        return ApiResponse.success(qualityService.getNonconformList(page, size, keyword));
     }
 
 }

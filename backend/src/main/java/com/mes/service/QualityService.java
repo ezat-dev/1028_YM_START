@@ -7,17 +7,9 @@ import org.springframework.core.io.Resource;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.mes.common.response.PageResponse;
-import com.mes.domain.quality.Cpk;
-import com.mes.domain.quality.Ppk;
 import com.mes.domain.quality.TempUniform;
-import com.mes.domain.quality.Hardness;
-import com.mes.domain.quality.Nonconform;
 
 public interface QualityService {
-
-    PageResponse<Cpk> getCpkList(int page, int size, String keyword);
-
-    PageResponse<Ppk> getPpkList(int page, int size, String keyword);
 
     // ── F/PROOF SAVE / LIST ──
 
@@ -56,9 +48,5 @@ public interface QualityService {
     void deleteTempUniform(Long id);
 
     Resource loadTempUniformFile(String fileName);
-
-    PageResponse<Hardness> getHardnessList(int page, int size, String keyword);
-
-    PageResponse<Nonconform> getNonconformList(int page, int size, String keyword);
 
 }

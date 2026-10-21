@@ -300,10 +300,15 @@ public class BaseServiceImpl implements BaseService {
     @Override
     @Transactional
     public Product updateProduct(Long productId, Product product) {
-        getProductById(productId);
+        Product old = getProductById(productId);
         product.setProductId(productId);
         normalizeProduct(product);
         validateProduct(product, productId);
+        // 경도 규격·CHECK SHEET·측정 기록이 품번으로 이어져 있어 품번은 바꾸지 않는다
+        if (!old.getPartNo().equals(product.getPartNo()) && baseDao.countHardnessSpecsByProductIds(List.of(productId)) > 0) {
+            throw new BusinessException(ErrorCode.INVALID_PARAMETER,
+                    "경도 규격이 등록된 제품은 품번을 바꿀 수 없습니다. 새 제품으로 등록해주세요.");
+        }
         baseDao.updateProduct(product);
         return getProductById(productId);
     }
@@ -317,6 +322,10 @@ public class BaseServiceImpl implements BaseService {
         if (baseDao.countPatternsByProductIds(productIds) > 0) {
             throw new BusinessException(ErrorCode.INVALID_PARAMETER,
                     "패턴이 등록된 제품은 삭제할 수 없습니다. 사용여부를 '미사용'으로 바꿔주세요.");
+        }
+        if (baseDao.countHardnessSpecsByProductIds(productIds) > 0) {
+            throw new BusinessException(ErrorCode.INVALID_PARAMETER,
+                    "경도 규격이 등록된 제품은 삭제할 수 없습니다. 사용여부를 '미사용'으로 바꿔주세요.");
         }
         for (Long id : productIds) {
             baseDao.deleteProduct(id); // 이미지 행은 FK ON DELETE CASCADE로 같이 지워진다
@@ -943,6 +952,8 @@ public class BaseServiceImpl implements BaseService {
         r.setReasonCode(trim(r.getReasonCode()).toUpperCase());
         r.setReasonName(trim(r.getReasonName()));
         r.setReasonType(trim(r.getReasonType()));
+        String g = trim(r.getReasonGroup());
+        r.setReasonGroup(g.isEmpty() ? null : (g.length() > 30 ? g.substring(0, 30) : g));
         r.setRemark(trim(r.getRemark()));
         r.setUseYn(trim(r.getUseYn()).toUpperCase());
         r.setRegUserName(trim(r.getRegUserName()));
@@ -1025,6 +1036,7 @@ public class BaseServiceImpl implements BaseService {
         if (current == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "존재하지 않는 비가동 내역입니다.");
         }
+        requireNotSheet(current);
         downtime.setDowntimeId(downtimeId);
         downtime.setMemo(trim(downtime.getMemo()));
         String[] who = resolveUser(downtime.getUpdUserId(), downtime.getUpdUserName());
@@ -1049,7 +1061,21 @@ public class BaseServiceImpl implements BaseService {
         if (downtimeIds == null || downtimeIds.isEmpty()) {
             throw new BusinessException(ErrorCode.INVALID_PARAMETER, "삭제할 비가동 내역을 선택해주세요.");
         }
+        for (Long id : downtimeIds) {
+            Downtime d = baseDao.selectDowntimeById(id);
+            if (d != null) {
+                requireNotSheet(d);
+            }
+        }
         downtimeIds.forEach(baseDao::deleteDowntime);
+    }
+
+    /** CHECK SHEET에서 생긴 비가동은 CHECK SHEET 행에서만 고친다(한쪽만 바뀌지 않게) */
+    private static void requireNotSheet(Downtime d) {
+        if ("SHEET".equals(d.getSource())) {
+            throw new BusinessException(ErrorCode.INVALID_PARAMETER,
+                    "CHECK SHEET에서 입력한 비가동입니다. CHECK SHEET 행에서 고쳐주세요.");
+        }
     }
 
     /**

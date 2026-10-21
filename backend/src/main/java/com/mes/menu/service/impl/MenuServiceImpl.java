@@ -26,6 +26,7 @@ public class MenuServiceImpl implements MenuService {
                         new MenuItem("패턴관리", "/base/pattern"),
                         new MenuItem("설비관리", "/base/equipment"),
                         new MenuItem("비가동관리", "/base/downtime"),
+                        new MenuItem("경도관리", "/base/hardnessSpec"),
                         new MenuItem("사용자권한", "/base/auth"),
                         new MenuItem("로그인이력", "/base/loginHist"))),
                 new MenuGroup("모니터링", "/monitoring", List.of(
@@ -41,20 +42,23 @@ public class MenuServiceImpl implements MenuService {
                         new MenuItem("제품별작업관리", "/production/byItem"),
                         new MenuItem("설비효율현황", "/production/equipEff"),
                         new MenuItem("작업일보", "/production/dailyReport"),
+                        new MenuItem("CHECK SHEET", "/production/checkSheet"),
                         new MenuItem("LOT 보고서", "/production/lotReport"))),
                 new MenuGroup("조건관리", "/condition", List.of(
                         new MenuItem("열전대/센서 관리", "/condition/sensor"),
                         new MenuItem("조절계 관리", "/condition/controller"),
                         new MenuItem("열처리유성상분석", "/condition/oilAnalysis"),
-                        new MenuItem("일상점검일지", "/condition/dailyCheck"),
+                        // 일상점검일지 — 당분간 쓰지 않음(설비점검표로 대체). 다시 쓰려면 주석을 풀면 메뉴·권한에 함께 나온다
+                        // new MenuItem("일상점검일지", "/condition/dailyCheck"),
+                        new MenuItem("설비점검표", "/condition/equipCheck"),
                         new MenuItem("관리계획서 및 작업표준서", "/condition/standard"))),
                 new MenuGroup("품질관리", "/quality", List.of(
-                        new MenuItem("CPK 분석", "/quality/cpk"),
-                        new MenuItem("PPK 분석", "/quality/ppk"),
                         new MenuItem("F/PROOF SAVE", "/quality/fproofSave"),
                         new MenuItem("F/PROOF LIST", "/quality/fproofList"),
                         new MenuItem("온도균일성보고서", "/quality/tempUniform"),
-                        new MenuItem("경도관리", "/quality/hardness"),
+                        new MenuItem("경도측정", "/quality/hardness"),
+                        new MenuItem("CPK 분석", "/quality/cpk"),
+                        new MenuItem("PPK 분석", "/quality/ppk"),
                         new MenuItem("부적합품관리", "/quality/nonconform"))),
                 new MenuGroup("설비관리", "/equipment", List.of(
                         new MenuItem("설비비가동현황", "/equipment/downStatus"),

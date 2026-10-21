@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="CheckSheetMapper">
+
+    <!-- 생산관리 > 열처리 CHECK SHEET (prod_check_*) -->
+
+    <!-- 호기 버튼: 사용 중 설비 + 그날 통(행) 수 · 품목(품번) 수 -->
+    <select id="selectEquipSummary" parameterType="map" resultType="map">
+        SELECT e.equip_code AS equipCode, e.equip_name AS equipName,
+               (SELECT COUNT(*) FROM prod_check_row r JOIN prod_check_sheet s ON s.sheet_id = r.sheet_id
+                 WHERE s.equip_code = e.equip_code AND s.prod_date = #{date}) AS rowCount,
+               (SELECT COUNT(DISTINCT r.part_no) FROM prod_check_row r JOIN prod_check_sheet s ON s.sheet_id = r.sheet_id
+                 WHERE s.equip_code = e.equip_code AND s.prod_date = #{date} AND r.part_no IS NOT NULL AND r.part_no &lt;&gt; '') AS partCount
+        FROM base_equipment e
+        WHERE e.use_yn = 'Y'
+        ORDER BY e.equip_id
+    </select>
+
+    <!-- 왼쪽 날짜 목록 -->
+    <select id="selectSheetList" parameterType="map" resultType="com.mes.domain.production.CheckSheet">
+        SELECT s.*,
+               (SELECT COUNT(*) FROM prod_check_row r WHERE r.sheet_id = s.sheet_id) AS row_count,
+               (SELECT IFNULL(SUM(r.qty_kg), 0) FROM prod_check_row r WHERE r.sheet_id = s.sheet_id) AS qty_sum,
+               (SELECT IFNULL(SUM(r.defect_qty), 0) FROM prod_check_row r WHERE r.sheet_id = s.sheet_id) AS defect_sum,
+               (SELECT COUNT(*) FROM prod_check_row r WHERE r.sheet_id = s.sheet_id AND r.down_code IS NOT NULL AND r.down_code &lt;&gt; '') AS down_count,
+               (SELECT COUNT(*) FROM prod_check_sign g WHERE g.sheet_id = s.sheet_id) AS sign_count,
+               (SELECT COUNT(DISTINCT m.check_row_id) FROM quality_hardness_meas m JOIN prod_check_row r ON r.row_id = m.check_row_id
+                 WHERE r.sheet_id = s.sheet_id AND m.judgement = '불합격') AS ng_count
+        FROM prod_check_sheet s
+        WHERE s.equip_code = #{equipCode}
+        <if test="from != null">AND s.prod_date &gt;= #{from}</if>
+        <if test="to != null">AND s.prod_date &lt;= #{to}</if>
+        ORDER BY s.prod_date DESC
+    </select>
+
+    <select id="selectSheet" parameterType="map" resultType="com.mes.domain.production.CheckSheet">
+        SELECT s.*, e.equip_name FROM prod_check_sheet s
+        LEFT JOIN base_equipment e ON e.equip_code = s.equip_code
+        WHERE s.equip_code = #{equipCode} AND s.prod_date = #{prodDate}
+    </select>
+
+    <select id="selectSheetById" parameterType="long" resultType="com.mes.domain.production.CheckSheet">
+        SELECT s.*, e.equip_name FROM prod_check_sheet s
+        LEFT JOIN base_equipment e ON e.equip_code = s.equip_code
+        WHERE s.sheet_id = #{sheetId}
+    </select>
+
+    <insert id="insertSheet" parameterType="com.mes.domain.production.CheckSheet" useGeneratedKeys="true" keyProperty="sheetId" keyColumn="sheet_id">
+        INSERT INTO prod_check_sheet (equip_code, prod_date, reg_user_id, reg_user_name)
+        VALUES (#{equipCode}, #{prodDate}, #{regUserId}, #{regUserName})
+    </insert>
+
+    <update id="updateSheetHead" parameterType="com.mes.domain.production.CheckSheet">
+        UPDATE prod_check_sheet SET worker_day = #{workerDay}, worker_night = #{workerNight}, qc_name = #{qcName}
+        WHERE sheet_id = #{sheetId}
+    </update>
+
+    <!-- ===================== 행(통) ===================== -->
+
+    <sql id="rowCols">
+        r.*, n.nc_no, n.status AS nc_status
+    </sql>
+
+    <select id="selectRows" parameterType="long" resultType="com.mes.domain.production.CheckRow">
+        SELECT <include refid="rowCols"/>
+        FROM prod_check_row r
+        LEFT JOIN quality_nonconform n ON n.nc_id = r.nc_id
+        WHERE r.sheet_id = #{sheetId}
+        ORDER BY r.row_no, r.row_id
+    </select>
+
+    <select id="selectRow" parameterType="long" resultType="com.mes.domain.production.CheckRow">
+        SELECT <include refid="rowCols"/>
+        FROM prod_check_row r
+        LEFT JOIN quality_nonconform n ON n.nc_id = r.nc_id
+        WHERE r.row_id = #{rowId}
+    </select>
+
+    <select id="selectMaxRowNo" parameterType="long" resultType="int">
+        SELECT IFNULL(MAX(row_no), 0) FROM prod_check_row WHERE sheet_id = #{sheetId}
+    </select>
+
+    <insert id="insertRow" parameterType="com.mes.domain.production.CheckRow" useGeneratedKeys="true" keyProperty="rowId" keyColumn="row_id">
+        INSERT INTO prod_check_row (sheet_id, row_no, out_time, vendor, part_no, product_name, spec_text, lot_no, qty_kg,
+                                    material, heat_lot_no, worker, leader, qc)
+        VALUES (#{sheetId}, #{rowNo}, #{outTime}, #{vendor}, #{partNo}, #{productName}, #{specText}, #{lotNo}, #{qtyKg},
+                #{material}, #{heatLotNo}, #{worker}, #{leader}, #{qc})
+    </insert>
+
+    <update id="updateRow" parameterType="com.mes.domain.production.CheckRow">
+        UPDATE prod_check_row SET
+            out_time = #{outTime}, vendor = #{vendor}, part_no = #{partNo}, product_name = #{productName},
+            spec_text = #{specText}, lot_no = #{lotNo}, qty_kg = #{qtyKg}, defect_qty = #{defectQty},
+            defect_code = #{defectCode}, down_code = #{downCode}, down_start = #{downStart}, down_end = #{downEnd},
+            material = #{material}, heat_lot_no = #{heatLotNo}, worker = #{worker}, leader = #{leader}, qc = #{qc},
+            downtime_id = #{downtimeId}, nc_id = #{ncId}
+        WHERE row_id = #{rowId}
+    </update>
+
+    <update id="updateRowNo" parameterType="map">
+        UPDATE prod_check_row SET row_no = #{rowNo} WHERE row_id = #{rowId}
+    </update>
+
+    <delete id="deleteRow" parameterType="long">
+        DELETE FROM prod_check_row WHERE row_id = #{rowId}
+    </delete>
+
+    <!-- 행의 경도(표면/심부) — 값은 경도측정 테이블 한 곳에 -->
+    <select id="selectRowHardness" parameterType="long" resultType="map">
+        SELECT m.check_row_id AS rowId, m.meas_id AS measId, m.spec_id AS specId, m.item_name AS itemName,
+               m.judgement AS judgement, v.idx AS idx, v.value AS value
+        FROM quality_hardness_meas m
+        JOIN prod_check_row r ON r.row_id = m.check_row_id
+        LEFT JOIN quality_hardness_set s ON s.meas_id = m.meas_id
+        LEFT JOIN quality_hardness_value v ON v.set_id = s.set_id
+        WHERE r.sheet_id = #{sheetId}
+        ORDER BY m.check_row_id, m.item_name, v.idx
+    </select>
+
+    <select id="selectMeasByRowItem" parameterType="map" resultType="com.mes.domain.quality.HardnessMeas">
+        SELECT * FROM quality_hardness_meas WHERE check_row_id = #{rowId} AND item_name = #{itemName}
+    </select>
+
+    <select id="selectMeasByRow" parameterType="long" resultType="com.mes.domain.quality.HardnessMeas">
+        SELECT * FROM quality_hardness_meas WHERE check_row_id = #{rowId}
+    </select>
+
+    <update id="linkMeas" parameterType="map">
+        UPDATE quality_hardness_meas SET check_row_id = #{rowId} WHERE meas_id = #{measId}
+    </update>
+
+    <!-- 행 정보가 바뀌면 경도측정 기록(LOT·측정자·시각·판정)도 맞춘다 -->
+    <update id="syncMeas" parameterType="map">
+        UPDATE quality_hardness_meas
+           SET lot_no = #{lotNo}, worker_name = #{workerName}, meas_dt = #{measDt}, judgement = #{judgement},
+               completed_dt = #{measDt}
+         WHERE meas_id = #{measId}
+    </update>
+
+    <!-- ===================== 서명 · 설정 ===================== -->
+
+    <select id="selectSigns" parameterType="long" resultType="com.mes.domain.production.CheckSign">
+        SELECT * FROM prod_check_sign WHERE sheet_id = #{sheetId}
+    </select>
+
+    <select id="selectSign" parameterType="map" resultType="com.mes.domain.production.CheckSign">
+        SELECT * FROM prod_check_sign WHERE sheet_id = #{sheetId} AND slot = #{slot}
+    </select>
+
+    <insert id="insertSign" parameterType="com.mes.domain.production.CheckSign">
+        INSERT INTO prod_check_sign (sheet_id, slot, user_id, sign_name, sign_img, sign_dt)
+        VALUES (#{sheetId}, #{slot}, #{userId}, #{signName}, #{signImg}, NOW())
+    </insert>
+
+    <delete id="deleteSign" parameterType="map">
+        DELETE FROM prod_check_sign WHERE sheet_id = #{sheetId} AND slot = #{slot}
+    </delete>
+
+    <select id="selectSettings" resultType="map">
+        SELECT setting_key AS k, setting_value AS v FROM prod_check_setting
+    </select>
+
+    <insert id="upsertSetting" parameterType="map">
+        INSERT INTO prod_check_setting (setting_key, setting_value) VALUES (#{key}, #{value})
+        ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)
+    </insert>
+
+    <!-- ===================== 작성·수정 기록 ===================== -->
+
+    <insert id="insertAudit" parameterType="com.mes.domain.production.CheckAudit">
+        INSERT INTO prod_check_audit (sheet_id, equip_code, prod_date, row_id, row_no, part_no, target, action, changes,
+                                      user_id, user_name, client_ip)
+        VALUES (#{sheetId}, #{equipCode}, #{prodDate}, #{rowId}, #{rowNo}, #{partNo}, #{target}, #{action}, #{changes},
+                #{userId}, #{userName}, #{clientIp})
+    </insert>
+
+    <select id="selectAudits" parameterType="map" resultType="com.mes.domain.production.CheckAudit">
+        SELECT a.*, e.equip_name
+        FROM prod_check_audit a
+        LEFT JOIN base_equipment e ON e.equip_code = a.equip_code
+        WHERE a.prod_date BETWEEN #{from} AND #{to}
+        <if test="equipCode != null">AND a.equip_code = #{equipCode}</if>
+        ORDER BY a.reg_dt DESC, a.audit_id DESC
+        LIMIT 3000
+    </select>
+
+    <!-- 결재 현황: 기간 안의 시트마다 통 수와 서명 -->
+    <select id="selectSheetsForAudit" parameterType="map" resultType="map">
+        SELECT s.sheet_id AS sheetId, s.equip_code AS equipCode, e.equip_name AS equipName, s.prod_date AS prodDate,
+               (SELECT COUNT(*) FROM prod_check_row r WHERE r.sheet_id = s.sheet_id) AS rowCount
+        FROM prod_check_sheet s
+        LEFT JOIN base_equipment e ON e.equip_code = s.equip_code
+        WHERE s.prod_date BETWEEN #{from} AND #{to}
+        <if test="equipCode != null">AND s.equip_code = #{equipCode}</if>
+        ORDER BY s.prod_date DESC, e.equip_id
+    </select>
+
+    <select id="selectSignsForAudit" parameterType="map" resultType="map">
+        SELECT g.sheet_id AS sheetId, g.slot AS slot, g.user_id AS userId, g.sign_name AS signName, g.sign_dt AS signDt,
+               (g.sign_img IS NOT NULL) AS hasImg
+        FROM prod_check_sign g
+        JOIN prod_check_sheet s ON s.sheet_id = g.sheet_id
+        WHERE s.prod_date BETWEEN #{from} AND #{to}
+        <if test="equipCode != null">AND s.equip_code = #{equipCode}</if>
+    </select>
+
+    <!-- 품번 고르기: 기준정보 > 제품관리(업체 · 이 호기 경도 규격 수 · 패턴 수) -->
+    <select id="selectProducts" parameterType="string" resultType="map">
+        SELECT p.product_id AS productId, p.part_no AS partNo, p.product_name AS productName, p.spec AS specText,
+               p.material AS material, v.vendor_name AS vendor, p.charge_weight_kg AS chargeWeightKg,
+               (SELECT COUNT(*) FROM base_hardness_spec h WHERE h.product_id = p.product_id AND h.equip_code = #{equipCode} AND h.use_yn = 'Y') AS specCount,
+               (SELECT COUNT(*) FROM base_pattern t WHERE t.product_id = p.product_id AND t.use_yn = 'Y') AS patternCount
+        FROM base_product p
+        LEFT JOIN base_vendor v ON v.vendor_id = p.vendor_id
+        WHERE p.use_yn = 'Y'
+        ORDER BY p.part_no
+    </select>
+</mapper>

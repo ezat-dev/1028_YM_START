@@ -47,6 +47,8 @@ app:
   product-image-dir: ${PRODUCT_IMAGE_DIR:D:/ym_img}
   # 설비관리 > 설비이력관리·수리이력관리 첨부파일(여러 개). 실제 파일은 {이 경로}/history|repair/{ID}/ 아래.
   equipment-file-dir: ${EQUIPMENT_FILE_DIR:./uploads/equipment}
+  # 조건관리 > 설비점검표 항목 사진. 실제 파일은 {이 경로}/{점검표ID}/ 아래.
+  equip-check-dir: ${EQUIP_CHECK_DIR:./uploads/equipCheck}
 
 # PLC 하드웨어와 통신하는 C# API 서버 — sample_pro와 별도 머신에서 돌기 때문에 localhost가 아니라
 # 실제 네트워크 주소를 써야 한다.

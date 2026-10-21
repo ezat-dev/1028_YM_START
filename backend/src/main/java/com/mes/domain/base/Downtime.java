@@ -14,7 +14,8 @@ public class Downtime {
     private Long reasonId; // 사유
     private LocalDateTime startDt; // 시작
     private LocalDateTime endDt; // 종료 (null = 진행 중)
-    private String source; // MANUAL(수동) | PLC(신호 — 추후)
+    private String source; // MANUAL(수동) | SHEET(CHECK SHEET) | PLC(신호 — 추후)
+    private Long checkRowId; // CHECK SHEET 행에서 생긴 비가동이면 그 행(source=SHEET)
     private String memo; // 메모
     private String regUserId; // 등록자 로그인 ID
     private String regUserName; // 등록자
@@ -179,5 +180,13 @@ public class Downtime {
 
     public void setUpdUserId(String updUserId) {
         this.updUserId = updUserId;
+    }
+
+    public Long getCheckRowId() {
+        return checkRowId;
+    }
+
+    public void setCheckRowId(Long checkRowId) {
+        this.checkRowId = checkRowId;
     }
 }

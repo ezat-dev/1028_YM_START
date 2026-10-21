@@ -11,6 +11,7 @@
   "dependencies": {
     "@tabler/icons-react": "^3.19.0",
     "axios": "^1.7.7",
+    "exceljs": "^4.4.0",
     "highcharts": "^13.0.1",
     "highcharts-react-official": "^3.2.3",
     "html2canvas": "^1.4.1",

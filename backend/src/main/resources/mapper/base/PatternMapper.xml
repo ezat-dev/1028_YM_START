@@ -59,6 +59,13 @@
         <foreach collection="list" item="id" open="(" separator="," close=")">#{id}</foreach>
     </select>
 
+    <!-- 제품에 걸린 경도 규격 수(제품 삭제·품번 변경 확인용) -->
+    <select id="countSpecsByProductIds" parameterType="list" resultType="long">
+        SELECT COUNT(*) FROM base_hardness_spec
+        WHERE product_id IN
+        <foreach collection="list" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </select>
+
     <insert id="insert" parameterType="com.mes.domain.base.Pattern" useGeneratedKeys="true" keyProperty="patternId">
         INSERT INTO base_pattern (
             pattern_code, pattern_name, product_id, charge_weight_kg,

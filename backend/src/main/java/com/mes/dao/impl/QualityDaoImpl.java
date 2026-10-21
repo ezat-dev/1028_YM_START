@@ -10,11 +10,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 
 import com.mes.dao.QualityDao;
-import com.mes.domain.quality.Cpk;
-import com.mes.domain.quality.Ppk;
 import com.mes.domain.quality.TempUniform;
-import com.mes.domain.quality.Hardness;
-import com.mes.domain.quality.Nonconform;
 
 @Repository
 public class QualityDaoImpl implements QualityDao {
@@ -30,28 +26,6 @@ public class QualityDaoImpl implements QualityDao {
             @Qualifier("ezScadaSession") SqlSessionTemplate ezScadaSession) {
         this.sqlSession = sqlSession;
         this.ezScadaSession = ezScadaSession;
-    }
-
-    @Override
-    public List<Cpk> selectCpkList(int offset, int size, String keyword) {
-        return sqlSession.selectList("CpkMapper.selectList", params(offset, size, keyword));
-    }
-
-    @Override
-    public long selectCpkCount(String keyword) {
-        Long count = sqlSession.selectOne("CpkMapper.selectCount", params(0, 0, keyword));
-        return count == null ? 0L : count;
-    }
-
-    @Override
-    public List<Ppk> selectPpkList(int offset, int size, String keyword) {
-        return sqlSession.selectList("PpkMapper.selectList", params(offset, size, keyword));
-    }
-
-    @Override
-    public long selectPpkCount(String keyword) {
-        Long count = sqlSession.selectOne("PpkMapper.selectCount", params(0, 0, keyword));
-        return count == null ? 0L : count;
     }
 
     // ── F/PROOF (ez_scada) ──
@@ -186,28 +160,6 @@ public class QualityDaoImpl implements QualityDao {
     @Override
     public void softDeleteTempUniform(Long id) {
         sqlSession.update("TempUniformMapper.softDelete", id);
-    }
-
-    @Override
-    public List<Hardness> selectHardnessList(int offset, int size, String keyword) {
-        return sqlSession.selectList("HardnessMapper.selectList", params(offset, size, keyword));
-    }
-
-    @Override
-    public long selectHardnessCount(String keyword) {
-        Long count = sqlSession.selectOne("HardnessMapper.selectCount", params(0, 0, keyword));
-        return count == null ? 0L : count;
-    }
-
-    @Override
-    public List<Nonconform> selectNonconformList(int offset, int size, String keyword) {
-        return sqlSession.selectList("NonconformMapper.selectList", params(offset, size, keyword));
-    }
-
-    @Override
-    public long selectNonconformCount(String keyword) {
-        Long count = sqlSession.selectOne("NonconformMapper.selectCount", params(0, 0, keyword));
-        return count == null ? 0L : count;
     }
 
     private Map<String, Object> rangeParams(String from, String to) {

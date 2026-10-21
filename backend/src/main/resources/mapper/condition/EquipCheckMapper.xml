@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="EquipCheckMapper">
+
+    <!-- 조건관리 > 설비점검표 (condition_equip_check_*) -->
+
+    <!-- ===================== 점검표(양식) ===================== -->
+
+    <!-- 목록 — 오늘(ym, day) 기록한 항목 수, 마지막 점검 시각을 같이 -->
+    <select id="selectSheetList" parameterType="map" resultType="com.mes.domain.condition.EquipCheckSheet">
+        SELECT s.*,
+               (SELECT COUNT(*) FROM condition_equip_check_item i
+                 WHERE i.sheet_id = s.sheet_id AND i.use_yn = 'Y') AS item_count,
+               (SELECT COUNT(*) FROM condition_equip_check_result r
+                  JOIN condition_equip_check_item i ON i.item_id = r.item_id
+                 WHERE i.sheet_id = s.sheet_id AND i.use_yn = 'Y' AND r.ym = #{ym} AND r.day = #{day}) AS today_done,
+               (SELECT MAX(r.checked_dt) FROM condition_equip_check_result r
+                  JOIN condition_equip_check_item i ON i.item_id = r.item_id
+                 WHERE i.sheet_id = s.sheet_id) AS last_checked_dt
+        FROM condition_equip_check_sheet s
+        <where>
+            <if test="useYn != null and useYn != ''">AND s.use_yn = #{useYn}</if>
+        </where>
+        ORDER BY s.sort_order, s.equip_name, s.sheet_id
+    </select>
+
+    <!-- 이번 달 기호별 개수 — 양호가 아닌 기록 수는 양식의 범례(첫 기호)로 Java에서 센다 -->
+    <select id="selectMarkCounts" parameterType="string" resultType="map">
+        <!-- 수치 기록은 범위 안이면 #OK, 벗어나면 #OUT 으로 센다 -->
+        SELECT i.sheet_id AS sheetId,
+               CASE WHEN r.mark REGEXP '^[0-9]+([.][0-9]+)?$' THEN
+                        CASE WHEN (i.range_min IS NOT NULL AND CAST(r.mark AS DECIMAL(10,3)) &lt; i.range_min)
+                                  OR (i.range_max IS NOT NULL AND CAST(r.mark AS DECIMAL(10,3)) &gt; i.range_max)
+                             THEN '#OUT' ELSE '#OK' END
+                    ELSE r.mark END AS mark,
+               COUNT(*) AS cnt
+        FROM condition_equip_check_result r
+        JOIN condition_equip_check_item i ON i.item_id = r.item_id
+        WHERE r.ym = #{ym}
+        GROUP BY 1, 2
+    </select>
+
+    <select id="selectSheetById" parameterType="long" resultType="com.mes.domain.condition.EquipCheckSheet">
+        SELECT * FROM condition_equip_check_sheet WHERE sheet_id = #{sheetId}
+    </select>
+
+    <select id="selectMaxSortOrder" resultType="int">
+        SELECT IFNULL(MAX(sort_order), 0) FROM condition_equip_check_sheet
+    </select>
+
+    <insert id="insertSheet" parameterType="com.mes.domain.condition.EquipCheckSheet"
+            useGeneratedKeys="true" keyProperty="sheetId" keyColumn="sheet_id">
+        INSERT INTO condition_equip_check_sheet
+            (title, equip_name, model_no, legend_json, cycle_json, sign_json, footer_note, sort_order, use_yn,
+             reg_user_id, reg_user_name, upd_user_id, upd_user_name)
+        VALUES
+            (#{title}, #{equipName}, #{modelNo}, #{legendJson}, #{cycleJson}, #{signJson}, #{footerNote}, #{sortOrder}, #{useYn},
+             #{regUserId}, #{regUserName}, #{regUserId}, #{regUserName})
+    </insert>
+
+    <update id="updateSheet" parameterType="com.mes.domain.condition.EquipCheckSheet">
+        UPDATE condition_equip_check_sheet
+           SET title = #{title}, equip_name = #{equipName}, model_no = #{modelNo},
+               legend_json = #{legendJson}, cycle_json = #{cycleJson}, sign_json = #{signJson},
+               footer_note = #{footerNote}, use_yn = #{useYn},
+               upd_user_id = #{updUserId}, upd_user_name = #{updUserName}
+         WHERE sheet_id = #{sheetId}
+    </update>
+
+    <delete id="deleteSheet" parameterType="long">
+        DELETE FROM condition_equip_check_sheet WHERE sheet_id = #{sheetId}
+    </delete>
+
+    <!-- ===================== 항목 ===================== -->
+
+    <!-- 그달 화면에 나올 항목: 사용 중이거나, 숨겼어도 그달 기록·메모가 있는 항목 -->
+    <select id="selectBoardItems" parameterType="map" resultType="com.mes.domain.condition.EquipCheckItem">
+        SELECT i.*
+        FROM condition_equip_check_item i
+        WHERE i.sheet_id = #{sheetId}
+          AND (i.use_yn = 'Y'
+               OR EXISTS (SELECT 1 FROM condition_equip_check_result r WHERE r.item_id = i.item_id AND r.ym = #{ym})
+               OR EXISTS (SELECT 1 FROM condition_equip_check_note n WHERE n.item_id = i.item_id AND n.ym = #{ym}))
+        ORDER BY i.seq, i.item_id
+    </select>
+
+    <select id="selectActiveItems" parameterType="long" resultType="com.mes.domain.condition.EquipCheckItem">
+        SELECT * FROM condition_equip_check_item WHERE sheet_id = #{sheetId} AND use_yn = 'Y' ORDER BY seq, item_id
+    </select>
+
+    <select id="selectItemById" parameterType="long" resultType="com.mes.domain.condition.EquipCheckItem">
+        SELECT * FROM condition_equip_check_item WHERE item_id = #{itemId}
+    </select>
+
+    <select id="selectItemPhotoPaths" parameterType="long" resultType="string">
+        SELECT photo_path FROM condition_equip_check_item WHERE sheet_id = #{sheetId} AND photo_path IS NOT NULL
+    </select>
+
+    <select id="selectMaxItemSeq" parameterType="long" resultType="int">
+        SELECT IFNULL(MAX(seq), 0) FROM condition_equip_check_item WHERE sheet_id = #{sheetId}
+    </select>
+
+    <select id="countItemUsage" parameterType="long" resultType="int">
+        SELECT (SELECT COUNT(*) FROM condition_equip_check_result WHERE item_id = #{itemId})
+             + (SELECT COUNT(*) FROM condition_equip_check_note WHERE item_id = #{itemId})
+    </select>
+
+    <select id="countItemsByCycle" parameterType="map" resultType="int">
+        SELECT COUNT(*) FROM condition_equip_check_item
+        WHERE sheet_id = #{sheetId} AND use_yn = 'Y' AND cycle = #{cycle}
+    </select>
+
+    <insert id="insertItem" parameterType="com.mes.domain.condition.EquipCheckItem"
+            useGeneratedKeys="true" keyProperty="itemId" keyColumn="item_id">
+        INSERT INTO condition_equip_check_item (sheet_id, location, item_name, cycle, range_min, range_max, seq, use_yn)
+        VALUES (#{sheetId}, #{location}, #{itemName}, #{cycle}, #{rangeMin}, #{rangeMax}, #{seq}, 'Y')
+    </insert>
+
+    <update id="updateItem" parameterType="com.mes.domain.condition.EquipCheckItem">
+        UPDATE condition_equip_check_item
+           SET location = #{location}, item_name = #{itemName}, cycle = #{cycle}, range_min = #{rangeMin}, range_max = #{rangeMax}
+         WHERE item_id = #{itemId}
+    </update>
+
+    <update id="updateItemSeq" parameterType="map">
+        UPDATE condition_equip_check_item SET seq = #{seq} WHERE item_id = #{itemId}
+    </update>
+
+    <update id="updateItemPhoto" parameterType="com.mes.domain.condition.EquipCheckItem">
+        UPDATE condition_equip_check_item
+           SET photo_path = #{photoPath}, photo_name = #{photoName}, photo_type = #{photoType}
+         WHERE item_id = #{itemId}
+    </update>
+
+    <update id="hideItem" parameterType="long">
+        UPDATE condition_equip_check_item SET use_yn = 'N' WHERE item_id = #{itemId}
+    </update>
+
+    <delete id="deleteItem" parameterType="long">
+        DELETE FROM condition_equip_check_item WHERE item_id = #{itemId}
+    </delete>
+
+    <!-- ===================== 월 기록 ===================== -->
+
+    <select id="selectMonth" parameterType="map" resultType="com.mes.domain.condition.EquipCheckMonth">
+        SELECT * FROM condition_equip_check_month WHERE sheet_id = #{sheetId} AND ym = #{ym}
+    </select>
+
+    <!-- 없으면 만들고 있으면 그대로(머리 점검자·특기사항·결재는 각각 따로 갱신) -->
+    <insert id="ensureMonth" parameterType="map">
+        INSERT IGNORE INTO condition_equip_check_month (sheet_id, ym) VALUES (#{sheetId}, #{ym})
+    </insert>
+
+    <!-- 머리의 점검자가 비어 있으면 처음 기록한 사람으로 채운다 -->
+    <update id="fillInspectorIfEmpty" parameterType="map">
+        UPDATE condition_equip_check_month
+           SET inspector_name = #{inspectorName}
+         WHERE sheet_id = #{sheetId} AND ym = #{ym} AND (inspector_name IS NULL OR inspector_name = '')
+    </update>
+
+    <update id="updateMonthInfo" parameterType="map">
+        UPDATE condition_equip_check_month
+           SET inspector_name = #{inspectorName}, remark = #{remark}
+         WHERE sheet_id = #{sheetId} AND ym = #{ym}
+    </update>
+
+    <!-- slot은 1~3으로 서비스에서 검증한 값만 들어온다 -->
+    <update id="updateSign" parameterType="map">
+        UPDATE condition_equip_check_month
+           SET sign${slot}_user_id = #{userId}, sign${slot}_name = #{userName}, sign${slot}_dt = #{signDt},
+               sign${slot}_img = #{signImg}
+         WHERE sheet_id = #{sheetId} AND ym = #{ym}
+    </update>
+
+    <!-- ===================== 일별 결과 ===================== -->
+
+    <select id="selectResults" parameterType="map" resultType="com.mes.domain.condition.EquipCheckResult">
+        SELECT r.*
+        FROM condition_equip_check_result r
+        JOIN condition_equip_check_item i ON i.item_id = r.item_id
+        WHERE i.sheet_id = #{sheetId} AND r.ym = #{ym}
+        ORDER BY r.day, r.checked_dt
+    </select>
+
+    <insert id="upsertResult" parameterType="com.mes.domain.condition.EquipCheckResult">
+        INSERT INTO condition_equip_check_result (item_id, ym, day, mark, user_id, user_name, checked_dt)
+        VALUES (#{itemId}, #{ym}, #{day}, #{mark}, #{userId}, #{userName}, #{checkedDt})
+        ON DUPLICATE KEY UPDATE mark = VALUES(mark), user_id = VALUES(user_id),
+                                user_name = VALUES(user_name), checked_dt = VALUES(checked_dt)
+    </insert>
+
+    <!-- 전체 양호 — 비어 있는 칸만 채운다(이미 적은 기호는 건드리지 않음) -->
+    <insert id="insertResultIfEmpty" parameterType="com.mes.domain.condition.EquipCheckResult">
+        INSERT IGNORE INTO condition_equip_check_result (item_id, ym, day, mark, user_id, user_name, checked_dt)
+        VALUES (#{itemId}, #{ym}, #{day}, #{mark}, #{userId}, #{userName}, #{checkedDt})
+    </insert>
+
+    <delete id="deleteResult" parameterType="map">
+        DELETE FROM condition_equip_check_result WHERE item_id = #{itemId} AND ym = #{ym} AND day = #{day}
+    </delete>
+
+    <!-- ===================== 정기 점검 메모 ===================== -->
+
+    <select id="selectNotes" parameterType="map" resultType="com.mes.domain.condition.EquipCheckNote">
+        SELECT n.item_id, n.ym, n.note
+        FROM condition_equip_check_note n
+        JOIN condition_equip_check_item i ON i.item_id = n.item_id
+        WHERE i.sheet_id = #{sheetId} AND n.ym = #{ym}
+    </select>
+
+    <insert id="upsertNote" parameterType="map">
+        INSERT INTO condition_equip_check_note (item_id, ym, note) VALUES (#{itemId}, #{ym}, #{note})
+        ON DUPLICATE KEY UPDATE note = VALUES(note)
+    </insert>
+
+    <delete id="deleteNote" parameterType="map">
+        DELETE FROM condition_equip_check_note WHERE item_id = #{itemId} AND ym = #{ym}
+    </delete>
+
+    <!-- ===================== 관리책임자 주간 확인 ===================== -->
+
+    <select id="selectConfirms" parameterType="map" resultType="com.mes.domain.condition.EquipCheckConfirm">
+        SELECT * FROM condition_equip_check_confirm WHERE sheet_id = #{sheetId} AND ym = #{ym} ORDER BY week_no
+    </select>
+
+    <select id="selectConfirm" parameterType="map" resultType="com.mes.domain.condition.EquipCheckConfirm">
+        SELECT * FROM condition_equip_check_confirm WHERE sheet_id = #{sheetId} AND ym = #{ym} AND week_no = #{weekNo}
+    </select>
+
+    <insert id="insertConfirm" parameterType="map">
+        INSERT INTO condition_equip_check_confirm (sheet_id, ym, week_no, user_id, user_name, sign_img, confirm_dt)
+        VALUES (#{sheetId}, #{ym}, #{weekNo}, #{userId}, #{userName}, #{signImg}, NOW())
+    </insert>
+
+    <delete id="deleteConfirm" parameterType="map">
+        DELETE FROM condition_equip_check_confirm WHERE sheet_id = #{sheetId} AND ym = #{ym} AND week_no = #{weekNo}
+    </delete>
+</mapper>
