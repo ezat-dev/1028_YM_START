@@ -1,0 +1,94 @@
+/* MBF3호기 설비 그림(풀 3D) — 캔버스 · 범례 · 3D 위에 붙는 HTML(램프 · 존 온도 · 계량기 · 구간 이름). 범례 기본은 mbf1.css */
+
+.m3-wrap { display: flex; flex-direction: column; }
+.m3-canvas { position: relative; flex: 1; min-height: 0; overflow: hidden; border-radius: var(--mes-radius); background: #f3f5f8; }
+.m3-canvas canvas { display: block; touch-action: none; cursor: grab; }
+.m3-canvas canvas:active { cursor: grabbing; }
+/* 전체 보기 — 그림 칸만 화면 가득 */
+.m3-wrap.is-full { width: 100vw; height: 100vh; padding: 14px 18px 16px; background: var(--mes-surface, #fff); }
+.m3-fail { display: grid; place-items: center; height: 100%; font-size: 13px; color: var(--mes-text-faint); }
+
+/* 범례 — 램프와 같은 모양(작은 타일) + 조작 안내 · 시점 초기화 */
+.m3-legend-item { display: inline-flex; align-items: center; gap: 6px; }
+.m3-legend-item i { width: 12px; height: 12px; border: 1px solid #d3dae3; border-radius: 3px; background: #fff; }
+.m3-legend-item.is-run i { border-color: #8fd5a8; background: #e3f6ea; }
+.m3-legend-item.is-alarm i { border-color: #f3a5a5; background: #fde8e8; }
+.m3-legend-item b { font-size: 13px; font-weight: 800; color: var(--mes-text); font-variant-numeric: tabular-nums; }
+.m3-hint { font-size: 11.5px; color: var(--mes-text-faint); }
+.m3-reset { display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 9px; border: 1px solid var(--mes-border); border-radius: var(--mes-radius-sm); background: var(--mes-surface); font: inherit; font-size: 11.5px; font-weight: 600; color: var(--mes-text-sub); cursor: pointer; }
+.m3-reset:hover { border-color: var(--mes-border-strong); color: var(--mes-text); }
+.m3-reset:focus-visible { outline: 2px solid var(--mes-accent); outline-offset: 1px; }
+
+/* 램프 — 설비를 따라 붙은 타일(운전 연초록 · 정지 흰색 · 알람 연빨강 깜박임) */
+.m3-lamp { display: flex; flex-direction: column-reverse; align-items: center; gap: 2px; user-select: none; }
+.m3-lamp.is-bottom { flex-direction: column; }
+.m3-lamp-tile { display: grid; place-items: center; width: 22px; height: 22px; border: 1px solid #d3dae3; border-radius: 6px; background: rgba(255, 255, 255, .95); color: #9aa5b3; box-shadow: 0 1px 3px rgba(15, 23, 42, .12); }
+.m3-lamp-label { font-size: 10px; font-weight: 600; line-height: 1.15; color: #6b7684; text-align: center; white-space: pre; text-shadow: 0 0 3px #fff, 0 0 3px #fff; }
+.m3-lamp.is-run .m3-lamp-tile { border-color: #8fd5a8; background: #e3f6ea; color: #15803d; }
+.m3-lamp.is-run .m3-lamp-label { color: #1f2a37; }
+.m3-lamp.is-alarm .m3-lamp-tile { border-color: #f3a5a5; background: #fde8e8; color: #c62828; }
+.m3-lamp.is-alarm .m3-lamp-label { font-weight: 700; color: #b91c1c; }
+.m3-lamp:hover .m3-lamp-tile { border-color: var(--mes-accent); }
+.m3-lamp { position: relative; }
+
+/* 램프 툴팁 — 이름 · 구간 · 현재 상태(신호) · PLC 주소 */
+.m3-tip { position: absolute; left: calc(50% + 16px); top: 50%; transform: translateY(-50%); z-index: 5; display: flex; flex-direction: column; gap: 2px; min-width: 190px; padding: 9px 11px; border-radius: 8px; background: #1f2633; box-shadow: 0 8px 22px rgba(15, 23, 42, .25); font-size: 12px; color: #dfe5ee; white-space: nowrap; text-align: left; pointer-events: none; }
+.m3-tip b { font-size: 13px; color: #fff; }
+.m3-tip > span { font-size: 11px; color: #94a3b8; }
+.m3-tip dl { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin: 6px 0 0; padding-top: 6px; border-top: 1px solid rgba(255, 255, 255, .12); }
+.m3-tip dt { font-size: 11px; color: #94a3b8; }
+.m3-tip dd { margin: 0; font-size: 12px; }
+.m3-tip em { font-style: normal; font-weight: 800; }
+.m3-tip em.is-run { color: #4ade80; }
+.m3-tip em.is-stop { color: #cbd5e1; }
+.m3-tip em.is-alarm { color: #f87171; }
+.m3-tip dd small { margin-left: 4px; font-size: 10.5px; color: #94a3b8; }
+.m3-tip code { font-family: ui-monospace, Consolas, monospace; font-size: 11.5px; color: #fde68a; }
+.m3-tip .is-none { color: #fbbf24; }
+/* 화면 맨 위에 띄운 툴팁 — 램프 옆 고정 위치(그림 칸 · 다른 표시보다 항상 위) */
+.m3-tip.is-float { position: fixed; z-index: 10000; transform: translateY(-50%); }
+
+
+/* 로 앞면 존 온도 — 오래된 조절기 함(3D 면에 붙음) */
+.m3-ctl { display: flex; align-items: baseline; gap: 5px; padding: 3px 9px; border: 2px solid #8a929b; border-radius: 3px; background: #120c08; white-space: nowrap; pointer-events: none; }
+.m3-ctl span { font-size: 11px; font-weight: 700; color: #8f8676; }
+.m3-ctl b { font-size: 19px; font-weight: 800; color: #ff5a36; font-variant-numeric: tabular-nums; letter-spacing: .04em; }
+.m3-ctl small { font-size: 10px; font-weight: 600; color: #b0574a; }
+
+/* 시뮬레이션 레이어 HUD — 그림 칸 위(마우스는 3D로 통과) */
+.m3-sim-hud { position: absolute; inset: 0; z-index: 400; pointer-events: none; font-family: inherit; }
+.m3-sim-flash { position: absolute; inset: 0; opacity: 0; pointer-events: none; mix-blend-mode: screen; }
+.m3-sim-frost { position: absolute; inset: 0; opacity: 0; pointer-events: none; background: radial-gradient(ellipse at center, rgba(220, 242, 255, 0) 45%, rgba(220, 242, 255, .35) 75%, rgba(240, 250, 255, .8) 100%); box-shadow: inset 0 0 60px rgba(160, 215, 255, .6); }
+.m3-sim-dim { position: absolute; inset: 0; opacity: 0; pointer-events: none; background: radial-gradient(ellipse at center, rgba(16, 4, 36, 0) 25%, rgba(16, 4, 36, .5) 70%, rgba(8, 0, 20, .82) 100%); }
+.m3-sim-box { position: absolute; top: 10px; left: 10px; display: flex; flex-direction: column; gap: 6px; min-width: 300px; padding: 9px 12px 10px; border-radius: 10px; background: rgba(17, 22, 31, .03); border: 1px solid rgba(255, 255, 255, .08); opacity: .55; color: #1f2a37; text-shadow: 0 0 3px rgba(255, 255, 255, .9); }
+.m3-sim-row { display: flex; align-items: baseline; gap: 12px; font-size: 12px; color: #3f4a5a; font-variant-numeric: tabular-nums; }
+.m3-sim-row b { font-size: 15px; font-weight: 800; letter-spacing: .04em; color: #1f2a37; }
+.m3-sim-hp { height: 6px; overflow: hidden; border-radius: 99px; background: rgba(31, 42, 55, .12); }
+.m3-sim-hp i { display: block; height: 100%; width: 100%; border-radius: 99px; background: #4ade80; transition: width .2s, background .3s; }
+.m3-sim-keys { display: flex; flex-wrap: wrap; gap: 4px; }
+.m3-sim-keys span { position: relative; display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px 2px 3px; border-radius: 6px; background: rgba(255, 255, 255, .1); font-size: 11px; font-weight: 600; color: #2b3644; }
+.m3-sim-keys kbd { padding: 0 4px; border-radius: 4px; background: rgba(31, 42, 55, .14); font: inherit; font-size: 10px; font-weight: 800; color: #1f2a37; }
+.m3-sim-keys em { font-style: normal; font-size: 10.5px; font-weight: 800; color: #fbbf24; }
+.m3-sim-keys span.is-cool { color: #6b7686; background: rgba(255, 255, 255, .04); }
+.m3-sim-keys span.is-cool kbd { background: rgba(255, 255, 255, .06); color: #6b7686; }
+.m3-sim-boss { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 4px; width: min(420px, 46%); opacity: 0; transition: opacity .3s; font-size: 12px; font-weight: 800; letter-spacing: .14em; color: #7a1d1d; text-shadow: 0 0 3px rgba(255, 255, 255, .9); }
+.m3-sim-boss-hp { width: 100%; height: 7px; overflow: hidden; border-radius: 99px; background: rgba(31, 42, 55, .15); }
+.m3-sim-boss-hp i { display: block; height: 100%; width: 100%; border-radius: 99px; background: linear-gradient(90deg, #ef4444, #f97316); transition: width .2s; }
+.m3-sim-banner-wrap { position: absolute; top: 34%; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.m3-sim-banner { font-size: 44px; font-weight: 900; letter-spacing: .08em; color: #fff; text-shadow: 0 2px 0 #1f2937, 0 0 24px rgba(255, 120, 60, .7); opacity: 0; transition: opacity .15s; }
+
+/* 계량기 — 무게(kg) + 상태 */
+.m3-scale { display: flex; flex-direction: column; align-items: center; gap: 3px; width: 118px; padding: 5px 6px 6px; pointer-events: none; }
+.m3-scale-num { width: 100%; padding: 3px 8px; border-radius: 2px; background: #0d1410; font-size: 20px; font-weight: 800; color: #5ef08a; text-align: right; font-variant-numeric: tabular-nums; }
+.m3-scale-num small { margin-left: 3px; font-size: 11px; color: #3fae63; }
+.m3-scale-state { font-size: 12px; font-weight: 800; color: #5d6979; }
+.m3-scale-state.is-weigh { color: #b45309; }
+.m3-scale-state.is-done { color: #15803d; }
+.m3-scale-state.is-feed { color: #2f6fbf; }
+.m3-scale-state.is-move { color: #6b7684; }
+
+@media (prefers-reduced-motion: no-preference) {
+  .m3-lamp.is-alarm .m3-lamp-tile { animation: m3-blink 1.6s steps(2, start) infinite; }
+  .m3-scale-num.is-wait { animation: m3-blink 1s steps(2, start) infinite; }
+}
+@keyframes m3-blink { to { visibility: hidden; } }

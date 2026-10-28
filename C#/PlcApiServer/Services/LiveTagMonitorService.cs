@@ -514,22 +514,10 @@ SELECT t.id, t.address, t.type,
             return null;
         }
 
-        // X/Y(미쓰비시 입출력 접점) 주소는 실제 현장에서 8진수 라벨(Y110~Y117 등, 실제 물리
-        // 상태와 일치하는 걸로 확인됨)과 16진수 블록(Y118~Y11F, X04A/X04B처럼 8진수로는 애초에
-        // 표현 안 되는 8/9/A~F 포함)이 "같은 시스템 안에 실제로 섞여" 들어온다 — 그래서 무조건
-        // 한쪽으로 통일하면 안 되고, 자릿수가 전부 0~7이면 8진수(기존 방식 그대로 보존),
-        // 8/9나 A~F가 하나라도 있으면 그때만 16진수로 해석한다.
-        // 예: Y110(전부 0~7) → 8진수 72,  Y118(8 포함) → 16진수 0x118=280,  X04A → 16진수 0x4A=74.
-        // PlcService.Mitsubishi.cs의 ResolveMitsubishiAddress는 X/Y도 그대로 통과만 시킨다 —
-        // 8진수든 16진수든 변환이 이미 여기서 끝나서 "프레임에 넣을 최종 값"까지 확정해 넘기기 때문.
+        // GX Works2와 주소 표기를 일치시키기 위해 Mitsubishi X/Y 주소는 항상 16진수로 해석한다.
+        // 예: X21 → 0x21, X041 → 0x41. MC Protocol 패킷에는 이 숫자 주소를 그대로 넣는다.
         if (device is "X" or "Y")
         {
-            bool validOctal = numPart.Length > 0 && numPart.All(c => c is >= '0' and <= '7');
-            if (validOctal)
-            {
-                try { return (device, Convert.ToInt32(numPart, 8)); }
-                catch { return null; }
-            }
             if (int.TryParse(numPart, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int hexAddr))
                 return (device, hexAddr);
             return null;

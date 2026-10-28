@@ -4,8 +4,7 @@
 // [파일 역할]
 //   EZ BOT "PLC 래더 조회" 화면 전용 API. 화면에 그려진 래더의 주소 목록(M347, SM400, C190, X29,
 //   T10 …)을 한 번에 받아서 미쓰비시 PLC(Q/iQ-R)에서 현재 값을 읽고 주소별 JSON으로 돌려준다.
-//   기존 단건 API(/api/foldertag/read/by-address)와 별개 — 그쪽은 X/Y를 8진/16진 자동 판별하지만
-//   (FX 계열 태그와 공존하기 위한 규칙), 여기는 Q/iQ-R 전용이라 X/Y/B/W 등을 항상 16진수로 해석한다.
+//   기존 단건 API(/api/foldertag/read/by-address)와 동일하게 X/Y/B/W 등을 GX Works2 기준 16진수로 해석한다.
 //
 //   읽기 방식: 주소를 디바이스별로 묶고 가까운 번지끼리 구간으로 합친 뒤 PlcService.ReadWordsBatchAsync로
 //   연결 1개에서 순서대로 읽는다 — 주소마다 PLC와 따로 통신하지 않아 "실시간 값" 주기 갱신에도 부담이 적다.
@@ -231,30 +230,11 @@ public static class EzatBotEndpoints
             }
 
             string device = DeviceAliases.TryGetValue(prefix, out var alias) ? alias : prefix;
-            bool isOctalXy = device is "X" or "Y"
-                && numPart.Length > 0
-                && numPart.All(c => c is >= '0' and <= '7');
             bool ok;
             int addr;
-            if (isOctalXy)
-            {
-                try
-                {
-                    addr = Convert.ToInt32(numPart, 8);
-                    ok = true;
-                }
-                catch (OverflowException)
-                {
-                    addr = 0;
-                    ok = false;
-                }
-            }
-            else
-            {
-                ok = HexDevices.Contains(device)
-                    ? int.TryParse(numPart, System.Globalization.NumberStyles.HexNumber, null, out addr)
-                    : int.TryParse(numPart, out addr);
-            }
+            ok = HexDevices.Contains(device)
+                ? int.TryParse(numPart, System.Globalization.NumberStyles.HexNumber, null, out addr)
+                : int.TryParse(numPart, out addr);
             if (!ok || addr < 0) continue;
 
             if (!PlcService.IsSupportedMitsubishiDevice(device))

@@ -1,0 +1,266 @@
+/* MBF2호기 설비 그림 — 2.5D 입체 도면(윗면 밝게 · 앞면 그라데이션 · 옆면 어둡게). 범례 · 툴팁은 mbf1.css 공용 */
+
+.m2-svg { font-family: inherit; }
+
+/* 범례 — 램프와 같은 모양(작은 타일, 운전 연초록 · 알람 연빨강) */
+.m2-legend-item { display: inline-flex; align-items: center; gap: 6px; }
+.m2-legend-item i { width: 12px; height: 12px; border: 1px solid #d3dae3; border-radius: 3px; background: #fff; }
+.m2-legend-item.is-run i { border-color: #8fd5a8; background: #e3f6ea; }
+.m2-legend-item.is-alarm i { border-color: #f3a5a5; background: #fde8e8; }
+.m2-legend-item b { font-size: 13px; font-weight: 800; color: var(--mes-text); font-variant-numeric: tabular-nums; }
+
+/* 바탕 · 구간 · 바닥 판 */
+.m2-zone-line { stroke: #e6ebf1; stroke-width: 1; stroke-dasharray: 2 4; }
+.m2-zone-name { font-size: 13px; font-weight: 700; fill: #1f2a37; text-anchor: middle; letter-spacing: -.01em; }
+.m2-zone-en { font-size: 8px; font-weight: 600; letter-spacing: .14em; fill: #9aa6b4; text-anchor: middle; }
+.m2-floor-top { fill: #eef1f5; stroke: #dde3ea; stroke-width: 1; }
+.m2-floor-edge { fill: #d5dbe3; }
+.m2-shadow { fill: #0f172a; opacity: .12; }
+
+/* 입체 면 — 재질별 */
+.m2-box polygon, .m2-box rect { stroke-linejoin: round; }
+.m2-face-top, .m2-face-side, .m2-face-front { stroke: #7f8b9a; stroke-width: .7; }
+.m2-box.is-steel .m2-face-top { fill: #f2f0ea; }
+.m2-box.is-steel .m2-face-side { fill: #b8b3a7; }
+.m2-box.is-dark .m2-face-top { fill: #758192; }
+.m2-box.is-dark .m2-face-side { fill: #2b333d; }
+.m2-box.is-dark .m2-face-top, .m2-box.is-dark .m2-face-side, .m2-box.is-dark .m2-face-front { stroke: #26303a; }
+.m2-box.is-panel .m2-face-top { fill: #f6f8fa; }
+.m2-box.is-panel .m2-face-side { fill: #b3bdc8; }
+.m2-box.is-panel .m2-face-top, .m2-box.is-panel .m2-face-side, .m2-box.is-panel .m2-face-front { stroke: #76828f; }
+.m2-box.is-slate .m2-face-top { fill: #9aa6b5; }
+.m2-box.is-slate .m2-face-side { fill: #566274; }
+.m2-box.is-slate .m2-face-top, .m2-box.is-slate .m2-face-side, .m2-box.is-slate .m2-face-front { stroke: #4a5566; }
+.m2-box.is-open .m2-face-top { fill: #59636f; }
+.m2-box.is-old .m2-face-top { fill: #eceef1; }
+.m2-box.is-old .m2-face-side { fill: #a4aab2; }
+.m2-box.is-old .m2-face-top, .m2-box.is-old .m2-face-side, .m2-box.is-old .m2-face-front { stroke: #80878f; }
+.m2-box.is-oldcap .m2-face-top { fill: #d4d8dd; }
+.m2-box.is-oldcap .m2-face-side { fill: #8d949d; }
+.m2-box.is-oldcap .m2-face-top, .m2-box.is-oldcap .m2-face-side, .m2-box.is-oldcap .m2-face-front { stroke: #747b84; }
+.m2-box.is-on .m2-face-front { stroke: #22a35a; }
+.m2-cyl-body { stroke: #6b7684; stroke-width: .6; }
+.m2-cyl.is-steel .m2-cyl-top { fill: #eef1f5; stroke: #7f8b9a; stroke-width: .6; }
+.m2-cyl.is-dark .m2-cyl-body { stroke: #1f262e; }
+.m2-cyl.is-dark .m2-cyl-top { fill: #7d899a; stroke: #26303a; stroke-width: .6; }
+
+/* 공통 부품 */
+.m2-tag { font-size: 8.5px; font-weight: 700; letter-spacing: .04em; fill: #5d6979; text-anchor: middle; }
+.m2-leg-line { stroke: #8d99a8; stroke-width: 1.6; }
+.m2-shaft { stroke: #3f4955; stroke-width: 1.8; }
+.m2-port { fill: #2f3946; stroke: #8d99a8; stroke-width: .8; }
+.m2-flame-core { fill: #fffbeb; opacity: .9; }
+.m2-smoke circle { fill: #cbd2db; opacity: .55; }
+.m2-hx { fill: none; stroke: #8d99a8; stroke-width: 1.2; stroke-linejoin: round; }
+.m2-hx.is-on { stroke: #0284c7; }
+.m2-drop { fill: #c9953f; }
+.m2-hdr { stroke: #8d99a8; stroke-width: 3; stroke-linecap: round; }
+.m2-hdr-hi { stroke: #fff; stroke-width: .7; stroke-linecap: round; opacity: .7; }
+.m2-nozzle-body { fill: #b9a06a; stroke: #7c6a40; stroke-width: .4; }
+.m2-nozzle { fill: #6b7684; }
+.m2-spray-drop { fill: #5bb4e0; opacity: 0; }
+/* 스프레이 펌프 */
+.m2-pipe2 { fill: none; stroke: #8d99a8; stroke-width: 2.6; stroke-linejoin: round; }
+.m2-pipe2-hi { fill: none; stroke: #fff; stroke-width: .6; stroke-linejoin: round; opacity: .6; transform: translate(-.6px, -.6px); }
+.m2-pipe-flow { fill: none; stroke: #38bdf8; stroke-width: 1.2; stroke-linejoin: round; stroke-dasharray: 2 5; }
+.m2-pump-motor { stroke: #3f4c5d; stroke-width: .6; }
+.m2-pump-fin { stroke: rgba(255, 255, 255, .25); stroke-width: .7; }
+.m2-pump-cap { fill: #3f4c5d; }
+.m2-pump-coupling { fill: #d4a017; }
+.m2-pump-volute { stroke: #5d6979; stroke-width: .9; }
+.m2-pump-eye { fill: #3f4955; }
+.m2-pump-flange { fill: #6b7684; }
+.m2-flange { fill: #3a4450; }
+
+/* 컨베이어 */
+.m2-conv-belt { fill: #e1e6ec; stroke: #8d99a8; stroke-width: .8; stroke-linejoin: round; }
+.m2-conv-run { stroke: #b2bcc8; stroke-width: 1.2; stroke-dasharray: 3 5; }
+.m2-conv.is-on .m2-conv-run { stroke: #7f8b9a; }
+.m2-conv-frame { fill: #8d99a8; stroke: #6b7684; stroke-width: .6; stroke-linejoin: round; }
+.m2-roller { fill: #f4f6f9; stroke: #5d6979; stroke-width: 1.1; }
+.m2-tray { stroke: #5d6979; stroke-width: 1.6; stroke-linecap: round; }
+
+/* 열처리로(오래 쓴 외관) — 이음 · 볼트 · 앵글 · 얼룩 · 녹 · 덧댄 패널 · 조절기 함 · 루버 · 녹 슨 채널 · 지붕 캡 · 난간 */
+.m2-seam-lo { stroke: #9ca3ac; stroke-width: .8; }
+.m2-seam-hi { stroke: #f3f5f7; stroke-width: .8; }
+.m2-bolt { fill: #80878f; }
+.m2-bolt.is-dark { fill: #5d5a52; }
+.m2-angle { fill: #b9bfc6; stroke: #80878f; stroke-width: .5; }
+.m2-stain { fill: #6b5134; opacity: .14; }
+.m2-rust { fill: none; stroke: #8a5a2e; stroke-width: 1.3; stroke-linecap: round; opacity: .38; }
+.m2-rust-spot { fill: #8a4f22; opacity: .45; }
+.m2-patch { fill: #c9ced4; stroke: #80878f; stroke-width: .6; }
+.m2-rail line { stroke: #a08a74; stroke-width: 1; }
+.m2-tc { stroke: #857f72; stroke-width: 1.4; }
+.m2-tc-head { fill: #5d5a52; }
+.m2-mouth { fill: #1d1a17; }
+.m2-mouth-glow { opacity: .85; }
+
+/* 위 — 오래된 온도 조절기 함 */
+.m2-ctl { fill: #383b3f; stroke: #80878f; stroke-width: .8; }
+.m2-ctl-win { fill: #120c08; stroke: #24221e; stroke-width: .6; }
+.m2-zone-label { font-size: 6px; font-weight: 700; fill: #8f8676; }
+.m2-lcd-text { font-size: 8.5px; font-weight: 700; fill: #ff5a36; text-anchor: end; font-variant-numeric: tabular-nums; letter-spacing: .06em; }
+.m2-lcd-unit { font-size: 5.5px; font-weight: 600; fill: #b0574a; }
+
+/* 단면 — 볼트 박힌 강철 테 */
+.m2-frame { fill: none; stroke: #80878f; stroke-width: 2.2; }
+
+/* 아래 — 때 묻은 루버 · 녹 슨 채널 */
+.m2-vent-frame { fill: #b3b9c1; stroke: #7a818a; stroke-width: .6; }
+.m2-vent-in { fill: #23262a; }
+.m2-vent-glow { opacity: .85; }
+.m2-channel { fill: #4d4a44; stroke: #3a3833; stroke-width: .5; }
+.m2-stencil { font-size: 4.6px; font-weight: 700; letter-spacing: .34em; fill: #d8d2c4; opacity: .55; }
+
+/* 단면 — 잘린 벽 두께(단열재 빗금) · 내부 */
+.m2-cut-wall { fill: #ece5da; }
+.m2-in-frame { fill: none; stroke: rgba(0, 0, 0, .45); stroke-width: .8; }
+.m2-heat { opacity: .9; }
+.m2-tube-body { stroke: #8a8f96; stroke-width: 2.2; stroke-linecap: round; }
+.m2-tube-core { stroke-width: 1.4; stroke-linecap: round; }
+.m2-tube-glow { stroke-width: 5; stroke-linecap: round; opacity: .55; }
+/* 복사관 색 — 가로선은 높이가 0이라 그라데이션이 안 먹어 단색으로 */
+.m2-furnace.is-quench .m2-tube-core { stroke: #ff8a3d; }
+.m2-furnace.is-quench .m2-tube-glow { stroke: #f4511e; }
+.m2-furnace.is-temper .m2-tube-core { stroke: #fbbf24; }
+.m2-furnace.is-temper .m2-tube-glow { stroke: #f59e0b; }
+.m2-in-belt { fill: #4a4f56; }
+.m2-in-hearth { fill: #7a6a5c; }
+.m2-in-ceiling { fill: #6a5240; opacity: .35; }
+.m2-in-shaft { stroke: #3e4753; stroke-width: 1.6; }
+.m2-in-zone { stroke: #6a5240; stroke-width: .8; stroke-dasharray: 2 3; opacity: .45; }
+/* 로 안 RC FAN 날개 두 장(옆모습) */
+.m2-fan-blade2 { stroke: #5b6672; stroke-width: .45; }
+.m2-ifan:not(.is-on) .m2-fan-blade2 { opacity: .85; }
+.m2-fan-hub2 { fill: #5b6672; stroke: #2f363f; stroke-width: .5; }
+
+
+/* 슈트 · 적재대 · 승강기 · 호퍼 · 블로워 */
+.m2-chute-bed { fill: #cfd6de; stroke: #7f8b9a; stroke-width: .7; stroke-linejoin: round; }
+.m2-chute-lid { fill: #eef1f5; stroke: #7f8b9a; stroke-width: .7; stroke-linejoin: round; }
+.m2-chute-wall { stroke: #7f8b9a; stroke-width: .7; stroke-linejoin: round; }
+.m2-chute3d.is-closed .m2-chute-lid { fill: #9aa6b5; stroke: #4a5566; }
+.m2-chute3d.is-closed .m2-chute-wall { stroke: #4a5566; }
+.m2-chute3d.is-closed .m2-chute-bed { fill: #566274; stroke: #4a5566; }
+.m2-qc-flange { fill: #4a5566; }
+.m2-oil-ring { fill: none; stroke: rgba(255, 255, 255, .75); stroke-width: .9; }
+.m2-mesh-bed { fill: #e4e8ed; stroke: #7f8b9a; stroke-width: .7; stroke-linejoin: round; }
+/* 제품 덩어리(볼트 더미) · 붓는 알갱이 */
+.m2-heap { stroke: #3b4552; stroke-width: .45; stroke-linejoin: round; }
+.m2-heap-shadow { fill: #0f172a; opacity: .22; }
+.m2-heap-tint { pointer-events: none; }
+.m2-heap-thread { stroke: #4b5562; stroke-width: .35; opacity: .55; }
+.m2-nut-hole { fill: #2f3946; }
+.m2-grain { fill: #5d6979; }
+.m2-grain.is-light { fill: #a9b4c1; }
+.m2-cable { stroke: #6b7684; stroke-width: .8; stroke-dasharray: 2 2; }
+.m2-brace { fill: none; stroke: #9aa5b3; stroke-width: 1; }
+.m2-hopper-in { fill: #59636f; }
+.m2-hopper-rim { fill: none; stroke: #5d6979; stroke-width: 1.2; stroke-linejoin: round; }
+.m2-hopper-side { fill: #bcc5cf; }
+/* 철통 · 계량기 */
+.m2-bin-rib { stroke: #a8a397; stroke-width: .8; }
+.m2-bin-rim { fill: #9a958a; }
+.m2-scale-win { fill: #0d1410; stroke: #2a332c; stroke-width: .6; }
+.m2-scale-num { font-size: 8.5px; font-weight: 700; fill: #5ef08a; text-anchor: end; font-variant-numeric: tabular-nums; letter-spacing: .04em; }
+.m2-scale-unit { font-size: 5px; font-weight: 700; fill: #3fae63; }
+.m2-scale-state { font-size: 5.4px; font-weight: 800; fill: #5d6979; text-anchor: middle; }
+.m2-scale-state.is-weigh { fill: #b45309; }
+.m2-scale-state.is-done { fill: #15803d; }
+.m2-scale-state.is-feed { fill: #2f6fbf; }
+.m2-scale-state.is-move { fill: #6b7684; }
+.m2-track-roller { fill: #9aa3ad; stroke: #4b5562; stroke-width: .4; }
+.m2-pulley-hub { fill: #5d6979; }
+.m2-air { stroke: #93c5fd; stroke-width: 1.2; stroke-linecap: round; }
+
+/* RC FAN 유닛 · 교반기 */
+.m2-rfan-fin { stroke: rgba(255, 255, 255, .22); stroke-width: .9; }
+.m2-cyl.is-motor .m2-cyl-body { stroke: #3f4c5d; }
+.m2-rfan-tbox { fill: #5b6a7e; stroke: #3f4c5d; stroke-width: .6; }
+.m2-cyl.is-motor .m2-cyl-top { fill: #8797ab; stroke: #3f4c5d; stroke-width: .6; }
+.m2-rfan-boss { fill: #6d7d91; stroke: #3f4c5d; stroke-width: .5; }
+.m2-prop-blade { fill: #4b5666; }
+.m2-prop-hub { fill: #2f3946; }
+.m2-prop { transform-box: fill-box; transform-origin: center; }
+
+/* 탱크 — 유리 단면 */
+.m2-tank-back { fill: #e2e7ed; stroke: #9aa5b3; stroke-width: .6; }
+.m2-tank-left { fill: #cfd6de; stroke: #9aa5b3; stroke-width: .6; }
+.m2-liquid { opacity: .92; }
+.m2-tank.is-water .m2-surface { fill: #e3f4fc; }
+.m2-tank.is-oil .m2-surface { fill: #f6e5bf; }
+.m2-tank.is-rust .m2-surface { fill: #e6f5ea; }
+.m2-surface { stroke: rgba(255, 255, 255, .8); stroke-width: .8; }
+.m2-ripple-line { fill: none; stroke: rgba(255, 255, 255, .85); stroke-width: .9; }
+.m2-tank-side { fill: #bcc5cf; }
+.m2-tank-glass { stroke: #7f8b9a; stroke-width: .8; }
+.m2-tank-rim { fill: none; stroke: #6b7684; stroke-width: 1.4; stroke-linejoin: round; }
+.m2-tank-base { fill: #8d99a8; }
+.m2-bubble { fill: #fff8e6; opacity: 0; }
+
+/* 램프 — 아이콘 타일, 운전이면 배경 연초록 */
+.m2-lamp { cursor: default; outline: none; color: #9aa5b3; }
+.m2-lamp-shadow { fill: #0f172a; opacity: .05; }
+.m2-lamp-tile { fill: #fff; stroke: #d3dae3; stroke-width: 1; transition: stroke .2s; }
+.m2-lamp-icon { pointer-events: none; }
+.m2-lamp-hit { fill: transparent; }
+.m2-lamp-text { font-size: 10px; font-weight: 600; fill: #8a95a3; text-anchor: middle; }
+.m2-lamp.is-run { color: #15803d; }
+.m2-lamp.is-run .m2-lamp-tile { fill: #e3f6ea; stroke: #8fd5a8; }
+.m2-lamp.is-run .m2-lamp-text { fill: #1f2a37; }
+.m2-lamp.is-alarm { color: #c62828; }
+.m2-lamp.is-alarm .m2-lamp-tile { fill: #fde8e8; stroke: #f3a5a5; }
+.m2-lamp.is-alarm .m2-lamp-text { font-weight: 700; fill: #b91c1c; }
+.m2-lamp:hover .m2-lamp-tile,
+.m2-lamp:focus-visible .m2-lamp-tile { stroke: var(--mes-accent); stroke-width: 1.6; }
+
+/* 움직임 — 느리고 작게 */
+@media (prefers-reduced-motion: no-preference) {
+  .m2-ifan .m2-prop.is-on { animation-duration: 1.4s; }
+  .m2-conv.is-on .m2-conv-run { animation: m2-belt 2.4s linear infinite; }
+  .m2-air { animation: m2-spray 1.6s ease-in-out infinite; }
+  .m2-flame { animation: m2-flicker 1.8s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: bottom center; }
+  .m2-tank.is-active .m2-ripple-line { animation: m2-wave 8s linear infinite; }
+  .m2-tank.is-active .m2-ripple-line:nth-child(2) { animation-duration: 11s; animation-direction: reverse; }
+  .m2-bubble { animation: m2-bubble 5s ease-in infinite; }
+  .m2-pour { opacity: 0; animation: m2-pour 1.5s ease-in both; }
+  .m2-scale-num.is-wait { animation: m2-blink 1s steps(2, start) infinite; }
+  .m2-spray-cone { animation: m2-shimmer 1.3s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: 50% 0; }
+  .m2-spray-drop { animation: m2-spdrop .9s linear infinite; }
+  .m2-pipe-flow { animation: m2-belt 1.2s linear infinite; }
+  .m2-drop { animation: m2-drop 3.2s ease-in infinite; }
+  .m2-smoke { animation: m2-smoke 6s ease-out infinite; }
+  .m2-feeder-move { animation: m2-feeder 1.6s linear infinite; }
+  .m2-lamp.is-alarm .m2-lamp-tile { animation: m2-blink 1.6s steps(2, start) infinite; }
+  .m2-furnace.is-hot .m2-mouth-glow,
+  .m2-vent-glow { animation: m2-pulse 4s ease-in-out infinite; }
+  .m2-prop.is-on { animation: m2-prop .9s ease-in-out infinite; }
+  .m2-furnace.is-hot .m2-heat { animation: m2-heatwave 6s ease-in-out infinite; }
+  .m2-tube.is-hot .m2-tube-glow { animation: m2-pulse 5s ease-in-out infinite; }
+}
+
+@keyframes m2-belt { to { stroke-dashoffset: -16; } }
+@keyframes m2-heatwave { 0%, 100% { opacity: .75; } 50% { opacity: 1; } }
+@keyframes m2-prop { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(.12); } }
+@keyframes m2-breathe { 0%, 100% { opacity: .05; } 50% { opacity: .22; } }
+@keyframes m2-pulse { 0%, 100% { opacity: .55; } 50% { opacity: .95; } }
+@keyframes m2-flicker { from { transform: scaleY(.9); opacity: .85; } to { transform: scaleY(1.05); opacity: 1; } }
+@keyframes m2-wave { from { transform: translateX(0); } to { transform: translateX(var(--m2-p)); } }
+/* 붓기 — 철통 입구 → 슈트 머리 → 슈트 따라 → 호퍼로(시작점 기준 이동) */
+@keyframes m2-pour {
+  0% { transform: translate(0, 0); opacity: 0; }
+  6% { opacity: 1; }
+  18% { transform: translate(10px, -3px); }
+  32% { transform: translate(20.5px, -2px); }
+  86% { transform: translate(54.5px, 39.5px); opacity: 1; }
+  100% { transform: translate(62px, 53px); opacity: 0; }
+}
+@keyframes m2-bubble { 0% { transform: translateY(0); opacity: 0; } 20% { opacity: .7; } 100% { transform: translateY(var(--m2-rise)); opacity: 0; } }
+@keyframes m2-spray { 0%, 100% { opacity: .25; } 50% { opacity: .8; } }
+@keyframes m2-shimmer { from { opacity: .65; transform: scaleX(.92); } to { opacity: 1; transform: scaleX(1.06); } }
+@keyframes m2-spdrop { 0% { transform: translate(0, 0); opacity: .9; } 100% { transform: translate(var(--m2-dx), var(--m2-dy)); opacity: 0; } }
+@keyframes m2-drop { from { transform: translateY(0); opacity: 1; } to { transform: translateY(14px); opacity: 0; } }
+@keyframes m2-smoke { from { transform: translateY(6px); opacity: .8; } to { transform: translateY(-6px); opacity: .15; } }
+@keyframes m2-feeder { from { transform: translate(0, 0); } to { transform: translate(var(--m2-fx), var(--m2-fy)); } }
+@keyframes m2-blink { to { visibility: hidden; } }

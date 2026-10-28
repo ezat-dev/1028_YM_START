@@ -1,4 +1,4 @@
-/* 모니터링 > 통합모니터링 — 레이아웃 초안. 설비 2대씩(1~2 / 3~4 / 5~6호기 전환) × [설비 그림 / 온도] 영역만 연한 바탕으로 잡아 둔다 */
+/* 모니터링 > 통합모니터링 — 호기 하나씩(1~6호기 전환) × [설비 그림 / 온도] */
 
 .itg2-page {
   gap: 12px;
@@ -26,10 +26,34 @@
   color: var(--mes-text-faint);
 }
 
-/* 1~2 / 3~4 / 5~6호기 전환 — 헤더 우측 끝 */
+/* 전체 가동 ON/OFF — 호기 전환 바로 왼쪽 */
+.itg2-power {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 36px;
+  min-width: 74px;
+  margin-left: auto;
+  padding: 0 12px;
+  justify-content: center;
+  border: 1px solid var(--mes-border);
+  border-radius: var(--mes-radius);
+  background: var(--mes-surface);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .02em;
+  color: var(--mes-text-faint);
+  cursor: pointer;
+  transition: background .2s, border-color .2s, color .2s;
+}
+.itg2-power:hover { border-color: var(--mes-border-strong); color: var(--mes-text-sub); }
+.itg2-power.is-on { border-color: #86d6a4; background: #e9f9ef; color: #15803d; box-shadow: 0 0 0 3px rgba(34, 197, 94, .12); }
+.itg2-power:focus-visible { outline: 2px solid var(--mes-accent); outline-offset: 1px; }
+
+/* 1~6호기 전환 — 헤더 우측 끝 */
 .itg2-switch {
   display: inline-flex;
-  margin-left: auto;
   padding: 2px;
   border: 1px solid var(--mes-border);
   border-radius: var(--mes-radius);
@@ -37,7 +61,11 @@
 }
 
 .itg2-switch-btn {
-  min-width: 76px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 70px;
   height: 30px;
   padding: 0 12px;
   border: 0;
@@ -59,6 +87,11 @@
   color: var(--mes-accent);
   box-shadow: 0 1px 2px rgba(15, 23, 42, .08);
 }
+
+/* 호기 상태 점 — 가동 초록 · 알람 빨강 · 정지 회색 */
+.itg2-dot { width: 7px; height: 7px; border-radius: 50%; background: #9aa3ae; }
+.itg2-dot.is-run { background: #22c55e; }
+.itg2-dot.is-alarm { background: #ef4444; }
 
 .itg2-switch-btn:focus-visible {
   outline: 2px solid var(--mes-accent);
@@ -153,6 +186,44 @@
   color: #b3784a;
 }
 
+/* ── 호기 하나: [설비 그림] 위 / [LOT | 온도(현재 + 3시간 그래프) | 최근 알람] 아래 ── */
+.itg3 { flex: 1; min-height: 0; display: grid; grid-template-rows: minmax(0, 1.4fr) minmax(0, .6fr); gap: 10px; }
+
+/* 설비 그림 : 아래 3구역 = 1.2 : 0.8 — 그림은 원래 비율 그대로 영역 가운데에, 램프가 테두리에 붙지 않게 안쪽 여백 넉넉히 */
+.itg3-drawing { min-width: 0; min-height: 0; display: flex; padding: 14px 18px 12px; border: 1px solid var(--mes-border); border-radius: var(--mes-radius-lg); background: var(--mes-surface); }
+.itg3-drawing .mb-wrap { flex: 1; height: auto; }
+.itg3-drawing.is-empty { min-height: 0; }
+.itg3-loading { display: grid; place-items: center; flex: 1; font-size: 12.5px; color: var(--mes-text-faint); }
+
+.itg3-bottom { min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.8fr) minmax(0, .9fr); gap: 10px; }
+.itg3-panel { min-width: 0; min-height: 0; display: flex; flex-direction: column; padding: 10px 12px; overflow: hidden; border: 1px solid var(--mes-border); border-radius: var(--mes-radius-lg); background: var(--mes-surface); }
+.itg3-panel.is-empty,
+.itg3-drawing.is-empty { display: grid; place-items: center; border-style: dashed; border-color: var(--mes-border-strong); background: var(--mes-surface-sub); }
+.itg3-panel.is-empty span,
+.itg3-drawing.is-empty span { font-size: 12.5px; font-weight: 600; color: var(--mes-text-faint); }
+
+/* 좁은 화면 — 아래 3구역을 위아래로 쌓고 페이지가 스크롤 */
+@media (max-width: 1280px) {
+  .itg3 { grid-template-rows: auto auto; }
+  .itg3-drawing { min-height: 44vh; }
+  .itg3-bottom { grid-template-columns: minmax(0, 1fr); grid-auto-rows: auto; }
+  .itg3-panel { min-height: 320px; }
+}
+
+/* 그림·온도를 채운 영역 — 점선 바탕을 빼고 내용이 꽉 차게 */
+.itg2-area.is-filled {
+  display: block;
+  padding: 6px 8px 4px;
+  border: 1px solid var(--mes-border);
+  background: var(--mes-surface);
+}
+
+.itg2-temp.is-filled {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
 /* 휴대폰 — 이름을 위로 올리고 세 영역을 아래로 쌓는다 */
 @media (max-width: 768px) {
   .itg2-header {
@@ -183,3 +254,54 @@
     padding: 6px 10px;
   }
 }
+
+/* ── 최근 알람(모든 호기 공통 · AlarmRecent) ── */
+.mba { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.mba-head { flex-shrink: 0; display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.mba-head b { font-size: 13px; font-weight: 800; color: var(--mes-text); }
+.mba-active { padding: 1px 8px; border-radius: 999px; background: var(--mes-surface-sub); font-size: 11.5px; font-weight: 700; color: var(--mes-text-faint); }
+.mba-active.is-on { background: #fde8e8; color: #c62828; }
+.mba-more { display: inline-flex; align-items: center; gap: 2px; margin-left: auto; font-size: 11.5px; font-weight: 600; color: var(--mes-accent); text-decoration: none; }
+.mba-more:hover { text-decoration: underline; }
+.mba-list { flex: 1; min-height: 0; overflow-y: auto; }
+.mba-empty { padding: 24px 8px; font-size: 12.5px; text-align: center; color: var(--mes-text-faint); }
+.mba-row { display: grid; grid-template-columns: 8px auto minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 6px 4px; border-bottom: 1px solid #eef1f5; font-size: 12.5px; }
+.mba-dot { width: 7px; height: 7px; border-radius: 50%; background: #b6bec9; }
+.mba-time { font-size: 11.5px; color: var(--mes-text-faint); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.mba-msg { overflow: hidden; font-weight: 600; color: var(--mes-text); text-overflow: ellipsis; white-space: nowrap; }
+.mba-state { font-size: 11.5px; color: var(--mes-text-faint); white-space: nowrap; }
+.mba-row.is-on { background: #fff5f5; }
+.mba-row.is-on .mba-dot { background: #ef4444; box-shadow: 0 0 0 3px rgba(239, 68, 68, .18); }
+.mba-row.is-on .mba-msg { color: #b91c1c; }
+.mba-row.is-on .mba-state { font-weight: 700; color: #c62828; }
+
+/* ── LOT(모든 호기 공통 · LotPanel) — 종합생산현황 카드의 LOT 장과 같은 구성 ── */
+.mbl { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.mbl-head { flex-shrink: 0; display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.mbl-head > b { font-size: 13px; font-weight: 800; color: var(--mes-text); }
+.mbl-count { font-size: 11.5px; color: var(--mes-text-faint); white-space: nowrap; }
+.mbl-count b { margin-left: 2px; font-size: 13px; font-weight: 800; color: var(--mes-text); font-variant-numeric: tabular-nums; }
+.mbl-more { display: inline-flex; align-items: center; gap: 2px; margin-left: auto; font-size: 11.5px; font-weight: 600; color: var(--mes-accent); text-decoration: none; white-space: nowrap; }
+.mbl-more:hover { text-decoration: underline; }
+
+.mbl-now { flex-shrink: 0; display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 6px 10px; padding: 8px 12px; border: 1px solid #b9dcf3; border-radius: var(--mes-radius); background: #ebf6fd; }
+.mbl-tag { display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px; border-radius: 999px; background: #fff; font-size: 11.5px; font-weight: 700; color: #15803d; white-space: nowrap; }
+.mbl-tag i { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; box-shadow: 0 0 0 3px rgba(34, 197, 94, .18); }
+.mbl-tag.is-stopped { color: var(--mes-text-faint); }
+.mbl-no { font-size: 18px; font-weight: 800; color: var(--mes-text); letter-spacing: .01em; font-variant-numeric: tabular-nums; }
+.mbl-meta { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, minmax(0, auto)); justify-content: start; gap: 2px 16px; margin: 0; }
+.mbl-meta div { min-width: 0; }
+.mbl-meta dt { font-size: 10.5px; color: var(--mes-text-faint); }
+.mbl-meta dd { margin: 0; overflow: hidden; font-size: 12.5px; font-weight: 700; color: var(--mes-text); text-overflow: ellipsis; white-space: nowrap; }
+.mbl-now.is-empty { border-color: var(--mes-border); background: var(--mes-surface-sub); }
+.mbl-empty { font-size: 12.5px; color: var(--mes-text-faint); }
+
+.mbl-list-head,
+.mbl-list li { display: grid; grid-template-columns: 40px minmax(84px, 1.1fr) minmax(0, .9fr) minmax(0, .9fr) minmax(0, 1fr); align-items: center; gap: 8px; padding: 0 4px; }
+.mbl-list-head { flex-shrink: 0; margin-top: 10px; padding-bottom: 5px; border-bottom: 1px solid var(--mes-border); font-size: 11px; font-weight: 600; color: var(--mes-text-faint); }
+.mbl-list { flex: 1; min-height: 0; margin: 0; padding: 0; overflow-y: auto; list-style: none; }
+.mbl-list li { padding-top: 4px; padding-bottom: 4px; border-bottom: 1px solid #eef1f5; font-size: 12px; color: var(--mes-text-sub); }
+.mbl-list li > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mbl-time { font-size: 11.5px; color: var(--mes-text-faint); font-variant-numeric: tabular-nums; }
+.mbl-lot { font-weight: 700; color: var(--mes-text); font-variant-numeric: tabular-nums; }
+.mbl-list li.mbl-none { display: block; padding: 24px 8px; border: 0; text-align: center; color: var(--mes-text-faint); }

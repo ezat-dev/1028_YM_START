@@ -98,6 +98,8 @@ builder.Services.AddHostedService<HourlyCommLogService>();
 var app = builder.Build();
 app.UseCors();
 
+app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+
 // 정적 파일 서빙 — wwwroot/admin/tags.html 이 "PLC 태그 관리" 화면.
 // 같은 오리진(5050)에서 서빙하므로 관리 화면의 fetch 호출은 CORS를 아예 안 탄다.
 app.UseDefaultFiles();
@@ -596,11 +598,29 @@ app.MapGet("/api/foldertag/value/by-name", async (string name, LiveTagMonitorSer
 //   문자열을 쓰는 모든 PLC의 태그를 다 찾아서 보여준다.
 app.MapGet("/api/foldertag/value/by-address", async (string address, string? plcId, LiveTagMonitorService monitor, PlcRepository repo) =>
 {
-    string where = "address = @address" + (string.IsNullOrWhiteSpace(plcId) ? "" : " AND plc_id = @plcId");
-    var parms = new Dictionary<string, object> { ["@address"] = address };
+    var parsedAddress = LiveTagMonitorService.ParseAddressFull(address);
+    bool isHexXy = parsedAddress.HasValue && (parsedAddress.Value.Device is "X" or "Y");
+    string where = isHexXy
+        ? "UPPER(address) LIKE @addressPrefix"
+        : "address = @address";
+    var parms = new Dictionary<string, object>
+    {
+        [isHexXy ? "@addressPrefix" : "@address"] = isHexXy ? $"{parsedAddress!.Value.Device}%" : address
+    };
     if (!string.IsNullOrWhiteSpace(plcId)) parms["@plcId"] = plcId;
+    if (!string.IsNullOrWhiteSpace(plcId)) where += " AND plc_id = @plcId";
 
     var found = await FindFolderTagsAsync(repo.ConnectionString, where, parms);
+    if (isHexXy)
+    {
+        found = found.Where(t =>
+        {
+            var candidate = LiveTagMonitorService.ParseAddressFull(t.Address);
+            return candidate.HasValue
+                && candidate.Value.Device == parsedAddress!.Value.Device
+                && candidate.Value.Addr == parsedAddress.Value.Addr;
+        }).ToList();
+    }
     var tags = found.Select(t =>
     {
         monitor.FolderTagValues.TryGetValue(t.Id, out var value);
@@ -669,8 +689,7 @@ app.MapGet("/api/foldertag/write/by-name", async (string name, int value, int? f
 // GET /api/foldertag/read/by-address?plcId=MST_MITSUBISHI&address=X0A1&device=X (device 생략 시 address 접두문자로 추정)
 //   folders_tags를 아예 거치지 않고 plc_id+주소만으로 "지금 이 순간" PLC와 직접 통신해서 즉시 읽는다
 //   (캐시/메모리 값이 아니라 write/by-address와 동일하게 매번 실제로 통신함).
-//   write/by-address와 완전히 대칭되는 읽기 버전 — X/Y 접점처럼 8진수/16진수 구분이 필요한
-//   주소도 ParseAddressFull이 자동으로 판별해주므로, 호출하는 쪽이 직접 변환할 필요가 없다.
+//   write/by-address와 완전히 대칭되는 읽기 버전 — X/Y 접점 주소는 GX Works2와 동일하게 16진수로 해석한다.
 app.MapGet("/api/foldertag/read/by-address", async (string plcId, string address, string? device, PlcRepository repo, PlcServiceCache cache) =>
 {
     var cfg = await repo.GetByIdAsync(plcId);

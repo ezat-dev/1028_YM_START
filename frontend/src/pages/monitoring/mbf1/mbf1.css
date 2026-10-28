@@ -1,0 +1,279 @@
+/* MBF1호기 설비 그림(미믹) + 온도 — 통합모니터링 */
+
+.mb-wrap {
+  --mb-ink: #3f4b5b;
+  --mb-line: #8794a5;
+  --mb-run: #22c55e;
+  --mb-run-core: #39d965;
+  --mb-stop: #6b7684;
+  --mb-alarm: #ef4444;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+/* 위 줄: 운전/정지/알람 개수 · 라인 이송 · 예시 안내 */
+.mb-legend {
+  flex-shrink: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  padding: 2px 6px 6px;
+  font-size: 12px;
+  color: var(--mes-text-sub);
+}
+
+.mb-legend-item { display: inline-flex; align-items: center; gap: 5px; }
+.mb-legend-item i { width: 12px; height: 12px; border-radius: 3px; border: 1.2px solid #cfd6df; background: #f3f5f8; }
+.mb-legend-item.is-run i { background: #e7f8ee; border-color: #4ade80; }
+.mb-legend-item.is-alarm i { background: #fdecec; border-color: #f87171; }
+.mb-legend-item b { font-size: 13px; font-weight: 800; color: var(--mes-text); font-variant-numeric: tabular-nums; }
+
+.mb-legend-flow { padding: 1px 8px; border-radius: 999px; background: var(--mes-surface-sub); font-weight: 700; color: var(--mes-text-faint); }
+.mb-legend-flow.is-on { background: #fff4e0; color: #b45f06; }
+.mb-legend-note { margin-left: auto; font-size: 11.5px; color: var(--mes-text-faint); }
+
+.mb-svg { flex: 1; min-height: 0; width: 100%; height: 100%; display: block; font-family: inherit; }
+
+/* 구간 띠 */
+.mb-band { fill: #f6f8fb; stroke: #e6ebf2; stroke-width: 1; }
+.mb-band.is-alt { fill: #fbfcfd; }
+.mb-zone-name { font-size: 14px; font-weight: 800; fill: #33404f; text-anchor: middle; }
+.mb-zone-en { font-size: 8.5px; font-weight: 600; letter-spacing: .06em; fill: #9aa5b3; text-anchor: middle; }
+.mb-ground { stroke: #d5dce5; stroke-width: 2; }
+
+/* 공통 부품 */
+.mb-box { fill: #e8edf3; stroke: var(--mb-ink); stroke-width: 1.3; }
+.mb-box.is-on { fill: #dff5e6; stroke: #2f8a50; }
+.mb-post { fill: #dfe5ec; stroke: var(--mb-ink); stroke-width: 1.1; }
+.mb-rail { fill: none; stroke: var(--mb-line); stroke-width: 9; stroke-linecap: round; stroke-linejoin: round; }
+.mb-rail-in { fill: none; stroke: #e9edf2; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+.mb-bucket { fill: #c9d1db; stroke: var(--mb-ink); stroke-width: 1.3; }
+.mb-skip.is-on .mb-bucket { fill: #bfe8cc; stroke: #2f8a50; }
+.mb-feeder-frame { stroke: #7d8a9b; stroke-width: 16; stroke-linecap: round; }
+.mb-feeder-belt { stroke: #e3e8ee; stroke-width: 11; stroke-linecap: round; }
+.mb-tray { stroke: #5d6979; stroke-width: 2; stroke-linecap: round; }
+.mb-parts { fill: #6b5d4a; }
+.mb-leg-line { stroke: var(--mb-ink); stroke-width: 2; }
+.mb-leg { fill: #d6dde6; stroke: #8c98a8; stroke-width: 1; }
+.mb-tiny { font-size: 9px; font-weight: 700; fill: var(--mes-text-sub); text-anchor: middle; }
+.mb-pipe { stroke: var(--mb-line); stroke-width: 3; stroke-linecap: round; }
+.mb-nozzle { fill: var(--mb-line); }
+.mb-spray { fill: none; stroke: #4aa3d8; stroke-width: 1.4; stroke-linecap: round; opacity: .9; }
+.mb-chute { fill: none; stroke: var(--mb-line); stroke-width: 5; stroke-linecap: round; }
+.mb-exit { fill: none; stroke: var(--mb-ink); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* 컨베이어 */
+.mb-conv-frame { stroke: #7d8a9b; stroke-width: 10; stroke-linecap: round; }
+.mb-conv-belt { stroke: #dfe5ec; stroke-width: 5; stroke-linecap: round; }
+.mb-roller { fill: #f4f6f9; stroke: var(--mb-ink); stroke-width: 1.4; }
+.mb-belt { stroke: #7d8a9b; stroke-width: 4; stroke-linecap: round; }
+
+/* 열처리로 */
+.mb-furnace-wall { stroke: var(--mb-ink); stroke-width: 1.6; }
+.mb-furnace.is-quench .mb-furnace-wall { fill: #f4cbbd; }
+.mb-furnace.is-quench .mb-furnace-in { fill: #fbe5dc; stroke: #e2a995; }
+.mb-furnace.is-temper .mb-furnace-wall { fill: #f9dcc0; }
+.mb-furnace.is-temper .mb-furnace-in { fill: #fdf0e2; stroke: #e8c39d; }
+.mb-furnace-in { stroke-width: 1; }
+.mb-vestibule { fill: #e3e8ee; stroke: var(--mb-ink); stroke-width: 1.2; }
+.mb-zone-div { stroke: #d7a08c; stroke-width: 1; stroke-dasharray: 3 3; }
+.mb-furnace.is-temper .mb-zone-div { stroke: #dcb08a; }
+.mb-zone-no { font-size: 9.5px; font-weight: 700; fill: #b4806c; text-anchor: middle; }
+.mb-furnace.is-temper .mb-zone-no { fill: #b98d62; }
+.mb-stack { fill: #dfe5ec; stroke: var(--mb-ink); stroke-width: 1.2; }
+.mb-smoke circle { fill: #c3cad3; opacity: .6; }
+.mb-motor { fill: #5d6979; stroke: #3c4654; stroke-width: 1; }
+.mb-motor-rib { fill: #7e8a99; }
+.mb-shaft { stroke: #5d6979; stroke-width: 2.2; }
+.mb-fan.is-off { opacity: .45; filter: grayscale(1); }
+.mb-burner { fill: #e3e8ee; stroke: var(--mb-ink); stroke-width: 1.2; }
+.mb-burner-port { fill: #fff; stroke: var(--mb-ink); stroke-width: 1; }
+.mb-flame path { fill: #f59e0b; }
+.mb-flame .mb-flame-in { fill: #fde68a; }
+
+/* 탱크 */
+.mb-tank-wall { fill: #f1f4f7; stroke: var(--mb-ink); stroke-width: 1.5; }
+.mb-liquid { stroke-width: 1.3; }
+.mb-liquid-back { stroke: none; opacity: .55; }
+.mb-tank.is-water .mb-liquid { fill: #cfe7ef; stroke: #6fb3cc; }
+.mb-tank.is-water .mb-liquid-back { fill: #a9d6e5; }
+.mb-tank.is-oil .mb-liquid { fill: #ecd29b; stroke: #c79a3f; }
+.mb-tank.is-oil .mb-liquid-back { fill: #ddb767; }
+.mb-tank.is-rust .mb-liquid { fill: #dbe8cf; stroke: #8fb07a; }
+.mb-tank.is-rust .mb-liquid-back { fill: #bcd5a8; }
+.mb-bubble { fill: #fff8e6; stroke: #c79a3f; stroke-width: .6; opacity: 0; }
+.mb-hx { fill: none; stroke: var(--mb-ink); stroke-width: 1.3; }
+.mb-hx.is-on { stroke: #2f8a50; }
+.mb-drip { fill: #ecd29b; stroke: #b48a3a; stroke-width: 1; }
+.mb-drop { fill: #c79a3f; }
+
+/* 제품 흐름 — 점이 공정 방향으로 흐른다 */
+.mb-flow { fill: none; stroke: #b9c2cd; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: .1 14; }
+.mb-flow.is-on { stroke: #f59e0b; }
+
+/* 램프 — 아이콘 타일(설비 종류 아이콘, 상태는 타일 색) */
+.mb-lamp { cursor: default; outline: none; color: #8a95a3; }
+.mb-lamp-halo { fill: transparent; }
+.mb-lamp-tile { fill: #f3f5f8; stroke: #cfd6df; stroke-width: 1.2; }
+.mb-lamp-icon { pointer-events: none; }
+.mb-lamp-hit { fill: transparent; }
+.mb-lamp-text { font-size: 10px; font-weight: 600; fill: #8a95a3; text-anchor: middle; }
+.mb-lamp.is-run { color: #15803d; }
+.mb-lamp.is-run .mb-lamp-halo { fill: rgba(34, 197, 94, .16); }
+.mb-lamp.is-run .mb-lamp-tile { fill: #e7f8ee; stroke: #4ade80; }
+.mb-lamp.is-run .mb-lamp-text { font-weight: 700; fill: #263241; }
+.mb-lamp.is-alarm { color: #b91c1c; }
+.mb-lamp.is-alarm .mb-lamp-halo { fill: rgba(239, 68, 68, .18); }
+.mb-lamp.is-alarm .mb-lamp-tile { fill: #fdecec; stroke: #f87171; }
+.mb-lamp.is-alarm .mb-lamp-text { font-weight: 700; fill: #b91c1c; }
+.mb-lamp:hover .mb-lamp-tile,
+.mb-lamp:focus-visible .mb-lamp-tile { stroke: var(--mes-accent); stroke-width: 2; }
+
+/* 마우스를 올리면 */
+.mb-tip {
+  position: absolute;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 150px;
+  padding: 8px 11px;
+  border-radius: 8px;
+  background: #1f2633;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, .22);
+  font-size: 12px;
+  color: #dfe5ee;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.mb-tip.is-bottom { transform: translate(-50%, -100%); }
+.mb-tip b { font-size: 13px; color: #fff; }
+.mb-tip em { font-style: normal; font-weight: 800; }
+.mb-tip.is-run em { color: #4ade80; }
+.mb-tip.is-stop em { color: #cbd5e1; }
+.mb-tip.is-alarm em { color: #f87171; }
+.mb-tip small { font-size: 11px; color: #94a3b8; }
+
+/* 움직임 — 모니터 앞에서 오래 봐도 거슬리지 않게 느리게 */
+@media (prefers-reduced-motion: no-preference) {
+  .mb-spin { transform-box: fill-box; transform-origin: center; animation: mb-spin 5s linear infinite; }
+  .mb-flow.is-on { animation: mb-flow 6s linear infinite; }
+  .mb-lamp.is-alarm .mb-lamp-tile,
+  .mb-lamp.is-alarm .mb-lamp-halo { animation: mb-blink 1.6s steps(2, start) infinite; }
+  .mb-lamp.is-run .mb-lamp-halo { animation: mb-glow 4s ease-in-out infinite; }
+  .mb-flame { animation: mb-flicker 1.4s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: bottom center; }
+  .mb-spray { animation: mb-spray 2.2s ease-in-out infinite; }
+  .mb-drop { animation: mb-drop 3s ease-in infinite; }
+  .mb-smoke { animation: mb-smoke 5s ease-out infinite; }
+  /* 액면 — 앞·뒤 물결이 서로 반대로 천천히. 펌프가 멈추면 제자리 */
+  .mb-tank.is-active .mb-liquid { animation: mb-wave 7s linear infinite; }
+  .mb-tank.is-active .mb-liquid-back { animation: mb-wave 11s linear infinite; }
+  .mb-bubble { animation: mb-bubble 4.5s ease-in infinite; }
+  /* 진동 피더 — 트레이가 경사를 따라 천천히 위로(한 칸 간격만큼 밀고 처음으로) */
+  .mb-feeder-move { animation: mb-feeder 4s linear infinite; }
+}
+
+@keyframes mb-spin { to { transform: rotate(360deg); } }
+@keyframes mb-flow { to { stroke-dashoffset: -28.2; } }
+@keyframes mb-blink { to { visibility: hidden; } }
+@keyframes mb-glow { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+@keyframes mb-flicker { from { transform: scaleY(.85); } to { transform: scaleY(1.08); } }
+@keyframes mb-spray { 0% { opacity: .2; } 50% { opacity: 1; } 100% { opacity: .2; } }
+@keyframes mb-drop { from { transform: translateY(0); opacity: 1; } to { transform: translateY(14px); opacity: 0; } }
+@keyframes mb-feeder { from { transform: translate(0, 0); } to { transform: translate(var(--mb-fx), var(--mb-fy)); } }
+@keyframes mb-wave { from { transform: translateX(0); } to { transform: translateX(var(--mb-p)); } }
+@keyframes mb-bubble { 0% { transform: translateY(0); opacity: 0; } 15% { opacity: .9; } 80% { opacity: .7; } 100% { transform: translateY(var(--mb-rise)); opacity: 0; } }
+@keyframes mb-smoke { from { transform: translateY(6px); opacity: .9; } to { transform: translateY(-6px); opacity: .2; } }
+
+.mb-legend-title { margin-right: 4px; font-size: 14px; font-weight: 800; color: var(--mes-text); }
+
+/* ── 온도 — 묶음 차례대로: 위 실시간 온도 칸, 아래 3시간 그래프 ── */
+.mtt { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.mtt-head { flex-shrink: 0; display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+.mtt-head > b { font-size: 13px; font-weight: 800; color: var(--mes-text); }
+.mtt-badge { margin-left: auto; padding: 1px 7px; border: 1px dashed var(--mes-border-strong); border-radius: 999px; font-size: 11px; color: var(--mes-text-faint); white-space: nowrap; }
+
+/* 묶음 차례 탭 — 지금 차례는 하늘색, 이름 아래 10초 진행 막대 */
+.mtt-tabs { display: inline-flex; gap: 4px; align-self: center; }
+.mtt-tab { position: relative; height: 26px; padding: 0 12px; border: 1px solid var(--mes-border); border-radius: var(--mes-radius-sm); background: var(--mes-surface); font: inherit; font-size: 12px; font-weight: 600; color: var(--mes-text-faint); cursor: pointer; transition: background .3s, border-color .3s, color .3s; }
+.mtt-tab:hover { color: var(--mes-text-sub); }
+.mtt-tab.is-on { border-color: #b9dcf3; background: #ebf6fd; font-weight: 800; color: var(--mes-text); }
+.mtt-tab.is-quench.is-on { color: #b4472b; }
+.mtt-tab.is-temper.is-on { color: #a76216; }
+.mtt-tab:focus-visible { outline: 2px solid var(--mes-accent); outline-offset: 1px; }
+.mtt-progress { position: absolute; left: 6px; right: 6px; bottom: 2px; height: 2px; overflow: hidden; border-radius: 2px; background: #cfe5f5; }
+.mtt-progress::after { content: ""; position: absolute; inset: 0; transform: scaleX(1); transform-origin: left; background: var(--mes-accent); }
+@media (prefers-reduced-motion: no-preference) {
+  .mtt-progress::after { animation: mtt-progress linear forwards; animation-duration: inherit; }
+  .mtt-progress.is-paused::after { animation-play-state: paused; }
+}
+@keyframes mtt-progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* 지금 차례인 묶음의 실시간 온도 — 상자 없이 한 줄, 칸 사이는 가는 세로선. 차례가 바뀌면 살짝 밀려 들어온다 */
+.mtt-now { flex-shrink: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); margin-bottom: 8px; padding: 4px 0 10px; border-bottom: 1px solid var(--mes-border); }
+@media (prefers-reduced-motion: no-preference) {
+  .mtt-now { animation: mtt-in .5s ease-out; }
+}
+@keyframes mtt-in { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
+
+.mtt-stat { display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 0 14px; }
+.mtt-stat + .mtt-stat { border-left: 1px solid var(--mes-border); }
+.mtt-stat-vals { display: flex; gap: 14px; }
+.mtt-stat-val { container-type: inline-size; flex: 1; min-width: 0; border-radius: 4px; transition: background .2s; }
+.mtt-stat-val.is-focus { background: var(--mes-surface-sub); box-shadow: 0 0 0 4px var(--mes-surface-sub); }
+.mtt-stat-val span { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--mes-text-sub); white-space: nowrap; }
+.mtt-stat-val span i { flex-shrink: 0; width: 8px; height: 8px; border-radius: 50%; }
+.mtt-stat-val b { display: block; margin-top: 1px; font-size: clamp(16px, 22cqi, 26px); font-weight: 800; line-height: 1.15; letter-spacing: -.01em; color: var(--mes-text); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.mtt-stat-val b small { margin-left: 2px; font-size: 11px; font-weight: 600; letter-spacing: 0; color: var(--mes-text-faint); }
+.mtt-stat-sub { display: flex; gap: 8px; font-size: 11.5px; font-style: normal; color: var(--mes-text-faint); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.mtt-stat-sub span { font-weight: 700; color: var(--mes-text-sub); }
+.mtt-stat.is-warn .mtt-stat-val b,
+.mtt-stat.is-warn .mtt-stat-sub span { color: #b45f06; }
+.mtt-stat-val.is-bad b { color: #c62828; }
+.mtt-stat.is-cp .mtt-stat-val b { color: #2f5fb3; }
+
+/* 관리 범위 게이지 — 범위 전체가 막대, 점 = 지금 값(벗어나면 빨강 테두리) */
+.mtt-gauge { position: relative; display: flex; justify-content: space-between; padding-top: 10px; }
+.mtt-gauge-track { position: absolute; top: 3px; left: 0; right: 0; height: 4px; border-radius: 2px; background: #e3e8ef; }
+.mtt-gauge-track i { position: absolute; top: 50%; width: 10px; height: 10px; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 0 2px var(--mes-surface); transition: left .6s ease; }
+.mtt-gauge-track i.is-out { box-shadow: 0 0 0 2px #c62828; }
+.mtt-gauge small { font-size: 10.5px; color: var(--mes-text-faint); font-variant-numeric: tabular-nums; }
+
+/* 패널이 좁으면 머리줄을 두 줄로 */
+.mtt-head { flex-wrap: wrap; row-gap: 4px; }
+
+/* 그래프 넘김 */
+.mbs-view { flex: 1; min-height: 100px; overflow: hidden; } /* 남는 높이만큼(하단 칸이 낮아도 잘리지 않게) */
+.mbs-track { display: flex; height: 100%; }
+@media (prefers-reduced-motion: no-preference) {
+  .mbs-track { transition: transform .7s cubic-bezier(.65, 0, .35, 1); }
+}
+.mbs-page { flex-shrink: 0; display: flex; flex-direction: column; height: 100%; min-width: 0; }
+
+.mbc-chart { position: relative; flex: 1; min-height: 0; cursor: crosshair; }
+.mbc-svg { position: absolute; inset: 0; display: block; overflow: visible; font-family: inherit; }
+.mbc-grid { stroke: #e8ecf1; stroke-width: 1; }
+.mbc-ylab { font-size: 10.5px; fill: var(--mes-text-faint); text-anchor: end; font-variant-numeric: tabular-nums; }
+.mbc-xlab { font-size: 10.5px; fill: var(--mes-text-faint); text-anchor: middle; font-variant-numeric: tabular-nums; }
+.mbc-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; transition: opacity .2s, stroke-width .2s; }
+.mbc-end { stroke: var(--mes-surface); stroke-width: 2; }
+.mbc-series { transition: opacity .2s; }
+.mbc-series.is-dim { opacity: .18; }
+.mbc-series.is-focus .mbc-line { stroke-width: 2.75; }
+.mbc-band { opacity: .1; }
+.mbc-sp { stroke-width: 1.2; stroke-dasharray: 5 4; opacity: .8; }
+.mbc-cross { stroke: #94a3b8; stroke-width: 1; }
+.mbc-hdot { stroke: var(--mes-surface); stroke-width: 2; }
+
+.mbc-tip { position: absolute; top: 6px; z-index: 3; display: flex; flex-direction: column; gap: 2px; min-width: 112px; margin-left: 12px; padding: 7px 10px; border-radius: 8px; background: #1f2633; box-shadow: 0 8px 22px rgba(15, 23, 42, .22); font-size: 12px; color: #dfe5ee; white-space: nowrap; pointer-events: none; }
+.mbc-tip.is-left { margin-left: 0; transform: translateX(calc(-100% - 12px)); }
+.mbc-tip b { font-size: 12px; color: #fff; }
+.mbc-tip span { display: flex; align-items: center; gap: 6px; }
+.mbc-tip span i { width: 10px; height: 3px; border-radius: 2px; }
+.mbc-tip span em { margin-left: auto; padding-left: 12px; font-style: normal; font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; }

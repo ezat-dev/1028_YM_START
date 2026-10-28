@@ -263,12 +263,8 @@ public partial class PlcService
         return result;
     }
 
-    //  예전엔 X/Y(입출력) 디바이스를 "PLC 화면 표기는 8진수" 관례로 보고 여기서 8진수→10진수
-    //  변환을 했었다(X20(8진 라벨)→10진수 16 등, MELSEC FX5 매뉴얼 CGI Object 규칙 근거).
-    //  근데 실제 태그 주소가 X04A/Y15A처럼 8진수엔 없는 문자(8,9,A~F)를 쓰는 16진수 블록으로
-    //  들어오게 되면서, LiveTagMonitorService.ParseAddressFull 쪽에서 X/Y 주소 문자열을 아예
-    //  16진수로 직접 해석해 "프레임에 넣을 최종 값"까지 이미 확정해서 넘겨주도록 바꿨다 —
-    //  그래서 여기서는 X/Y도 더 이상 손댈 게 없어 다른 디바이스와 동일하게 그대로 통과시킨다.
+    //  X/Y 주소의 GX Works2 표기(16진수)는 LiveTagMonitorService.ParseAddressFull 등 호출부에서
+    //  숫자 주소로 변환한다. MC Protocol 패킷 빌더에서는 그 주소를 별도 변환 없이 그대로 사용한다.
     private static int ResolveMitsubishiAddress(int address, byte deviceCode) => address;
 
     //  미쓰비시 패킷 빌더 — 워드 읽기 (서브커맨드 0x0000)
